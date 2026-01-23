@@ -28,13 +28,22 @@ db.exec(`
     troop_number TEXT NOT NULL
   );
 
+  CREATE TABLE IF NOT EXISTS judges (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    unit TEXT
+  );
+
   CREATE TABLE IF NOT EXISTS scores (
     uuid TEXT PRIMARY KEY,
     game_id TEXT NOT NULL,
     entity_id INTEGER NOT NULL,
     score_payload TEXT NOT NULL,
     timestamp INTEGER NOT NULL,
-    FOREIGN KEY(entity_id) REFERENCES entities(id)
+    judge_id INTEGER,
+    FOREIGN KEY(entity_id) REFERENCES entities(id),
+    FOREIGN KEY(judge_id) REFERENCES judges(id)
   );
 `);
 
@@ -105,26 +114,41 @@ app.get('/games.json', (req, res) => {
   }
 });
 
-// Get Roster
-app.get('/api/entities', (req, res) => {
-  const rows = db.prepare('SELECT * FROM entities ORDER BY troop_number, name').all();
-  res.json(rows);
-});
 
-// Submit Score
-app.post('/api/submit-score', (req, res) => {
-  const { uuid, game_id, entity_id, score_payload, timestamp } = req.body;
+// Receive Score
+app.post('/api/score', (req, res) => {
+  const { uuid, game_id, entity_id, score_payload, timestamp, judge_name, judge_email, judge_unit } = req.body;
 
   if (!uuid || !game_id || !entity_id || !score_payload) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
   try {
-    const insert = db.prepare(`
-      INSERT OR IGNORE INTO scores (uuid, game_id, entity_id, score_payload, timestamp)
-      VALUES (?, ?, ?, ?, ?)
-    `);
-    const result = insert.run(uuid, game_id, entity_id, JSON.stringify(score_payload), timestamp);
+    const transaction = db.transaction(() => {
+        let judgeId = null;
+
+        // Handle Judge Info
+        if (judge_email) {
+            const getJudge = db.prepare('SELECT id FROM judges WHERE email = ?');
+            const existingJudge = getJudge.get(judge_email);
+
+            if (existingJudge) {
+                judgeId = existingJudge.id;
+            } else if (judge_name) {
+                const insertJudge = db.prepare('INSERT INTO judges (name, email, unit) VALUES (?, ?, ?)');
+                const info = insertJudge.run(judge_name, judge_email, judge_unit || null);
+                judgeId = info.lastInsertRowid;
+            }
+        }
+
+        const insert = db.prepare(`
+          INSERT OR IGNORE INTO scores (uuid, game_id, entity_id, score_payload, timestamp, judge_id)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `);
+        return insert.run(uuid, game_id, entity_id, JSON.stringify(score_payload), timestamp, judgeId);
+    });
+
+    const result = transaction();
 
     if (result.changes === 0) {
       // Record already exists (idempotency by uuid)
@@ -132,11 +156,13 @@ app.post('/api/submit-score', (req, res) => {
     }
 
     res.status(201).json({ status: 'success' });
+
   } catch (err) {
     console.error('Insert error:', err);
     res.status(500).json({ error: 'Database error' });
   }
 });
+
 
 // Admin All Data
 app.get('/api/admin/all-data', (req, res) => {

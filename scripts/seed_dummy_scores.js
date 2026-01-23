@@ -24,9 +24,30 @@ try {
         process.exit(1);
     }
 
+    // Insert Dummy Judge
+    const insertJudge = db.prepare(`
+        INSERT INTO judges (name, email, unit) VALUES (?, ?, ?)
+    `);
+
+    // Check if judge exists to avoid unique constraint error
+    const getJudge = db.prepare('SELECT id FROM judges WHERE email = ?');
+    let judgeId;
+
+    const judgeEmail = 'dredd@law.com';
+    const existingJudge = getJudge.get(judgeEmail);
+
+    if (existingJudge) {
+        judgeId = existingJudge.id;
+        console.log(`Using existing judge ID: ${judgeId}`);
+    } else {
+        const info = insertJudge.run('Judge Dredd', judgeEmail, 'Mega-City One');
+        judgeId = info.lastInsertRowid;
+        console.log(`Created new judge with ID: ${judgeId}`);
+    }
+
     const insertStmt = db.prepare(`
-        INSERT INTO scores (uuid, game_id, entity_id, score_payload, timestamp)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO scores (uuid, game_id, entity_id, score_payload, timestamp, judge_id)
+        VALUES (?, ?, ?, ?, ?, ?)
     `);
 
     const transaction = db.transaction(() => {
@@ -35,12 +56,7 @@ try {
             const uuid = crypto.randomUUID();
             const timestamp = Date.now();
 
-            insertStmt.run(uuid, GAME_ID, randomEntity.id, JSON.stringify(PAYLOAD), timestamp);
-            console.log(`Inserted score for entity ${randomEntity.id} (Game: ${GAME_ID})`);
-        }
-    });
-
-    transaction();
+            insertStmt.run(uuid, GAME_ID, randomEntity.id, JSON.stringify(PAYLOAD), timestamp, judgeId);
     console.log('Successfully inserted 5 dummy scores.');
 
 } catch (err) {

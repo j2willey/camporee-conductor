@@ -18,6 +18,14 @@
         <div id="view-home">
              <div class="card">
                 <h2>Welcome, Judge.</h2>
+
+                <div style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #eee;">
+                    <label style="display:block; margin-bottom:0.5rem">My Info:</label>
+                    <input type="text" id="judge-name" placeholder="Name (e.g. Bill Scout)" style="width:100%; margin-bottom:0.5rem; padding:8px;">
+                    <input type="email" id="judge-email" placeholder="Email (Unique ID)" style="width:100%; margin-bottom:0.5rem; padding:8px;">
+                    <input type="text" id="judge-unit" placeholder="Unit (e.g. Troop 101)" style="width:100%; margin-bottom:0.5rem; padding:8px;">
+                </div>
+
                 <div class="sync-status">
                     <p>Unsynced Scores: <span id="unsynced-count">0</span></p>
                     <button id="btn-sync" class="btn btn-secondary">Sync Scores Now</button>

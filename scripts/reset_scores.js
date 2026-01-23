@@ -10,8 +10,12 @@ const db = new Database(dbPath);
 console.log(`Connected to ${dbPath}`);
 
 try {
-    const result = db.prepare('DELETE FROM scores').run();
-    console.log(`Deleted ${result.changes} rows from scores table.`);
+    const scoreResult = db.prepare('DELETE FROM scores').run();
+    console.log(`Deleted ${scoreResult.changes} rows from scores table.`);
+
+    const judgeResult = db.prepare('DELETE FROM judges').run();
+    console.log(`Deleted ${judgeResult.changes} rows from judges table.`);
+
 } catch (err) {
     if (err.message.includes('no such table')) {
         console.log('Table "scores" does not exist yet.');

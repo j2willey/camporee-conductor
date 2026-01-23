@@ -27,7 +27,10 @@ const els = {
     scoreForm: document.getElementById('score-form'),
     scoringTitle: document.getElementById('scoring-title'),
     scoringTeam: document.getElementById('scoring-team'),
-    lastUpdated: document.getElementById('last-updated')
+    lastUpdated: document.getElementById('last-updated'),
+    judgeName: document.getElementById('judge-name'),
+    judgeEmail: document.getElementById('judge-email'),
+    judgeUnit: document.getElementById('judge-unit')
 };
 
 // --- Initialization ---
@@ -335,15 +338,27 @@ function submitScore(e) {
         game_id: state.currentStation.id,
         entity_id: state.currentEntity.id,
         score_payload: scorePayload,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        judge_name: els.judgeName ? els.judgeName.value : null,
+        judge_email: els.judgeEmail ? els.judgeEmail.value : null,
+        judge_unit: els.judgeUnit ? els.judgeUnit.value : null
     };
+
+    // Save Judge Info
+    if (packet.judge_name || packet.judge_email) {
+        localStorage.setItem('judge_info', JSON.stringify({
+            name: packet.judge_name,
+            email: packet.judge_email,
+            unit: packet.judge_unit
+        }));
+    }
 
     // Queue
     syncManager.addToQueue(packet);
 
     updateSyncCounts();
     alert('Score Saved!');
-    navigate('home');
+    app.navigate('home');
 
     // Attempt background sync if online
     if (state.isOnline) {

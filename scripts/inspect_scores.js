@@ -10,9 +10,10 @@ try {
     const db = new Database(dbPath, { readonly: true });
 
     const stmt = db.prepare(`
-        SELECT s.timestamp, s.game_id, e.name, s.score_payload
+        SELECT s.timestamp, s.game_id, e.name as entity_name, j.name as judge_name, s.score_payload
         FROM scores s
         JOIN entities e ON s.entity_id = e.id
+        LEFT JOIN judges j ON s.judge_id = j.id
         ORDER BY s.timestamp DESC
         LIMIT 5
     `);
@@ -32,7 +33,8 @@ try {
         console.log(`--- Record ${index + 1} ---`);
         console.log(`Time:   ${new Date(row.timestamp).toISOString()}`);
         console.log(`Game:   ${row.game_id}`);
-        console.log(`Entity: ${row.name}`);
+        console.log(`Entity: ${row.entity_name}`);
+        console.log(`Judge:  ${row.judge_name || 'N/A'}`);
         console.log('Score: ', payload);
         console.log('');
     });
