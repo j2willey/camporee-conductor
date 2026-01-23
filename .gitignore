@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Production Database & Data
+# We want the 'data' folder to exist, but NOT the actual DB files inside it.
+data/*
+!data/.gitkeep
+*.sqlite
+*.db
+*.sqlite3
+*.log
+
+# Environment Variables (Secrets)
+.env
+.env.local
+
+# OS Generated Files
+.DS_Store
+Thumbs.db
+
+# Editor Directories
+.vscode/
+.idea/
+
+# Docker (Optional: if you have local override files)
+docker-compose.override.yml
