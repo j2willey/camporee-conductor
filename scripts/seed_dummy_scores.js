@@ -1,68 +1,62 @@
 import Database from 'better-sqlite3';
 import path from 'path';
-import { fileURLToPath } from 'url';
-import crypto from 'crypto';
+import { randomUUID } from 'crypto';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const dbPath = path.join(__dirname, '..', 'data', 'camporee.db');
-
+// Connect to DB
+const dbPath = path.join(process.cwd(), 'data', 'camporee.db');
 const db = new Database(dbPath);
 
-const GAME_ID = 'game_01_boil';
-const PAYLOAD = { "boil_time": "05:00", "matches_used": 10 };
-
-console.log('--- Seeding Dummy Scores ---');
+console.log('🌱 Seeding dummy scores...');
 
 try {
-    // Get all entity IDs
-    // We probably only want to score 'patrol' types, but the prompt said "random entity_id from the entities table"
-    const entities = db.prepare('SELECT id FROM entities').all();
+    // 1. Ensure we have a Judge
+    // We need a judge to attach scores to, or the Foreign Key constraint will fail.
+    const judgeInfo = db.prepare(`
+        INSERT INTO judges (name, email, unit)
+        VALUES ('Judge Dredd', 'dredd@mega-city.com', 'Hall of Justice')
+        ON CONFLICT(email) DO UPDATE SET name=name
+        RETURNING id
+    `).get();
+
+    const judgeId = judgeInfo.id;
+    console.log(`   Using Judge ID: ${judgeId}`);
+
+    // 2. Get some Entities (Patrols)
+    const entities = db.prepare("SELECT id, name FROM entities WHERE type='patrol' LIMIT 5").all();
 
     if (entities.length === 0) {
-        console.error('No entities found! Cannot seed scores. Run db:import first.');
-        process.exit(1);
+        throw new Error("No patrols found! Run 'npm run import:roster' first.");
     }
 
-    // Insert Dummy Judge
-    const insertJudge = db.prepare(`
-        INSERT INTO judges (name, email, unit) VALUES (?, ?, ?)
-    `);
-
-    // Check if judge exists to avoid unique constraint error
-    const getJudge = db.prepare('SELECT id FROM judges WHERE email = ?');
-    let judgeId;
-
-    const judgeEmail = 'dredd@law.com';
-    const existingJudge = getJudge.get(judgeEmail);
-
-    if (existingJudge) {
-        judgeId = existingJudge.id;
-        console.log(`Using existing judge ID: ${judgeId}`);
-    } else {
-        const info = insertJudge.run('Judge Dredd', judgeEmail, 'Mega-City One');
-        judgeId = info.lastInsertRowid;
-        console.log(`Created new judge with ID: ${judgeId}`);
-    }
-
-    const insertStmt = db.prepare(`
+    // 3. Insert Scores
+    const insertScore = db.prepare(`
         INSERT INTO scores (uuid, game_id, entity_id, score_payload, timestamp, judge_id)
         VALUES (?, ?, ?, ?, ?, ?)
     `);
 
-    const transaction = db.transaction(() => {
-        for (let i = 0; i < 5; i++) {
-            const randomEntity = entities[Math.floor(Math.random() * entities.length)];
-            const uuid = crypto.randomUUID();
-            const timestamp = Date.now();
+    let count = 0;
 
-            insertStmt.run(uuid, GAME_ID, randomEntity.id, JSON.stringify(PAYLOAD), timestamp, judgeId);
-    console.log('Successfully inserted 5 dummy scores.');
+    // START LOOP
+    entities.forEach(entity => {
+        const payload = JSON.stringify({
+            matches_used: Math.floor(Math.random() * 10) + 1,
+            boil_time: "05:30"
+        });
 
-} catch (err) {
-    if (err.message.includes('no such table')) {
-        console.error('Error: Table missing. Make sure the database is initialized.');
-    } else {
-        console.error('Error seeding scores:', err);
-    }
+        insertScore.run(
+            randomUUID(),
+            'game_01_boil',
+            entity.id,
+            payload,
+            Date.now(),
+            judgeId
+        );
+        count++;
+    });
+    // END LOOP (This brace was likely missing or mismatched)
+
+    console.log(`✅ Successfully seeded ${count} dummy scores.`);
+
+} catch (err) { // END TRY
+    console.error('❌ Seeding failed:', err);
 }

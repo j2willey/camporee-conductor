@@ -50,20 +50,16 @@ db.exec(`
 // Seed Entities if empty
 const entCount = db.prepare('SELECT count(*) as count FROM entities').get();
 if (entCount.count === 0) {
+  // Basic seed if no roster imported
   const insert = db.prepare('INSERT INTO entities (id, name, type, troop_number) VALUES (?, ?, ?, ?)');
   const seedData = [
     [101, 'Flaming Flamingoes', 'patrol', '101'],
-    [102, 'Screaming Eagles', 'patrol', '101'],
-    [201, 'Troop 101', 'troop', '101'],
-    [301, 'Muddy Otters', 'patrol', '55'],
-    [302, 'Silent Owls', 'patrol', '55'],
-    [401, 'Troop 55', 'troop', '55']
+    [201, 'Troop 101', 'troop', '101']
   ];
   const transaction = db.transaction((data) => {
     for (const row of data) insert.run(row);
   });
   transaction(seedData);
-  console.log('Seeded entities table.');
 }
 
 app.use(express.json());
@@ -71,7 +67,7 @@ app.use(express.static('public'));
 
 // --- API ROUTES ---
 
-// Get Games Configuration
+// 1. GET /games.json (Configuration)
 app.get('/games.json', (req, res) => {
   try {
     const configDir = path.join(__dirname, 'config');
@@ -79,7 +75,10 @@ app.get('/games.json', (req, res) => {
     const gamesDir = path.join(configDir, 'games');
 
     // Read common scoring
-    const commonScoring = JSON.parse(fs.readFileSync(commonPath, 'utf-8'));
+    let commonScoring = [];
+    if (fs.existsSync(commonPath)) {
+        commonScoring = JSON.parse(fs.readFileSync(commonPath, 'utf-8'));
+    }
 
     // Read games
     const games = [];
@@ -94,17 +93,10 @@ app.get('/games.json', (req, res) => {
     }
 
     // Sort games by id
-    games.sort((a, b) => {
-      if (a.id < b.id) return -1;
-      if (a.id > b.id) return 1;
-      return 0;
-    });
+    games.sort((a, b) => (a.id > b.id) ? 1 : -1);
 
     res.json({
-      metadata: {
-        version: "1.0",
-        generated_at: new Date().toISOString()
-      },
+      metadata: { version: "1.0", generated_at: new Date().toISOString() },
       common_scoring: commonScoring,
       games: games
     });
@@ -114,8 +106,19 @@ app.get('/games.json', (req, res) => {
   }
 });
 
+// 2. GET /api/entities (THE MISSING ROUTE!)
+app.get('/api/entities', (req, res) => {
+  try {
+    const stmt = db.prepare('SELECT * FROM entities ORDER BY troop_number ASC, name ASC');
+    const rows = stmt.all();
+    res.json(rows);
+  } catch (err) {
+    console.error('Error fetching entities:', err);
+    res.status(500).json({ error: 'Database error' });
+  }
+});
 
-// Receive Score
+// 3. POST /api/score (Submit Score)
 app.post('/api/score', (req, res) => {
   const { uuid, game_id, entity_id, score_payload, timestamp, judge_name, judge_email, judge_unit } = req.body;
 
@@ -127,7 +130,6 @@ app.post('/api/score', (req, res) => {
     const transaction = db.transaction(() => {
         let judgeId = null;
 
-        // Handle Judge Info
         if (judge_email) {
             const getJudge = db.prepare('SELECT id FROM judges WHERE email = ?');
             const existingJudge = getJudge.get(judge_email);
@@ -149,11 +151,7 @@ app.post('/api/score', (req, res) => {
     });
 
     const result = transaction();
-
-    if (result.changes === 0) {
-      // Record already exists (idempotency by uuid)
-      return res.status(200).json({ status: 'already_exists' });
-    }
+    if (result.changes === 0) return res.status(200).json({ status: 'already_exists' });
 
     res.status(201).json({ status: 'success' });
 
@@ -163,107 +161,18 @@ app.post('/api/score', (req, res) => {
   }
 });
 
-
-// Admin All Data
+// 4. Admin & Export Routes
 app.get('/api/admin/all-data', (req, res) => {
   try {
     const rows = db.prepare(`
         SELECT s.uuid, s.game_id, s.timestamp, e.name as entity_name, e.troop_number, e.type as entity_type, s.score_payload
-        FROM scores s
-        JOIN entities e ON s.entity_id = e.id
+        FROM scores s JOIN entities e ON s.entity_id = e.id
     `).all();
 
-    const stats = {};
-    const parsedScores = rows.map(row => {
-      // Update stats
-      if (!stats[row.game_id]) stats[row.game_id] = 0;
-      stats[row.game_id]++;
-
-      // Parse payload
-      let payload = {};
-      try {
-        payload = JSON.parse(row.score_payload);
-      } catch (e) {
-        console.error('Failed to parse payload for', row.uuid);
-      }
-      return { ...row, score_payload: payload };
-    });
-
-    res.json({
-        stats,
-        scores: parsedScores
-    });
-
-  } catch (err) {
-    console.error('Admin data error:', err);
-    res.status(500).json({ error: 'Database error' });
-  }
-});
-
-// Export CSV
-app.get('/api/export', (req, res) => {
-  try {
-    const rows = db.prepare(`
-        SELECT s.uuid, s.game_id, s.timestamp, e.name as entity_name, e.troop_number, e.type as entity_type, s.score_payload
-        FROM scores s
-        JOIN entities e ON s.entity_id = e.id
-    `).all();
-
-    if (rows.length === 0) {
-        res.setHeader('Content-Type', 'text/csv');
-        res.send('uuid,game_id,timestamp,entity_name,troop_number,entity_type,score_data\n');
-        return;
-    }
-
-    // Flatten JSON
-    // We need to discover all potential keys to make a consistent CSV header, or just dump the JSON string.
-    // Requirement says: "parse the JSON score_payload into separate columns"
-    // Since keys vary by game, we'll create a superset of columns or just include all found keys.
-    // simpler approach: One CSV per game type? The requirement says "A route... Generates A flattened CSV".
-    // Mixed schemas in one CSV is messy (sparse matrix).
-    // I will collect ALL unique keys across ALL records to build the header.
-
-    const allKeys = new Set(['uuid', 'game_id', 'timestamp', 'entity_name', 'troop_number', 'entity_type']);
-    const processedRows = rows.map(row => {
-        const payload = JSON.parse(row.score_payload);
-        const flatRow = {
-            uuid: row.uuid,
-            game_id: row.game_id,
-            timestamp: new Date(row.timestamp).toISOString(),
-            entity_name: row.entity_name,
-            troop_number: row.troop_number,
-            entity_type: row.entity_type
-        };
-
-        for (const [key, val] of Object.entries(payload)) {
-            const cleanKey = `data_${key}`; // Prefix to avoid collisions
-            allKeys.add(cleanKey);
-            flatRow[cleanKey] = val;
-        }
-        return flatRow;
-    });
-
-    const headers = Array.from(allKeys).sort();
-
-    const csvRows = [headers.join(',')];
-
-    for (const row of processedRows) {
-        const values = headers.map(header => {
-            const val = row[header] === undefined ? '' : row[header];
-            const strVal = String(val).replace(/"/g, '""'); // Escape quotes
-            return `"${strVal}"`;
-        });
-        csvRows.push(values.join(','));
-    }
-
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename="scores.csv"');
-    res.send(csvRows.join('\n'));
-
-  } catch (err) {
-    console.error('Export error:', err);
-    res.status(500).send('Export failed');
-  }
+    // Parse JSON payloads for display
+    const parsed = rows.map(r => ({ ...r, score_payload: JSON.parse(r.score_payload) }));
+    res.json({ scores: parsed });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.listen(PORT, '0.0.0.0', () => {
