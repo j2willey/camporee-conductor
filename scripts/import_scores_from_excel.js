@@ -57,6 +57,9 @@ const convertValue = (val, type) => {
     return String(val);
 };
 
+// Sort game configs by ID length descending to prevent substring matches (e.g. p1 matching p10)
+gameConfigs.sort((a, b) => b.id.length - a.id.length);
+
 // HELPER: Wait for server availability
 async function waitForServer() {
     console.log("Checking server availability...");
@@ -91,8 +94,64 @@ async function runImport() {
         const normSheet = normalize(sheetName);
         console.log(`\nProcessing Sheet: ${sheetName}`);
 
-        // Find matching game config
-        const game = gameConfigs.find(g => normalize(g.id) === normSheet || normalize(g.name).includes(normSheet) || normSheet.includes(normalize(g.id)));
+        // Matching Logic Priority:
+        // 1. Exact ID Match (highest confidence)
+        // 2. Exact Name Match
+        // 3. ID starts with Sheet (e.g. Sheet "P3" -> Game "P3_Skits")
+        // 4. Fuzzy fallback (only if unique?)
+
+        let game = gameConfigs.find(g => normalize(g.id) === normSheet);
+
+        if (!game) {
+            game = gameConfigs.find(g => normalize(g.name) === normSheet);
+        }
+
+        if (!game) {
+            // Check if Game ID starts with Sheet Name (e.g. P3 matches P3_Skits, but P2 should NOT match P21)
+            // But P2 matches P21_... if we just do startsWith.
+            // We want to avoid P2 matching P21.
+            // Maybe strict ID match is best for these short codes.
+
+            // Try: Normalizing game name includes sheet name or vice versa
+            game = gameConfigs.find(g => normalize(g.name).includes(normSheet) || normSheet.includes(normalize(g.name)));
+        }
+
+        // Special handling for legacy sheet names if needed, or ask user.
+        // Recover P2 -> P2 match which failed strict because of length sort + includes()
+        if (!game) {
+             game = gameConfigs.find(g => normalize(g.id).startsWith(normSheet) && normalize(g.id).replace(normSheet, '').match(/^[^0-9]/));
+             // match "P3" in "P3_Skits" (underscore/letters follow) but NOT "P2" in "P21" (digit follows)
+             // normalize() removes underscores though.
+        }
+
+        // Final fallback: original loose match but SKIP if it looks like a prefix conflict (p1 vs p10)
+        if (!game) {
+             game = gameConfigs.find(g => {
+                 const nId = normalize(g.id);
+                 // Strict checks:
+                 // If normSheet is "p2", nId "p21..." should NOT match just because it contains p2.
+
+                 return nId === normSheet; // We already checked this.
+             });
+        }
+
+        // Revert to find() with better logic logic
+        if (!game) {
+             game = gameConfigs.find(g => {
+                 const nId = normalize(g.id);
+                 // Sheet "P17 Racing" -> "p17racing". Game "p17_racing" -> "p17racing". Match!
+                 if (nId === normSheet) return true;
+
+                 // Sheet "P3 Skits" -> "p3skits". Game "p3_skits" -> "p3skits". Match!
+
+                 // Sheet "P2" -> "p2". Game "p2" -> "p2". Match!
+
+                 // If the sheet name is contained in the Game Name
+                 if (normalize(g.name).includes(normSheet)) return true;
+
+                 return false;
+             });
+        }
 
         if (!game) {
             console.log(`  XX No matching game config found. Skipping.`);

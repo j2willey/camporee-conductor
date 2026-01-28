@@ -49,13 +49,49 @@ async function loadData() {
 function setupNavigation() {
     const navOverview = document.getElementById('nav-overview');
     const navMatrix = document.getElementById('nav-matrix');
+    const navRegistration = document.getElementById('nav-registration');
     const backBtn = document.getElementById('back-to-overview');
     const transposeBtn = document.getElementById('btn-transpose');
     const viewModeSelect = document.getElementById('view-mode-select');
+    const resetDbBtn = document.getElementById('btn-reset-db');
+
+    if (resetDbBtn) {
+        resetDbBtn.addEventListener('click', async () => {
+            if (confirm('DANGER: This will delete ALL scores from the database. This cannot be undone.\n\nAre you sure?')) {
+                const check = prompt("Type 'DELETE' to confirm:");
+                if (check === 'DELETE') {
+                    try {
+                        const res = await fetch('/api/admin/data', { method: 'DELETE' });
+                        if (res.ok) {
+                            alert('Database cleared.');
+                            window.location.reload();
+                        } else {
+                            alert('Failed to clear database.');
+                        }
+                    } catch (e) {
+                        alert('Error: ' + e.message);
+                    }
+                }
+            }
+        });
+    }
 
     navOverview.addEventListener('click', () => switchView('overview'));
     navMatrix.addEventListener('click', () => switchView('matrix'));
+
+    if (navRegistration) {
+        navRegistration.addEventListener('click', () => switchView('registration'));
+    }
+
     backBtn.addEventListener('click', () => switchView('overview'));
+
+    // ... rest of listeners
+    // Form Listener
+    const regForm = document.getElementById('reg-form');
+    if (regForm) {
+        regForm.addEventListener('submit', handleRegistration);
+    }
+
     transposeBtn.addEventListener('click', () => {
         matrixTranspose = !matrixTranspose;
         renderMatrix();
@@ -66,6 +102,7 @@ function setupNavigation() {
             currentViewMode = e.target.value;
             if (currentView === 'overview') renderOverview();
             else if (currentView === 'matrix') renderMatrix();
+            // Registration view doesn't filter by mode immediately but shows full list
         });
     }
 }
@@ -85,8 +122,12 @@ function switchView(viewName) {
         renderMatrix();
     } else if (viewName === 'detail') {
         document.getElementById('view-detail').classList.remove('hidden');
-        // keep overview active in nav as parent
         document.getElementById('nav-overview').classList.add('active');
+    } else if (viewName === 'registration') {
+        document.getElementById('view-registration').classList.remove('hidden');
+        const regBtn = document.getElementById('nav-registration');
+        if(regBtn) regBtn.classList.add('active');
+        renderRoster();
     }
 }
 
@@ -151,6 +192,12 @@ function openGameDetail(gameId) {
         headerRow.appendChild(createTh(field.label));
     });
 
+    // Common Scoring Cols
+    const commonFields = appData.commonScoring || [];
+    commonFields.forEach(field => {
+        headerRow.appendChild(createTh(field.label));
+    });
+
     thead.appendChild(headerRow);
     table.appendChild(thead);
 
@@ -169,13 +216,19 @@ function openGameDetail(gameId) {
             tr.appendChild(createTd(formatValue(val, field.type)));
         });
 
+        // Common Fields
+        commonFields.forEach(field => {
+            const val = score.score_payload[field.id];
+            tr.appendChild(createTd(formatValue(val, field.type)));
+        });
+
         tbody.appendChild(tr);
     });
 
     if (gameScores.length === 0) {
         const tr = document.createElement('tr');
         const td = document.createElement('td');
-        td.colSpan = 3 + gameFields.length;
+        td.colSpan = 3 + gameFields.length + commonFields.length;
         td.innerText = "No scores submitted yet.";
         td.style.textAlign = 'center';
         td.style.padding = '20px';
@@ -303,3 +356,100 @@ function renderMatrixTransposed(table, games, patrols) {
     });
     table.appendChild(tbody);
 }
+
+// --- Registration View ---
+
+function renderRoster() {
+    const tbody = document.getElementById('roster-tbody');
+    tbody.innerHTML = '';
+
+    const entities = [...appData.entities].sort((a, b) => {
+        // Sort by type (Troop first), then Number
+        if (a.type !== b.type) return a.type === 'troop' ? -1 : 1;
+        const numA = parseInt(a.troop_number) || 0;
+        const numB = parseInt(b.troop_number) || 0;
+        if (numA !== numB) return numA - numB;
+        return a.name.localeCompare(b.name);
+    });
+
+    entities.forEach(ent => {
+        const tr = document.createElement('tr');
+
+        // Type Badge
+        const typeTd = document.createElement('td');
+        const badge = document.createElement('span');
+        badge.className = 'badge';
+        badge.innerText = ent.type.toUpperCase();
+        // Simple styling for badge if not in css
+        badge.style.padding = '2px 5px';
+        badge.style.borderRadius = '4px';
+        badge.style.backgroundColor = ent.type === 'troop' ? '#3498db' : '#e67e22';
+        badge.style.color = '#fff';
+        badge.style.fontSize = '0.8em';
+
+        typeTd.appendChild(badge);
+        tr.appendChild(typeTd);
+
+        tr.appendChild(createTd(ent.troop_number));
+        tr.appendChild(createTd(ent.name));
+        tr.appendChild(createTd(ent.id));
+
+        tbody.appendChild(tr);
+    });
+}
+
+async function handleRegistration(e) {
+    e.preventDefault();
+
+    const typeSelect = document.getElementById('reg-type');
+    const numInput = document.getElementById('reg-troop-num');
+    const nameInput = document.getElementById('reg-name');
+    const msgDiv = document.getElementById('reg-message');
+
+    const payload = {
+        name: nameInput.value.trim(),
+        type: typeSelect.value,
+        troop_number: numInput.value.trim()
+    };
+
+    if (!payload.troop_number || !payload.name) {
+        msgDiv.innerText = 'Please fill all fields';
+        msgDiv.style.color = 'red';
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/entities', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) throw new Error('Failed to register');
+
+        const newEntity = await res.json();
+
+        // Update Local State
+        appData.entities.push(newEntity);
+
+        // Feedback
+        msgDiv.innerText = `Success: Added ${newEntity.name}`;
+        msgDiv.style.color = 'green';
+
+        // Clear Form Name only (keep troop num for convenience)
+        nameInput.value = '';
+        nameInput.focus();
+
+        // Refresh List
+        renderRoster();
+
+        // Clear success message after 3s
+        setTimeout(() => { msgDiv.innerText = ''; }, 3000);
+
+    } catch (err) {
+        console.error(err);
+        msgDiv.innerText = 'Error registering entity';
+        msgDiv.style.color = 'red';
+    }
+}
+

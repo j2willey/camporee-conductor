@@ -171,8 +171,27 @@ app.get('/api/admin/all-data', (req, res) => {
 
     // Parse JSON payloads for display
     const parsed = rows.map(r => ({ ...r, score_payload: JSON.parse(r.score_payload) }));
-    res.json({ scores: parsed });
+
+    const stats = {};
+    parsed.forEach(r => {
+        stats[r.game_id] = (stats[r.game_id] || 0) + 1;
+    });
+
+    res.json({ scores: parsed, stats });
   } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ADMIN: RESET DATA
+app.delete('/api/admin/data', (req, res) => {
+    try {
+        db.transaction(() => {
+            db.prepare('DELETE FROM scores').run();
+            // Optional: db.prepare('DELETE FROM entities').run(); // Determine if we want to nuke entities too
+        })();
+        res.json({ success: true, message: 'Scores deleted.' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 app.listen(PORT, '0.0.0.0', () => {
