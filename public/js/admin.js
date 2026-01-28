@@ -27,8 +27,8 @@ async function loadData() {
         // Fetch Data
         const dataRes = await fetch('/api/admin/all-data');
         const dataResult = await dataRes.json();
-        appData.scores = dataResult.scores;
-        appData.stats = dataResult.stats;
+        appData.scores = dataResult.scores || [];
+        appData.stats = dataResult.stats || {};
 
         console.log('Loaded Data:', appData);
 
