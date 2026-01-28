@@ -354,6 +354,9 @@ function generateFieldHTML(field) {
     else if (field.type === 'select') {
         input = `<select class="form-select form-select-lg" id="f_${id}">${field.options.map(o=>`<option value="${o}">${o}</option>`).join('')}</select>`;
     }
+    else if (field.type === 'textarea') {
+        input = `<textarea class="form-control" id="f_${id}" rows="3" placeholder="${field.placeholder || ''}"></textarea>`;
+    }
     else {
         input = `<input type="text" class="form-control form-control-lg" id="f_${id}">`;
     }

@@ -34,7 +34,7 @@ export class SyncManager {
                 // Remove internal _synced flag before sending
                 const { _synced, ...payload } = item;
 
-                const response = await fetch('/api/submit-score', {
+                const response = await fetch('/api/score', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)

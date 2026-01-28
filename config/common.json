@@ -26,5 +26,11 @@
     "min": 0,
     "max": 100,
     "helperText": "Enter POSITIVE number to deduct points"
+  },
+  {
+    "id": "judge_notes",
+    "label": "Judge Notes / Comments",
+    "type": "textarea",
+    "placeholder": "Optional notes on performance..."
   }
 ]
