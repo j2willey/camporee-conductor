@@ -215,6 +215,21 @@ async function runImport() {
 
             if (!hasData) continue;
 
+            // Check if all data is effectively "zero" (e.g. 0, "0", false) which indicates a placeholder row
+            // The user noted that some rows have "0" in columns due to excel formulas but aren't real scores.
+            const isEffectiveZero = Object.values(payload).every(v =>
+                v === 0 ||
+                v === "0" ||
+                v === false ||
+                v === null ||
+                v === "00:00" // Time field empty/zero result
+            );
+
+            if (isEffectiveZero) {
+                 // console.log("Skipping zero-row for entity", entityId);
+                 continue;
+            }
+
             // POST SCORE
             const body = {
                 uuid: crypto.randomUUID(),

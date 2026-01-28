@@ -1,0 +1,12 @@
+{
+  "id": "e1",
+  "name": "Exhibition Game",
+  "type": "exhibition",
+  "fields": [
+    {
+      "id": "patrol_spirit",
+      "label": "Patrol Spirit",
+      "type": "boolean"
+    }
+  ]
+}

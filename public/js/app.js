@@ -197,6 +197,16 @@ function navigate(viewName) {
     window.scrollTo(0,0);
 }
 
+// Helper: Format
+function formatGameTitle(game) {
+    if (!game) return '';
+    if (game.name.match(/^(Game|Exhibition|p\d)/i)) return game.name;
+    const match = game.id.match(/(\d+)/);
+    const num = match ? match[1] : '';
+    if (num) return `Game ${num}. ${game.name}`;
+    return game.name;
+}
+
 function renderStationList() {
     if (!state.config || !state.config.stations) {
         els.stationList.innerHTML = `<div class="p-4 text-center text-muted">Loading games...<br><button class="btn btn-sm btn-primary mt-2" onclick="app.refreshData()">Retry</button></div>`;
@@ -216,7 +226,7 @@ function renderStationList() {
 
     els.stationList.innerHTML = filteredStations.map(s => `
         <button class="btn btn-outline-dark w-100 mb-2 text-start p-3 shadow-sm" onclick="app.selectStation('${s.id}')">
-            <div class="fw-bold">${s.name}</div>
+            <div class="fw-bold">${formatGameTitle(s)}</div>
             <small class="text-muted text-uppercase" style="font-size:0.75rem;">${s.type || 'General'}</small>
         </button>
     `).join('');
@@ -242,14 +252,15 @@ function renderEntityList(filter = '') {
         (e.name.toLowerCase().includes(term) || e.troop_number.includes(term))
     );
 
-    els.entityHeader.textContent = `Select ${requiredType === 'patrol' ? 'Patrol' : 'Troop'}`;
+    els.entityHeader.textContent = `Select ${requiredType === 'patrol' ? 'Patrol' : (requiredType === 'exhibition' ? 'Exhibition Team' : 'Troop')}`;
 
     // REGISTRATION BUTTON (Context Aware)
+    const typeLabel = requiredType === 'patrol' ? 'Patrol' : (requiredType === 'exhibition' ? 'Exhibition Team' : 'Troop');
     const addButton = `
         <button class="list-group-item list-group-item-action p-3 text-center text-primary fw-bold"
                 onclick="app.promptNewEntity('${requiredType}')"
                 style="border: 2px dashed var(--bs-primary); margin-bottom: 8px;">
-            <span style="font-size: 1.2rem;">➕ Register New ${requiredType === 'patrol' ? 'Patrol' : 'Troop'}</span>
+            <span style="font-size: 1.2rem;">➕ Register New ${typeLabel}</span>
         </button>
     `;
 
@@ -312,7 +323,7 @@ function showEntitySelect() { navigate('entity'); }
 function renderForm() {
     const s = state.currentStation;
     const e = state.currentEntity;
-    els.scoringTitle.textContent = s.name;
+    els.scoringTitle.textContent = formatGameTitle(s);
     els.scoringTeam.textContent = `${e.name} (Troop ${e.troop_number})`;
     els.scoreForm.innerHTML = '';
 

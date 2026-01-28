@@ -131,13 +131,30 @@ function switchView(viewName) {
     }
 }
 
+// Helper: Format Game Title (handles clean names)
+function formatGameTitle(game) {
+    if (!game) return '';
+    // If name already has "Game" or number prefix, assume legacy and leave it
+    if (game.name.match(/^(Game|Exhibition|p\d)/i)) return game.name;
+
+    // Extract Number from ID (p1 -> 1, t10 -> 10)
+    const match = game.id.match(/(\d+)/);
+    const num = match ? match[1] : '';
+
+    if (num) return `Game ${num}. ${game.name}`;
+    return game.name; // Fallback for Exhibition etc
+}
+
 // --- Overview ---
 
 function renderOverview() {
     const grid = document.getElementById('games-grid');
     grid.innerHTML = '';
 
-    const games = appData.games.filter(g => !g.type || g.type === currentViewMode);
+    const games = appData.games.filter(g => {
+        const gType = g.type || 'patrol';
+        return gType === currentViewMode;
+    });
 
     if (games.length === 0) {
         grid.innerHTML = `<p>No ${currentViewMode} games found.</p>`;
@@ -150,7 +167,7 @@ function renderOverview() {
         const count = appData.stats[game.id] || 0;
 
         card.innerHTML = `
-            <h3>${game.name}</h3>
+            <h3>${formatGameTitle(game)}</h3>
             <div class="stat">${count} Scores</div>
         `;
         card.addEventListener('click', () => openGameDetail(game.id));
@@ -164,7 +181,7 @@ function openGameDetail(gameId) {
     const game = appData.games.find(g => g.id === gameId);
     if (!game) return;
 
-    document.getElementById('detail-title').innerText = game.name;
+    document.getElementById('detail-title').innerText = formatGameTitle(game);
     const table = document.getElementById('detail-table');
     table.innerHTML = '';
 
@@ -275,7 +292,10 @@ function renderMatrix() {
         return a.name.localeCompare(b.name);
     });
 
-    const games = appData.games.filter(g => !g.type || g.type === currentViewMode);
+    const games = appData.games.filter(g => {
+        const gType = g.type || 'patrol';
+        return gType === currentViewMode;
+    });
 
     if (matrixTranspose) {
         renderMatrixTransposed(table, games, entities);
@@ -292,7 +312,7 @@ function renderMatrixNormal(table, games, patrols) {
     headerRow.appendChild(createTh(currentViewMode === 'patrol' ? 'Patrol' : 'Troop Name'));
 
     games.forEach(g => {
-        const th = createTh(g.name);
+        const th = createTh(formatGameTitle(g));
         // truncate if too long?
         th.title = g.name;
         headerRow.appendChild(th);
@@ -339,7 +359,7 @@ function renderMatrixTransposed(table, games, patrols) {
     const tbody = document.createElement('tbody');
     games.forEach(game => {
         const tr = document.createElement('tr');
-        tr.appendChild(createTd(game.name));
+        tr.appendChild(createTd(formatGameTitle(game)));
 
         patrols.forEach(patrol => {
             const hasScore = appData.scores.some(s => s.entity_id === patrol.id && s.game_id === game.id);

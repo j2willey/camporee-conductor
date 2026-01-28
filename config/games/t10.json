@@ -1,6 +1,6 @@
 {
-  "id": "t_landskis",
-  "name": "troop LandSkis",
+  "id": "t10",
+  "name": "LandSkis",
   "type": "troop",
   "fields": [
     {

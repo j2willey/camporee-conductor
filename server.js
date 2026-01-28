@@ -92,8 +92,19 @@ app.get('/games.json', (req, res) => {
       }
     }
 
-    // Sort games by id
-    games.sort((a, b) => (a.id > b.id) ? 1 : -1);
+    // Sort games by "Game N" number, placing Exhibition last
+    games.sort((a, b) => {
+        const getNum = (str) => {
+            const match = str.match(/(?:Game|p)\s*(\d+)/i);
+            return match ? parseInt(match[1], 10) : Infinity;
+        };
+
+        const numA = getNum(a.name) !== Infinity ? getNum(a.name) : getNum(a.id);
+        const numB = getNum(b.name) !== Infinity ? getNum(b.name) : getNum(b.id);
+
+        if (numA !== numB) return numA - numB;
+        return a.name.localeCompare(b.name);
+    });
 
     res.json({
       metadata: { version: "1.0", generated_at: new Date().toISOString() },
