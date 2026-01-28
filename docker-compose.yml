@@ -10,4 +10,4 @@ services:
       - /app/node_modules
     restart: unless-stopped
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development

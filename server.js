@@ -178,3 +178,21 @@ app.get('/api/admin/all-data', (req, res) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on http://0.0.0.0:${PORT}`);
 });
+
+// POST /api/entities (Create new Troop or Patrol)
+app.post('/api/entities', (req, res) => {
+  const { name, type, troop_number } = req.body;
+
+  if (!name || !type || !troop_number) {
+    return res.status(400).json({ error: 'Missing fields' });
+  }
+
+  try {
+    const insert = db.prepare('INSERT INTO entities (name, type, troop_number) VALUES (?, ?, ?)');
+    const info = insert.run(name, type, troop_number);
+    res.json({ id: info.lastInsertRowid, name, type, troop_number });
+  } catch (err) {
+    console.error('Registration error:', err);
+    res.status(500).json({ error: 'Database error' });
+  }
+});
