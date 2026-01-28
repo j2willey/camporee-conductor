@@ -1,12 +1,14 @@
 // State
 let appData = {
     games: [],
+    entities: [],
     commonScoring: [],
     scores: [], // Full raw score list
     stats: {}, // Counts
 };
 
 let currentView = 'overview';
+let currentViewMode = 'patrol'; // 'patrol' or 'troop'
 let matrixTranspose = false;
 
 // Initialization
@@ -18,14 +20,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadData() {
     try {
-        // Fetch Games Config
-        const gamesRes = await fetch('/games.json');
+        // Fetch Games Config & Entities
+        const [gamesRes, entitiesRes, dataRes] = await Promise.all([
+            fetch('/games.json'),
+            fetch('/api/entities'),
+            fetch('/api/admin/all-data')
+        ]);
+
         const gamesResult = await gamesRes.json();
         appData.games = gamesResult.games;
         appData.commonScoring = gamesResult.common_scoring;
 
+        appData.entities = await entitiesRes.json();
+
         // Fetch Data
-        const dataRes = await fetch('/api/admin/all-data');
         const dataResult = await dataRes.json();
         appData.scores = dataResult.scores || [];
         appData.stats = dataResult.stats || {};
@@ -43,6 +51,7 @@ function setupNavigation() {
     const navMatrix = document.getElementById('nav-matrix');
     const backBtn = document.getElementById('back-to-overview');
     const transposeBtn = document.getElementById('btn-transpose');
+    const viewModeSelect = document.getElementById('view-mode-select');
 
     navOverview.addEventListener('click', () => switchView('overview'));
     navMatrix.addEventListener('click', () => switchView('matrix'));
@@ -51,6 +60,14 @@ function setupNavigation() {
         matrixTranspose = !matrixTranspose;
         renderMatrix();
     });
+
+    if (viewModeSelect) {
+        viewModeSelect.addEventListener('change', (e) => {
+            currentViewMode = e.target.value;
+            if (currentView === 'overview') renderOverview();
+            else if (currentView === 'matrix') renderMatrix();
+        });
+    }
 }
 
 function switchView(viewName) {
@@ -79,7 +96,14 @@ function renderOverview() {
     const grid = document.getElementById('games-grid');
     grid.innerHTML = '';
 
-    appData.games.forEach(game => {
+    const games = appData.games.filter(g => !g.type || g.type === currentViewMode);
+
+    if (games.length === 0) {
+        grid.innerHTML = `<p>No ${currentViewMode} games found.</p>`;
+        return;
+    }
+
+    games.forEach(game => {
         const card = document.createElement('div');
         card.className = 'card';
         const count = appData.stats[game.id] || 0;
@@ -188,35 +212,23 @@ function renderMatrix() {
     const table = document.getElementById('matrix-table');
     table.innerHTML = '';
 
-    // Gather all unique Entities (Patrols)
-    // We can get this from the scores, or if we had an entities endpoint.
-    // relying on scores for now, or just extracting unique entities from loaded scores.
-    // Ideally we'd fetch /api/entities but the user only asked for /api/admin/all-data which has scores.
-    // We'll extract unique entities from the scores list to be safe, BUT
-    // the prompt implies "Rows: All Patrols". The all-data endpoint returns scores joined with entities.
-    // If a patrol hasn't played, they won't be in `scores`.
-    // However, the prompt instructions for backend only requested `all-data` to return stats and scores.
-    // I will fetch /api/entities separately to ensure the Matrix has all patrols.
+    const entities = appData.entities.filter(e => e.type === currentViewMode);
 
-    fetch('/api/entities').then(res => res.json()).then(entities => {
-        const patrols = entities.filter(e => e.type === 'patrol');
-
-        // Sort Patrols
-        patrols.sort((a, b) => {
-            const numA = parseInt(a.troop_number) || 0;
-            const numB = parseInt(b.troop_number) || 0;
-            if (numA !== numB) return numA - numB;
-            return a.name.localeCompare(b.name);
-        });
-
-        const games = appData.games;
-
-        if (matrixTranspose) {
-            renderMatrixTransposed(table, games, patrols);
-        } else {
-            renderMatrixNormal(table, games, patrols);
-        }
+    // Sort Entities
+    entities.sort((a, b) => {
+        const numA = parseInt(a.troop_number) || 0;
+        const numB = parseInt(b.troop_number) || 0;
+        if (numA !== numB) return numA - numB;
+        return a.name.localeCompare(b.name);
     });
+
+    const games = appData.games.filter(g => !g.type || g.type === currentViewMode);
+
+    if (matrixTranspose) {
+        renderMatrixTransposed(table, games, entities);
+    } else {
+        renderMatrixNormal(table, games, entities);
+    }
 }
 
 function renderMatrixNormal(table, games, patrols) {
@@ -224,7 +236,7 @@ function renderMatrixNormal(table, games, patrols) {
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
     headerRow.appendChild(createTh('Troop'));
-    headerRow.appendChild(createTh('Patrol'));
+    headerRow.appendChild(createTh(currentViewMode === 'patrol' ? 'Patrol' : 'Troop Name'));
 
     games.forEach(g => {
         const th = createTh(g.name);

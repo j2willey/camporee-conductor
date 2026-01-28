@@ -10,6 +10,7 @@ data/*
 *.db
 *.sqlite3
 *.log
+*.xlsx
 
 # Environment Variables (Secrets)
 .env

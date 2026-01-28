@@ -1,6 +1,6 @@
 {
-  "id": "c_dish",
-  "name": "C Dish",
+  "id": "t_cooking_dish",
+  "name": "Cooking Dish",
   "type": "troop",
   "fields": [
     {

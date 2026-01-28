@@ -1,6 +1,6 @@
 {
-  "id": "c_meal",
-  "name": "C Meal",
+  "id": "t_cooking_meal",
+  "name": "Cooking Meal",
   "type": "troop",
   "fields": [
     {

@@ -9,7 +9,14 @@
 </head>
 <body>
     <header>
-        <h1>Admin Dashboard</h1>
+        <h1>Coyote Admin</h1>
+        <div style="display:flex; align-items:center; gap:10px; margin-left:auto; margin-right:20px;">
+            <label for="view-mode-select" style="color:white; font-weight:bold;">View:</label>
+            <select id="view-mode-select" style="padding:5px; border-radius:4px; font-weight:bold;">
+                <option value="patrol">Patrol Games</option>
+                <option value="troop">Troop Games</option>
+            </select>
+        </div>
         <nav>
             <button id="nav-overview" class="active">Overview</button>
             <button id="nav-matrix">Matrix Board</button>

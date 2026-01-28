@@ -1,6 +1,6 @@
 {
-  "id": "cs_gateway",
-  "name": "CS Gateway",
+  "id": "t_tugowar",
+  "name": "Troop TugOWar",
   "type": "troop",
   "fields": [
     {

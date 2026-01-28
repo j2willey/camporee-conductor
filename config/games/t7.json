@@ -1,6 +1,6 @@
 {
-  "id": "cs_insp",
-  "name": "CS Insp.",
+  "id": "t_campsite_inspection",
+  "name": "Campsite Inspection",
   "type": "troop",
   "fields": [
     {

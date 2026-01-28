@@ -1,6 +1,6 @@
 {
-  "id": "c_mystery",
-  "name": "C Mystery",
+  "id": "t_cooking_mystery",
+  "name": "Cooking Mystery item",
   "type": "troop",
   "fields": [
     {

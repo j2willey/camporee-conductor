@@ -1,6 +1,6 @@
 {
-  "id": "s_tugowar",
-  "name": "S TugOWar",
+  "id": "campesite_gateway",
+  "name": "Campsite Gateway",
   "type": "troop",
   "fields": [
     {
