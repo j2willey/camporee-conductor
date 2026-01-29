@@ -203,18 +203,21 @@ function openGameDetail(gameId) {
     const stdHeaders = ['Troop', 'Entity', 'Time'];
     stdHeaders.forEach(h => headerRow.appendChild(createTh(h)));
 
+    const sortFn = (a, b) => (a.sortOrder || 999) - (b.sortOrder || 999);
+
     // Dynamic Cols (from game config)
-    const gameFields = game.fields || [];
+    const gameFields = [...(game.fields || [])].sort(sortFn);
     gameFields.forEach(field => {
         headerRow.appendChild(createTh(field.label));
     });
 
     // Common Scoring Cols
-    const commonFields = appData.commonScoring || [];
+    const commonFields = [...(appData.commonScoring || [])].sort(sortFn);
     commonFields.forEach(field => {
         headerRow.appendChild(createTh(field.label));
     });
 
+    headerRow.appendChild(createTh('Actions'));
     thead.appendChild(headerRow);
     table.appendChild(thead);
 
@@ -238,6 +241,15 @@ function openGameDetail(gameId) {
             const val = score.score_payload[field.id];
             tr.appendChild(createTd(formatValue(val, field.type)));
         });
+
+        // Action: Edit
+        const actionTd = document.createElement('td');
+        const btn = document.createElement('button');
+        btn.innerText = '✏️ Score';
+        btn.className = 'btn-link'; // Minimal styling
+        btn.onclick = () => showEditModal(score, game);
+        actionTd.appendChild(btn);
+        tr.appendChild(actionTd);
 
         tbody.appendChild(tr);
     });
@@ -473,3 +485,121 @@ async function handleRegistration(e) {
     }
 }
 
+
+// --- Editing Support ---
+
+function showEditModal(score, game) {
+    // Remove existing modal
+    const existing = document.getElementById('edit-modal');
+    if (existing) existing.remove();
+
+    const sortFn = (a, b) => (a.sortOrder || 999) - (b.sortOrder || 999);
+    const allFields = [
+        ...(game.fields || []),
+        ...(appData.commonScoring || [])
+    ].sort(sortFn);
+
+    const backdrop = document.createElement('div');
+    backdrop.id = 'edit-modal';
+    backdrop.style = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;';
+
+    const card = document.createElement('div');
+    card.style = 'background: white; padding: 20px; border-radius: 8px; width: 500px; max-width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.3);';
+
+    card.innerHTML = '<h3>Edit Score: ' + score.entity_name + '</h3><form id="edit-form"></form>';
+    backdrop.appendChild(card);
+
+    const form = card.querySelector('form');
+
+    // Generate Inputs
+    allFields.forEach(field => {
+        const val = score.score_payload[field.id];
+        const group = document.createElement('div');
+        group.style.marginBottom = '15px';
+
+        const label = document.createElement('label');
+        label.style.display = 'block';
+        label.style.fontWeight = 'bold';
+        label.innerText = field.label + (field.adminOnly ? ' (Admin Only)' : '');
+        group.appendChild(label);
+
+        let input;
+        if (field.type === 'boolean') {
+            input = document.createElement('input');
+            input.type = 'checkbox';
+            input.checked = !!val;
+        } else {
+            input = document.createElement('input');
+            input.type = field.type === 'number' || field.type === 'range' ? 'number' : 'text';
+            input.value = val !== undefined ? val : '';
+            input.style.width = '100%';
+            input.style.padding = '8px';
+        }
+        input.dataset.fieldId = field.id;
+        input.dataset.fieldType = field.type;
+
+        group.appendChild(input);
+        form.appendChild(group);
+    });
+
+    // Buttons
+    const btnDiv = document.createElement('div');
+    btnDiv.style.display = 'flex';
+    btnDiv.style.gap = '10px';
+    btnDiv.style.justifyContent = 'flex-end';
+
+    const saveBtn = document.createElement('button');
+    saveBtn.innerText = 'Save Changes';
+    saveBtn.className = 'btn btn-primary';
+    saveBtn.type = 'submit';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.innerText = 'Cancel';
+    cancelBtn.className = 'btn btn-secondary';
+    cancelBtn.type = 'button';
+    cancelBtn.onclick = () => backdrop.remove();
+
+    form.onsubmit = async (e) => {
+        e.preventDefault();
+        const payload = { ...score.score_payload };
+
+        // Harvest Data
+        const inputs = form.querySelectorAll('input');
+        inputs.forEach(inp => {
+            const fid = inp.dataset.fieldId;
+            const type = inp.dataset.fieldType;
+            let val;
+            if (type === 'boolean') val = inp.checked;
+            else if (type === 'number' || type === 'range') val = parseFloat(inp.value);
+            else val = inp.value;
+
+            payload[fid] = val;
+        });
+
+        // Send Update
+        try {
+            const res = await fetch('/api/scores/' + score.uuid, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ score_payload: payload })
+            });
+
+            if (res.ok) {
+                backdrop.remove();
+                await init(); // Refresh all data
+                openGameDetail(game.id); // Re-open view
+            } else {
+                alert('Save failed');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Error saving');
+        }
+    };
+
+    btnDiv.appendChild(cancelBtn);
+    btnDiv.appendChild(saveBtn);
+    form.appendChild(btnDiv);
+
+    document.body.appendChild(backdrop);
+}

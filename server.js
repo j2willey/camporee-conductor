@@ -205,6 +205,26 @@ app.delete('/api/admin/data', (req, res) => {
     }
 });
 
+// Update Score (Admin)
+app.put('/api/scores/:uuid', (req, res) => {
+    const { uuid } = req.params;
+    const { score_payload } = req.body;
+
+    if (!score_payload) return res.status(400).json({ error: 'Missing score_payload' });
+
+    try {
+        const update = db.prepare('UPDATE scores SET score_payload = ? WHERE uuid = ?');
+        const info = update.run(JSON.stringify(score_payload), uuid);
+
+        if (info.changes === 0) return res.status(404).json({ error: 'Score not found' });
+
+        res.json({ status: 'updated' });
+    } catch (err) {
+        console.error('Update error:', err);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on http://0.0.0.0:${PORT}`);
 });
