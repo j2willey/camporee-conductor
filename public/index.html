@@ -15,10 +15,29 @@
     </style>
 </head>
 <body>
-    <header>
-        <h1>Coyote Collator</h1>
-        <div id="status-indicator" class="status-offline">Offline</div>
+    <header class="sticky-top shadow-sm">
+        <div>
+            <h1 id="header-title" class="fw-bold mb-0" style="font-size: 1.25rem;">Coyote Collator</h1>
+            <div id="header-subtitle" class="small opacity-75" style="display:none; margin-top: 2px;">Troop Info</div>
+        </div>
+        <div id="status-indicator" class="status-offline ms-2" style="white-space: nowrap;">Offline</div>
     </header>
+
+    <!-- Global Stopwatch Dock -->
+    <div id="stopwatch-dock" class="stopwatch-dock container-fluid px-0">
+        <div class="row g-0 h-100 align-items-center">
+             <!-- Controls (Left / Label Col) -->
+             <div class="col-8 d-flex justify-content-end align-items-center pe-3 gap-2">
+                 <button id="dock-btn-reset" class="btn btn-secondary mb-0 fw-bold p-0 d-flex align-items-center justify-content-center" style="width: 80px; height: 48px;">RESET</button>
+                 <button id="dock-btn-pause" class="btn btn-warning mb-0 fw-bold p-0 d-flex align-items-center justify-content-center" style="width: 80px; height: 48px;">PAUSE</button>
+                 <button id="dock-btn-stop" class="btn btn-danger mb-0 fw-bold p-0 d-flex align-items-center justify-content-center" style="width: 80px; height: 48px;">STOP</button>
+             </div>
+             <!-- Display (Right / Input Col) -->
+             <div class="col-4 d-flex justify-content-center align-items-center" style="background: rgba(255,255,255,0.1); height: 100%;">
+                 <span id="dock-display" class="font-monospace fw-bold text-white" style="font-size: 2rem;">00:00</span>
+             </div>
+        </div>
+    </div>
 
     <main>
         <!-- View: Home / Sync -->

@@ -6,7 +6,7 @@ const ASSETS_TO_CACHE = [
   '/css/style.css',
   '/js/app.js',
   '/js/sync-manager.js',
-  '/games/games.json',
+  '/games.json',
   '/manifest.json'
 ];
 

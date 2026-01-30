@@ -47,20 +47,6 @@ db.exec(`
   );
 `);
 
-// Seed Entities if empty
-const entCount = db.prepare('SELECT count(*) as count FROM entities').get();
-if (entCount.count === 0) {
-  // Basic seed if no roster imported
-  const insert = db.prepare('INSERT INTO entities (id, name, type, troop_number) VALUES (?, ?, ?, ?)');
-  const seedData = [
-    [101, 'Flaming Flamingoes', 'patrol', '101'],
-    [201, 'Troop 101', 'troop', '101']
-  ];
-  const transaction = db.transaction((data) => {
-    for (const row of data) insert.run(row);
-  });
-  transaction(seedData);
-}
 
 app.use(express.json());
 app.use(express.static('public'));

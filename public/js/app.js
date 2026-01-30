@@ -194,6 +194,17 @@ async function handleSync() {
 function navigate(viewName) {
     Object.values(views).forEach(el => el.classList.add('hidden'));
     views[viewName].classList.remove('hidden');
+
+    // Reset Header on Home
+    if (viewName === 'home') {
+        document.getElementById('header-title').textContent = 'Coyote Collator';
+        const sub = document.getElementById('header-subtitle');
+        if(sub) sub.style.display = 'none';
+
+        // Remove active-dock styling if returning home unexpectedly
+        document.body.style.paddingBottom = '0';
+    }
+
     window.scrollTo(0,0);
 }
 
@@ -323,8 +334,16 @@ function showEntitySelect() { navigate('entity'); }
 function renderForm() {
     const s = state.currentStation;
     const e = state.currentEntity;
-    els.scoringTitle.textContent = formatGameTitle(s);
-    els.scoringTeam.textContent = `${e.name} (Troop ${e.troop_number})`;
+
+    // Update Header
+    document.getElementById('header-title').textContent = formatGameTitle(s);
+    const sub = document.getElementById('header-subtitle');
+    sub.textContent = `${e.troop_number} - ${e.name}`;
+    sub.style.display = 'block';
+
+    // (Kept for legacy containers inside the form if needed, masking them via css if redundant)
+    els.scoringTitle.style.display = 'none';
+    els.scoringTeam.style.display = 'none';
     els.scoreForm.innerHTML = '';
 
     const sortFn = (a, b) => (a.sortOrder ?? 900) - (b.sortOrder ?? 900);
@@ -341,6 +360,146 @@ function renderForm() {
     }
 }
 
+if (!window.startStopwatch) {
+    window.startStopwatch = startStopwatch;
+    window.stopStopwatch = stopStopwatch;
+}
+// --- Stopwatch Logic ---
+let activeTimerId = null;
+let activeTimerInterval = null;
+let activeTimerStartedAt = 0; // Timestamp when current run started
+let activeTimerOffset = 0; // Accumulated time from previous runs (ms)
+let isPaused = false;
+
+function startStopwatch(id) {
+    if (activeTimerId && activeTimerId !== id) {
+        if(!confirm("Another timer is running. Stop it and start this one?")) return;
+        stopStopwatch();
+    }
+
+    const dock = document.getElementById('stopwatch-dock');
+    const dockDisplay = document.getElementById('dock-display');
+
+    // Buttons
+    const btnStop = document.getElementById('dock-btn-stop');
+    const btnPause = document.getElementById('dock-btn-pause');
+    const btnReset = document.getElementById('dock-btn-reset');
+
+    // Init State
+    if (activeTimerId !== id) {
+        // Fresh start
+        activeTimerId = id;
+        activeTimerOffset = 0;
+        isPaused = false;
+        activeTimerStartedAt = Date.now();
+
+        // Reset Inputs just in case
+        document.getElementById(`f_${id}_mm`).value = '';
+        document.getElementById(`f_${id}_ss`).value = '';
+    } else if (isPaused) {
+        // Resuming from pause
+        isPaused = false;
+        activeTimerStartedAt = Date.now();
+    }
+
+    // UI Setup
+    dock.classList.add('active');
+    document.body.style.paddingBottom = '100px';
+    btnPause.innerText = "PAUSE";
+    btnPause.classList.remove('btn-success');
+    btnPause.classList.add('btn-warning');
+
+    // Handlers
+    btnStop.onclick = () => stopStopwatch();
+
+    btnPause.onclick = () => {
+        if (isPaused) {
+            // RESUME
+            isPaused = false;
+            activeTimerStartedAt = Date.now();
+            btnPause.innerText = "PAUSE";
+            btnPause.classList.remove('btn-success');
+            btnPause.classList.add('btn-warning');
+
+            activeTimerInterval = setInterval(tick, 100);
+        } else {
+            // PAUSE
+            isPaused = true;
+            clearInterval(activeTimerInterval);
+            activeTimerOffset += (Date.now() - activeTimerStartedAt);
+            btnPause.innerText = "RESUME";
+            btnPause.classList.remove('btn-warning');
+            btnPause.classList.add('btn-success');
+        }
+    };
+
+    btnReset.onclick = () => {
+        if(confirm("Reset timer to 00:00?")) {
+            activeTimerOffset = 0;
+            activeTimerStartedAt = Date.now();
+            // If paused, remain paused but at 0
+            if(isPaused) {
+                // Should we update display to 00:00?
+                dockDisplay.innerText = "00:00";
+            }
+        }
+    };
+
+    // Ticker
+    if (activeTimerInterval) clearInterval(activeTimerInterval);
+    activeTimerInterval = setInterval(tick, 100);
+}
+
+function tick() {
+    if (isPaused) return;
+
+    const now = Date.now();
+    const totalMs = (now - activeTimerStartedAt) + activeTimerOffset;
+    const totSec = Math.floor(totalMs / 1000);
+
+    const m = Math.floor(totSec / 60);
+    const s = totSec % 60;
+    const fmt = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+
+    document.getElementById('dock-display').innerText = fmt;
+}
+
+function stopStopwatch() {
+    if(!activeTimerId) return;
+
+    // Calculate final time
+    if (!isPaused) {
+        activeTimerOffset += (Date.now() - activeTimerStartedAt);
+    }
+
+    const finalSec = Math.floor(activeTimerOffset / 1000);
+    const m = Math.floor(finalSec / 60);
+    const s = finalSec % 60;
+
+    clearInterval(activeTimerInterval);
+    activeTimerInterval = null;
+    isPaused = false;
+
+    // Hide Dock
+    document.getElementById('stopwatch-dock').classList.remove('active');
+    document.body.style.paddingBottom = '0';
+
+    // Update Input (The manual edit fields)
+    const mmInput = document.getElementById(`f_${activeTimerId}_mm`);
+    const ssInput = document.getElementById(`f_${activeTimerId}_ss`);
+
+    if(mmInput && ssInput) {
+        mmInput.value = m;
+        ssInput.value = s;
+        // Trigger combineTime to update hidden val
+        app.combineTime(activeTimerId);
+    }
+
+    activeTimerId = null;
+}
+
+// -----------------------
+
 function generateFieldHTML(field) {
     const id = field.id;
 
@@ -354,6 +513,7 @@ function generateFieldHTML(field) {
 
     // 2. All others: Grid Layout (Label Left, Input Right)
     let input = '';
+    let labelContent = `<label class="form-label fw-bold mb-0" for="f_${id}">${field.label}</label>`;
 
     if (field.type === 'boolean') {
         input = `<div class="form-check form-switch d-flex justify-content-end mb-0">
@@ -368,6 +528,15 @@ function generateFieldHTML(field) {
                  </div>`;
     }
     else if (field.type === 'time_mm_ss') {
+        // Updated Stopwatch Layout
+
+        // Label col gets the Start button
+        labelContent = `<div class="d-flex justify-content-between align-items-center w-100">
+                            <label class="form-label fw-bold mb-0" for="f_${id}">${field.label}</label>
+                            <button type="button" class="btn btn-success btn-sm mb-0 p-0 fw-bold d-flex align-items-center justify-content-center" style="width: 80px; height: 38px;" onclick="startStopwatch('${id}')">START</button>
+                        </div>`;
+
+        // Input col gets the mm:ss edit fields
         input = `<div class="input-group input-group-sm">
                     <input type="number" class="form-control text-center px-1" id="f_${id}_mm" placeholder="MM" inputmode="numeric" pattern="[0-9]*" onchange="app.combineTime('${id}')">
                     <span class="input-group-text px-1">:</span>
@@ -386,13 +555,16 @@ function generateFieldHTML(field) {
 
     return `<div class="row py-2 border-bottom align-items-center">
                 <div class="col-8">
-                    <label class="form-label fw-bold mb-0" for="f_${id}">${field.label}</label>
+                    ${labelContent}
                 </div>
                 <div class="col-4">
                     ${input}
                 </div>
             </div>`;
 }
+
+// Remove old functions if present
+// (cleaned up)
 
 function combineTime(id) {
     const m = document.getElementById(`f_${id}_mm`).value || '00';
