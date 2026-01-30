@@ -86,7 +86,7 @@ app.get('/games.json', (req, res) => {
     // Sort games by "Game N" number, placing Exhibition last
     games.sort((a, b) => {
         const getNum = (str) => {
-            const match = str.match(/(?:Game|p)\s*(\d+)/i);
+            const match = str.match(/(?:Game|[pte])\s*(\d+)/i);
             return match ? parseInt(match[1], 10) : Infinity;
         };
 
