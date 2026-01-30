@@ -6,12 +6,12 @@
     {
       "id": "mix_batter",
       "label": "Mix batter",
-      "type": "boolean"
+      "type": "number"
     },
     {
       "id": "prep_skillet",
       "label": "prep skillet",
-      "type": "boolean"
+      "type": "number"
     },
     {
       "id": "batter_into_skillet",
@@ -41,7 +41,7 @@
     {
       "id": "sum",
       "label": "SUM",
-      "type": "boolean"
+      "type": "number"
     },
     {
       "id": "time_mm_ss",

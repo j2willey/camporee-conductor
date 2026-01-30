@@ -6,7 +6,7 @@
     {
       "id": "patrol_spirit",
       "label": "Patrol Spirit",
-      "type": "boolean"
+      "type": "number"
     }
   ]
 }

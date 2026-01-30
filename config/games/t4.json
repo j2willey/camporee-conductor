@@ -6,7 +6,7 @@
     {
       "id": "dish",
       "label": "Dish",
-      "type": "boolean"
+      "type": "number"
     },
     {
       "id": "cooking_techniques",

@@ -45,6 +45,11 @@ db.exec(`
     FOREIGN KEY(entity_id) REFERENCES entities(id),
     FOREIGN KEY(judge_id) REFERENCES judges(id)
   );
+
+  CREATE TABLE IF NOT EXISTS game_status (
+    game_id TEXT PRIMARY KEY,
+    status TEXT
+  );
 `);
 
 
@@ -174,8 +179,27 @@ app.get('/api/admin/all-data', (req, res) => {
         stats[r.game_id] = (stats[r.game_id] || 0) + 1;
     });
 
-    res.json({ scores: parsed, stats });
+    // Get Game Status
+    const statusMap = {};
+    const statuses = db.prepare('SELECT * FROM game_status').all();
+    for (const s of statuses) {
+        statusMap[s.game_id] = s.status;
+    }
+
+    res.json({ scores: parsed, stats, game_status: statusMap });
   } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ADMIN: Toggle Game Status
+app.post('/api/admin/game-status', (req, res) => {
+    const { game_id, status } = req.body;
+    try {
+        const stmt = db.prepare('INSERT INTO game_status (game_id, status) VALUES (?, ?) ON CONFLICT(game_id) DO UPDATE SET status=excluded.status');
+        stmt.run(game_id, status);
+        res.json({ success: true });
+    } catch(err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // ADMIN: RESET DATA

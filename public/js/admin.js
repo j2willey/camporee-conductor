@@ -5,9 +5,11 @@ let appData = {
     commonScoring: [],
     scores: [], // Full raw score list
     stats: {}, // Counts
+    gameStatuses: {} // NEW: Map of game_id -> status
 };
 
 let currentView = 'overview';
+let currentViewType = 'list'; // 'card' or 'list'
 let currentViewMode = 'patrol'; // 'patrol' or 'troop'
 let matrixTranspose = false;
 
@@ -15,7 +17,7 @@ let matrixTranspose = false;
 document.addEventListener('DOMContentLoaded', async () => {
     await loadData();
     setupNavigation();
-    renderOverview();
+    refreshCurrentView();
 });
 
 async function loadData() {
@@ -37,6 +39,7 @@ async function loadData() {
         const dataResult = await dataRes.json();
         appData.scores = dataResult.scores || [];
         appData.stats = dataResult.stats || {};
+        appData.gameStatuses = dataResult.game_status || {};
 
         console.log('Loaded Data:', appData);
 
@@ -100,11 +103,23 @@ function setupNavigation() {
     if (viewModeSelect) {
         viewModeSelect.addEventListener('change', (e) => {
             currentViewMode = e.target.value;
-            if (currentView === 'overview') renderOverview();
-            else if (currentView === 'matrix') renderMatrix();
-            // Registration view doesn't filter by mode immediately but shows full list
+            refreshCurrentView();
         });
     }
+
+    // View Type Toggles
+    const rdCard = document.getElementById('view-type-card');
+    const rdList = document.getElementById('view-type-list');
+    if(rdCard) rdCard.addEventListener('change', () => { currentViewType = 'card'; refreshCurrentView(); });
+    if(rdList) rdList.addEventListener('change', () => { currentViewType = 'list'; refreshCurrentView(); });
+}
+
+function refreshCurrentView() {
+    if (currentView === 'overview') {
+        if(currentViewType === 'list') renderOverviewList();
+        else renderOverview();
+    }
+    else if (currentView === 'matrix') renderMatrix();
 }
 
 function switchView(viewName) {
@@ -115,7 +130,7 @@ function switchView(viewName) {
     if (viewName === 'overview') {
         document.getElementById('view-overview').classList.remove('hidden');
         document.getElementById('nav-overview').classList.add('active');
-        renderOverview();
+        refreshCurrentView();
     } else if (viewName === 'matrix') {
         document.getElementById('view-matrix').classList.remove('hidden');
         document.getElementById('nav-matrix').classList.add('active');
@@ -150,11 +165,12 @@ function formatGameTitle(game) {
 function renderOverview() {
     const grid = document.getElementById('games-grid');
     grid.innerHTML = '';
+    // Show grid container
+    grid.style.display = 'grid';
+    grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(200px, 1fr))';
+    grid.style.gap = '20px';
 
-    const games = appData.games.filter(g => {
-        const gType = g.type || 'patrol';
-        return gType === currentViewMode;
-    });
+    const games = getFilteredGames();
 
     if (games.length === 0) {
         grid.innerHTML = `<p>No ${currentViewMode} games found.</p>`;
@@ -165,17 +181,102 @@ function renderOverview() {
         const card = document.createElement('div');
         card.className = 'card';
         const count = appData.stats[game.id] || 0;
+        const isFinal = appData.gameStatuses[game.id] === 'finalized';
 
         card.innerHTML = `
             <h3>${formatGameTitle(game)}</h3>
             <div class="stat">${count} Scores</div>
+            ${isFinal ? '<div class="badge bg-success mt-2">Finalized</div>' : ''}
         `;
         card.addEventListener('click', () => openGameDetail(game.id));
         grid.appendChild(card);
     });
 }
 
-// --- Detail View ---
+function renderOverviewList() {
+    const grid = document.getElementById('games-grid');
+    grid.innerHTML = '';
+    // Use block for table
+    grid.style.display = 'block';
+
+    const games = getFilteredGames();
+
+    if (games.length === 0) {
+        grid.innerHTML = `<p>No ${currentViewMode} games found.</p>`;
+        return;
+    }
+
+    const table = document.createElement('table');
+    table.className = 'table table-striped table-hover';
+    table.innerHTML = `
+        <thead class="table-dark">
+            <tr>
+                <th>Game</th>
+                <th>Scores Input</th>
+                <th class="text-center">Status</th>
+                <th class="text-end">Action</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    `;
+
+    const tbody = table.querySelector('tbody');
+    games.forEach(game => {
+        const count = appData.stats[game.id] || 0;
+        const isFinal = appData.gameStatuses[game.id] === 'finalized';
+
+        const tr = document.createElement('tr');
+        tr.style.cursor = 'pointer';
+        tr.onclick = (e) => {
+             // Don't trigger if clicked checkbox or button
+             if(e.target.tagName !== 'INPUT' && e.target.tagName !== 'LABEL') openGameDetail(game.id)
+        };
+
+        tr.innerHTML = `
+            <td class="fw-bold">${formatGameTitle(game)}</td>
+            <td>${count}</td>
+            <td class="text-center">
+                <div class="form-check form-switch d-inline-block">
+                    <input class="form-check-input" type="checkbox" id="status_${game.id}" ${isFinal ? 'checked' : ''} onclick="toggleGameStatus('${game.id}', this.checked)">
+                    <label class="form-check-label small ${isFinal ? 'text-success fw-bold' : 'text-muted'}" for="status_${game.id}">${isFinal ? 'Final' : 'Draft'}</label>
+                </div>
+            </td>
+            <td class="text-end">
+                <button class="btn btn-sm btn-primary">Open</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    grid.appendChild(table);
+}
+
+function getFilteredGames() {
+    return appData.games.filter(g => {
+        const gType = g.type || 'patrol';
+        return gType === currentViewMode;
+    });
+}
+
+async function toggleGameStatus(gameId, isFinal) {
+    const status = isFinal ? 'finalized' : 'open';
+    // Optimistic Update
+    appData.gameStatuses[gameId] = status;
+    refreshCurrentView(); // Re-render to update badges/labels
+
+    try {
+        await fetch('/api/admin/game-status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ game_id: gameId, status })
+        });
+    } catch(err) {
+        console.error(err);
+        alert('Failed to save status');
+    }
+}
+
+if (!window.toggleGameStatus) window.toggleGameStatus = toggleGameStatus; // Export for onclick
 
 function openGameDetail(gameId) {
     const game = appData.games.find(g => g.id === gameId);

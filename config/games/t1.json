@@ -6,32 +6,32 @@
     {
       "id": "car_name",
       "label": "Car Name",
-      "type": "boolean"
+      "type": "number"
     },
     {
       "id": "compliance",
       "label": "Compliance",
-      "type": "boolean"
+      "type": "number"
     },
     {
       "id": "design",
       "label": "Design",
-      "type": "boolean"
+      "type": "number"
     },
     {
       "id": "functionality",
       "label": "Functionality",
-      "type": "boolean"
+      "type": "number"
     },
     {
       "id": "construction",
       "label": "Construction",
-      "type": "boolean"
+      "type": "number"
     },
     {
       "id": "showmanship",
       "label": "Showmanship",
-      "type": "boolean"
+      "type": "number"
     }
   ]
 }

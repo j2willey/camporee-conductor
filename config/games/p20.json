@@ -6,7 +6,7 @@
     {
       "id": "patrol_sprirt",
       "label": "Patrol Sprirt",
-      "type": "boolean"
+      "type": "number"
     },
     {
       "id": "time_in_seconds",

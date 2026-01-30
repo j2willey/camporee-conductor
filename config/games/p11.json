@@ -6,7 +6,7 @@
     {
       "id": "patrol_sprirt",
       "label": "Patrol Sprirt",
-      "type": "boolean"
+      "type": "number"
     },
     {
       "id": "bonus_for_scout_sea_worthy_puns_jokes",

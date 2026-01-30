@@ -6,7 +6,7 @@
     {
       "id": "skit_name",
       "label": "Skit name",
-      "type": "boolean"
+      "type": "number"
     },
     {
       "id": "approx_length_in_minutes",

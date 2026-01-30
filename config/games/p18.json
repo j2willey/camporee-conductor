@@ -6,17 +6,17 @@
     {
       "id": "patrol_sprirt",
       "label": "Patrol Sprirt",
-      "type": "boolean"
+      "type": "number"
     },
     {
       "id": "scouts_moving",
       "label": "Scouts Moving",
-      "type": "boolean"
+      "type": "number"
     },
     {
       "id": "hits",
       "label": "Hits",
-      "type": "boolean"
+      "type": "number"
     }
   ]
 }

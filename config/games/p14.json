@@ -6,7 +6,7 @@
     {
       "id": "patrol_sprirt",
       "label": "Patrol Sprirt",
-      "type": "boolean"
+      "type": "number"
     },
     {
       "id": "knot_correctly_tied",
@@ -16,7 +16,7 @@
     {
       "id": "knot_rationale",
       "label": "Knot Rationale",
-      "type": "boolean"
+      "type": "number"
     },
     {
       "id": "time_points",

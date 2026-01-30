@@ -6,7 +6,7 @@
     {
       "id": "patrol_sprirt",
       "label": "Patrol Sprirt",
-      "type": "boolean"
+      "type": "number"
     },
     {
       "id": "stretcher_runs_distance_laps_decimals_ok",

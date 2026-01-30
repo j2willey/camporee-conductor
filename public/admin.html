@@ -6,14 +6,21 @@
     <title>Coyote Collator - Admin Dashboard</title>
     <link rel="stylesheet" href="css/bootstrap.min.css">
     <link rel="stylesheet" href="css/admin.css">
-    <script type="module" src="js/admin.js" defer></script>
+    <script src="js/admin.js" defer></script>
 </head>
 <body>
     <header>
         <h1>Coyote Admin</h1>
         <div style="display:flex; align-items:center; gap:10px; margin-left:auto; margin-right:20px;">
             <button id="btn-reset-db" style="background:none; border:1px solid #e74c3c; color:#e74c3c; padding:5px 10px; cursor:pointer; border-radius:4px; margin-right:15px; font-size:0.8rem;">⚠ Reset DB</button>
-            <label for="view-mode-select" style="color:white; font-weight:bold;">View:</label>
+            <div class="btn-group btn-group-sm me-3" role="group">
+                <input type="radio" class="btn-check" name="view-type" id="view-type-card" autocomplete="off">
+                <label class="btn btn-outline-light" for="view-type-card" title="Card View">Grid</label>
+
+                <input type="radio" class="btn-check" name="view-type" id="view-type-list" autocomplete="off" checked>
+                <label class="btn btn-outline-light" for="view-type-list" title="List View">List</label>
+            </div>
+            <label for="view-mode-select" style="color:white; font-weight:bold;">Filter:</label>
             <select id="view-mode-select" style="padding:5px; border-radius:4px; font-weight:bold;">
                 <option value="patrol">Patrol Games</option>
                 <option value="troop">Troop Games</option>

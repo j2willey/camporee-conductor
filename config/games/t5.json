@@ -6,7 +6,7 @@
     {
       "id": "dish",
       "label": "Dish",
-      "type": "boolean"
+      "type": "number"
     },
     {
       "id": "cooking_techniques",
@@ -16,12 +16,12 @@
     {
       "id": "presentation",
       "label": "Presentation",
-      "type": "boolean"
+      "type": "number"
     },
     {
       "id": "flavor_taste",
       "label": "Flavor/Taste",
-      "type": "boolean"
+      "type": "number"
     }
   ]
 }
