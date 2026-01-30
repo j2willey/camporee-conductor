@@ -1,0 +1,64 @@
+
+/* Spreadsheet View (Dense) */
+.spreadsheet-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px !important; /* Override general table size */
+    background: white;
+}
+
+.spreadsheet-table th,
+.spreadsheet-table td {
+    padding: 3px 6px;
+    border: 1px solid #999 !important;
+    text-align: center;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+/* Vertical Headers */
+.spreadsheet-table th.rotate-header {
+    height: 140px;
+    white-space: nowrap;
+    position: relative;
+    padding-bottom: 10px;
+    vertical-align: bottom;
+}
+
+.spreadsheet-table th.rotate-header > div {
+    transform: rotate(180deg); /* Or -90deg depending on writing mode preference */
+    writing-mode: vertical-rl;
+    white-space: nowrap;
+    display: inline-block;
+    max-height: 100%;
+    width: 20px;
+}
+
+/* Specific Column widths */
+.spreadsheet-table th:first-child, /* Troop */
+.spreadsheet-table td:first-child {
+    font-weight: bold;
+    width: 50px;
+}
+
+.spreadsheet-table th:nth-child(2), /* Name */
+.spreadsheet-table td:nth-child(2) {
+    text-align: left;
+    min-width: 150px;
+}
+
+/* Sticky Header specific to spreadsheet */
+.spreadsheet-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #eee;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.2);
+}
+
+.spreadsheet-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+.spreadsheet-table tr:hover {
+    background-color: #e8f4fc;
+}

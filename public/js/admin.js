@@ -285,6 +285,7 @@ function openGameDetail(gameId) {
     document.getElementById('detail-title').innerText = formatGameTitle(game);
     const table = document.getElementById('detail-table');
     table.innerHTML = '';
+    table.className = 'spreadsheet-table'; // Enforce spreadsheet look
 
     // Filter scores for this game
     const gameScores = appData.scores.filter(s => s.game_id === gameId);
@@ -308,15 +309,30 @@ function openGameDetail(gameId) {
     const headerRow = document.createElement('tr');
 
     // Standard Cols
-    const stdHeaders = ['Troop', 'Entity', 'Time'];
-    stdHeaders.forEach(h => headerRow.appendChild(createTh(h)));
-
-    allFields.forEach(field => {
-        headerRow.appendChild(createTh(field.label));
+    const stdHeaders = ['Troop', 'Name', 'Time'];
+    stdHeaders.forEach(h => {
+        const th = document.createElement('th');
+        th.innerText = h;
+        headerRow.appendChild(th);
     });
 
-    headerRow.appendChild(createTh('Total'));
-    headerRow.appendChild(createTh('Actions'));
+    allFields.forEach(field => {
+        const th = document.createElement('th');
+        th.className = 'rotate-header';
+        th.innerHTML = `<div>${field.label}</div>`;
+        th.title = field.label; // Tooltip for readability
+        headerRow.appendChild(th);
+    });
+
+    const thTotal = document.createElement('th');
+    thTotal.innerText = 'Total';
+    thTotal.className = 'rotate-header';
+    thTotal.innerHTML = `<div>Total</div>`;
+    headerRow.appendChild(thTotal);
+
+    const thActions = document.createElement('th');
+    thActions.innerText = 'Edit';
+    headerRow.appendChild(thActions);
     thead.appendChild(headerRow);
     table.appendChild(thead);
 
