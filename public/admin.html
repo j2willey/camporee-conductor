@@ -13,7 +13,8 @@
     <header>
         <h1>Coyote Admin</h1>
         <div style="display:flex; align-items:center; gap:10px; margin-left:auto; margin-right:20px;">
-            <button id="btn-reset-db" style="background:none; border:1px solid #e74c3c; color:#e74c3c; padding:5px 10px; cursor:pointer; border-radius:4px; margin-right:15px; font-size:0.8rem;">⚠ Reset DB</button>
+            <button id="btn-clear-scores" style="background:none; border:1px solid #f39c12; color:#f39c12; padding:5px 10px; cursor:pointer; border-radius:4px; margin-right:10px; font-size:0.8rem;">⚠ Clear Scores</button>
+            <button id="btn-reset-db" style="background:none; border:1px solid #e74c3c; color:#e74c3c; padding:5px 10px; cursor:pointer; border-radius:4px; margin-right:15px; font-size:0.8rem;">☢ Reset DB</button>
             <div class="btn-group btn-group-sm me-3" role="group">
                 <input type="radio" class="btn-check" name="view-type" id="view-type-card" autocomplete="off">
                 <label class="btn btn-outline-light" for="view-type-card" title="Card View">Grid</label>
@@ -79,7 +80,7 @@
                 <button onclick="addEntity(null)" class="btn" style="background-color:#27ae60;">+ Add Troop</button>
             </div>
 
-            <div id="roster-tree" style="display:block; padding: 10px;">
+            <div id="roster-tree" style="display:block; border: 1px solid #ddd; border-radius: 4px; overflow: hidden; background: #fff;">
                 <!-- Tree Injected Here -->
             </div>
         </section>

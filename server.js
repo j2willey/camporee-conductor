@@ -208,14 +208,24 @@ app.post('/api/admin/game-status', (req, res) => {
     }
 });
 
-// ADMIN: RESET DATA
-app.delete('/api/admin/data', (req, res) => {
+// ADMIN: CLEAR SCORES
+app.delete('/api/admin/scores', (req, res) => {
+    try {
+        db.prepare('DELETE FROM scores').run();
+        res.json({ success: true, message: 'Scores deleted.' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ADMIN: FULL RESET (Scores + Rosters)
+app.delete('/api/admin/full-reset', (req, res) => {
     try {
         db.transaction(() => {
             db.prepare('DELETE FROM scores').run();
-            // Optional: db.prepare('DELETE FROM entities').run(); // Determine if we want to nuke entities too
+            db.prepare('DELETE FROM entities').run();
         })();
-        res.json({ success: true, message: 'Scores deleted.' });
+        res.json({ success: true, message: 'Everything deleted.' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

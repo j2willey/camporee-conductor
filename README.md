@@ -42,10 +42,42 @@ This application uses a "Load, Go, Sync" workflow to handle remote data collecti
 
 * `server.js`: Node.js Express server with SQLite backend. The API handling sync and CSV export.
 * `public/`: Frontend PWA assets (HTML, CSS, JS).
-* `games.json`: The "Form Builder" configuration file defining scoring rules.
+* `config/games/`: JSON configuration files for each game station.
 * `scripts/`: Utilities for importing Rosters and seeding data.
+* `scripts/demo/`: Playwright automation scripts for walkthroughs and testing.
 * `docker-compose.yml`: Maps port 3000 and mounts the `./data` volume.
 * `data/`: Persistent storage for SQLite database (mounted by Docker).
+
+## 🎭 Demo & Walkthrough Automation
+
+The project includes Playwright-based scripts to automate data entry and system demonstrations at "Human Speed".
+
+### Prerequisites
+* Node.js installed locally.
+* Install dependencies: `npm install`
+* Install Playwright browsers: `npx playwright install chromium`
+
+### Running the Walkthroughs
+
+1.  **Seed the Roster:**
+    Automatically register all Troops and Patrols defined in your config.
+    ```bash
+    # Headless (Fast)
+    node scripts/demo/seed-roster.cjs
+
+    # Interactive (Human Speed)
+    node scripts/demo/seed-roster.cjs --interactive --wait=2
+    ```
+
+2.  **Simulate Scoring:**
+    Run scoring scripts for specific games (e.g., `p1`, `p2`).
+    ```bash
+    node scripts/demo/score-p1.cjs --interactive --wait=1
+    ```
+
+### Interaction Controls (Interactive Mode)
+*   **Skip Wait:** Press `Space` or `Enter` inside the browser window to skip the current delay and perform the next action immediately.
+*   **Finish:** When the demo is complete, press `Space` or `Enter` to close the browser.
 
 ## 📝 License
 

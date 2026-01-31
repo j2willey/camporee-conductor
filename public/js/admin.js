@@ -56,20 +56,42 @@ function setupNavigation() {
     const backBtn = document.getElementById('back-to-overview');
     const transposeBtn = document.getElementById('btn-transpose');
     const viewModeSelect = document.getElementById('view-mode-select');
+    const clearScoresBtn = document.getElementById('btn-clear-scores');
     const resetDbBtn = document.getElementById('btn-reset-db');
+
+    if (clearScoresBtn) {
+        clearScoresBtn.addEventListener('click', async () => {
+            if (confirm('CAUTION: This will delete ALL scoring data but keep the rosters (Troops/Patrols).\n\nAre you sure?')) {
+                const check = prompt("Type 'SCORES' to confirm:");
+                if (check === 'SCORES') {
+                    try {
+                        const res = await fetch('/api/admin/scores', { method: 'DELETE' });
+                        if (res.ok) {
+                            alert('Scores cleared.');
+                            window.location.reload();
+                        } else {
+                            alert('Failed to clear scores.');
+                        }
+                    } catch (e) {
+                        alert('Error: ' + e.message);
+                    }
+                }
+            }
+        });
+    }
 
     if (resetDbBtn) {
         resetDbBtn.addEventListener('click', async () => {
-            if (confirm('DANGER: This will delete ALL scores from the database. This cannot be undone.\n\nAre you sure?')) {
-                const check = prompt("Type 'DELETE' to confirm:");
-                if (check === 'DELETE') {
+            if (confirm('CRITICAL: This will delete ALL scores AND ALL rosters (Troops and Patrols).\n\nAre you sure?')) {
+                const check = prompt("Type 'RESET' to confirm:");
+                if (check === 'RESET') {
                     try {
-                        const res = await fetch('/api/admin/data', { method: 'DELETE' });
+                        const res = await fetch('/api/admin/full-reset', { method: 'DELETE' });
                         if (res.ok) {
-                            alert('Database cleared.');
+                            alert('Database has been fully reset.');
                             window.location.reload();
                         } else {
-                            alert('Failed to clear database.');
+                            alert('Failed to reset database.');
                         }
                     } catch (e) {
                         alert('Error: ' + e.message);
@@ -536,7 +558,7 @@ function renderRoster() {
     });
 
     // Render Troops
-    troops.forEach(troop => {
+    troops.forEach((troop, index) => {
         const myPatrols = [
             ...(patrolsByParent[troop.id] || []),
             ...(patrolsByNum[troop.troop_number] || [])
@@ -547,29 +569,45 @@ function renderRoster() {
 
         const details = document.createElement('details');
         details.open = true; // Default expanded
-        details.style = "margin-bottom:10px; border:1px solid #ddd; padding:10px; border-radius:4px; background:white;";
+        details.className = "roster-group";
+        // File-manager style: Compact, single borders, no gaps
+        const isLastTroop = index === troops.length - 1;
+        details.style = `border-bottom:${isLastTroop ? '0' : '1px solid #dee2e6'}; background:white; margin:0;`;
 
         const summary = document.createElement('summary');
-        summary.style = "font-weight:bold; cursor:pointer; list-style:none; display:flex; align-items:center;";
+        summary.style = "font-weight:bold; cursor:pointer; list-style:none; display:flex; align-items:center; padding: 4px 10px; background-color: #f1f3f4; border-bottom: 1px solid #e0e0e0;";
         summary.innerHTML = `
-            <span style="font-size:1.2rem; margin-right:10px; color:#3498db;">⚑</span>
-            <span style="font-size:1.2rem;">Troop ${troop.troop_number} - ${troop.name}</span>
-            <button class="btn btn-sm btn-outline-success ms-auto" onclick="addEntity(${troop.id})">+ Add Patrol</button>
+            <span style="font-size:0.8rem; margin-right:8px; color:#5f6368; transition: transform 0.2s;">▼</span>
+            <span style="font-size:0.95rem;">Troop ${troop.troop_number} - ${troop.name}</span>
+            <button class="btn btn-sm btn-link ms-auto text-decoration-none p-0 text-success fw-bold" style="font-size: 0.8rem;" onclick="addEntity(${troop.id})">+ Add Patrol</button>
         `;
+
+        // Simple arrow toggle logic
+        summary.addEventListener('click', (e) => {
+             // We need to wait for the open state to toggle or check current
+             const arrow = summary.querySelector('span:first-child');
+             // details.open is about to change
+             setTimeout(() => {
+                 arrow.style.transform = details.open ? '' : 'rotate(-90deg)';
+             }, 10);
+        });
+
         details.appendChild(summary);
 
         const list = document.createElement('div');
-        list.style = "margin-left:35px; margin-top:10px; border-left: 2px solid #eee; padding-left: 10px;";
+        list.style = "margin-left: 0;"; // Indentation handled by inner items
 
         if (myPatrols.length === 0) {
-            list.innerHTML = '<div class="text-muted small">No patrols registered</div>';
+            list.innerHTML = '<div class="text-muted small p-2 fst-italic" style="padding-left: 35px !important;">No patrols registered</div>';
         } else {
             myPatrols.forEach(p => {
                 const div = document.createElement('div');
-                div.className = "d-flex justify-content-between align-items-center p-2 border-bottom";
+                div.className = "d-flex justify-content-between align-items-center py-1 px-2 border-bottom";
+                div.style.paddingLeft = "30px";
+                div.style.backgroundColor = "transparent";
                 div.innerHTML = `
-                    <span>${p.name} <small class="text-muted">(${p.id})</small></span>
-                    <span class="badge bg-secondary">Patrol</span>
+                    <span style="font-size: 0.9rem;"><span style="color:#bdc1c6; margin-right:8px;">├─</span>${p.name} <small class="text-muted" style="font-size:0.75em">(${p.id})</small></span>
+                    <span class="badge bg-light text-dark border-0 text-muted" style="font-size: 0.7rem;">PATROL</span>
                 `;
                 list.appendChild(div);
             });
