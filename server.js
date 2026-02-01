@@ -211,8 +211,12 @@ app.post('/api/admin/game-status', (req, res) => {
 // ADMIN: CLEAR SCORES
 app.delete('/api/admin/scores', (req, res) => {
     try {
-        db.prepare('DELETE FROM scores').run();
-        res.json({ success: true, message: 'Scores deleted.' });
+        db.transaction(() => {
+            db.prepare('DELETE FROM scores').run();
+            db.prepare('DELETE FROM judges').run();
+            db.prepare('DELETE FROM game_status').run();
+        })();
+        res.json({ success: true, message: 'Scores, judges, and game statuses deleted.' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -224,6 +228,8 @@ app.delete('/api/admin/full-reset', (req, res) => {
         db.transaction(() => {
             db.prepare('DELETE FROM scores').run();
             db.prepare('DELETE FROM entities').run();
+            db.prepare('DELETE FROM judges').run();
+            db.prepare('DELETE FROM game_status').run();
         })();
         res.json({ success: true, message: 'Everything deleted.' });
     } catch (err) {

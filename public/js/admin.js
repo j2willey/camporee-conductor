@@ -22,11 +22,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadData() {
     try {
+        const ts = Date.now();
         // Fetch Games Config & Entities
         const [gamesRes, entitiesRes, dataRes] = await Promise.all([
-            fetch('/games.json'),
-            fetch('/api/entities'),
-            fetch('/api/admin/all-data')
+            fetch(`/games.json?t=${ts}`),
+            fetch(`/api/entities?t=${ts}`),
+            fetch(`/api/admin/all-data?t=${ts}`)
         ]);
 
         const gamesResult = await gamesRes.json();
@@ -67,6 +68,7 @@ function setupNavigation() {
                     try {
                         const res = await fetch('/api/admin/scores', { method: 'DELETE' });
                         if (res.ok) {
+                            localStorage.clear(); // Purge cache on this device
                             alert('Scores cleared.');
                             window.location.reload();
                         } else {
@@ -88,6 +90,7 @@ function setupNavigation() {
                     try {
                         const res = await fetch('/api/admin/full-reset', { method: 'DELETE' });
                         if (res.ok) {
+                            localStorage.clear(); // Purge cache on this device
                             alert('Database has been fully reset.');
                             window.location.reload();
                         } else {

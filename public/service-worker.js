@@ -1,4 +1,4 @@
-const CACHE_NAME = 'coyote-scorer-v1';
+const CACHE_NAME = 'coyote-scorer-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -20,12 +20,28 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Network first for API, Encode failure handling in App
+  // Always skip cache for API calls
   if (event.request.url.includes('/api/')) {
     return;
   }
 
-  // Cache First for static assets
+  // Network First for config file to ensure we see updates
+  if (event.request.url.endsWith('/games.json')) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const clonedResponse = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, clonedResponse);
+          });
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // Cache First for other static assets
   event.respondWith(
     caches.match(event.request).then((response) => {
       return response || fetch(event.request);

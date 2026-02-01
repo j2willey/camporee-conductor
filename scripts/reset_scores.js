@@ -16,6 +16,9 @@ try {
     const judgeResult = db.prepare('DELETE FROM judges').run();
     console.log(`Deleted ${judgeResult.changes} rows from judges table.`);
 
+    const statusResult = db.prepare('DELETE FROM game_status').run();
+    console.log(`Deleted ${statusResult.changes} rows from game_status table.`);
+
 } catch (err) {
     if (err.message.includes('no such table')) {
         console.log('Table "scores" does not exist yet.');
