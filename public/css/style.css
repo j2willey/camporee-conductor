@@ -43,9 +43,13 @@ h1 { margin: 0; font-size: 1.25rem; }
     padding: 0.5rem 1rem;
     border-radius: 4px;
     font-weight: bold;
+    border: none;
+    cursor: default;
+    transition: background-color 0.2s;
 }
 .status-online { background-color: var(--secondary); color: white; }
 .status-offline { background-color: var(--danger); color: white; }
+.status-sync { background-color: #b8860b; color: white; cursor: pointer !important; }
 
 main {
     padding: 1rem 1.25rem !important;

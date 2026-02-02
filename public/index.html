@@ -22,7 +22,7 @@
             <div id="header-sync-line" class="small opacity-75" style="display:block; margin-top: 1px;">Scores to Sync: <span id="unsynced-count">0</span></div>
         </div>
         <div class="d-flex align-items-center">
-            <div id="status-indicator" class="status-offline ms-2" style="white-space: nowrap;">Offline</div>
+            <button id="status-indicator" class="status-offline ms-2" style="white-space: nowrap;">Offline</button>
             <button class="btn btn-sm btn-outline text-white border-white ms-2" onclick="app.toggleJudgeModal()" style="width: 44px; height: 38px; padding: 0; display: flex; align-items: center; justify-content: center;" title="Judge Profile">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
                     <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
@@ -78,9 +78,8 @@
                     <h2 class="mb-0" id="welcome-text">Welcome, Judge.</h2>
                 </div>
 
-                <div class="sync-status">
-                    <button id="btn-sync" class="btn btn-secondary">Sync Scores Now</button>
-                    <button id="btn-reload-data" class="btn btn-outline" style="margin-top:0.5rem">Reload Config & Roster</button>
+                <div class="sync-status text-center">
+                    <button id="btn-reload-data" class="btn btn-outline" style="width: 100%;">Reload Config & Roster</button>
                     <small id="last-updated" style="display:block; margin-top:0.5rem; color:#666;"></small>
                 </div>
              </div>

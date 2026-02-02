@@ -54,7 +54,7 @@ async function init() {
     updateSyncCounts();
 
     // Listeners
-    document.getElementById('btn-sync').addEventListener('click', handleSync);
+    els.status.addEventListener('click', handleSync);
     document.getElementById('btn-reload-data').addEventListener('click', refreshData);
     els.entitySearch.addEventListener('input', (e) => renderEntityList(e.target.value));
     document.getElementById('btn-submit').addEventListener('click', submitScore);
@@ -106,10 +106,25 @@ function setMode(mode) {
     renderStationList();
 }
 
-function updateOnlineStatus() {
+function updateStatusDisplay() {
     state.isOnline = navigator.onLine;
-    els.status.textContent = state.isOnline ? 'Online' : 'Offline';
-    els.status.className = state.isOnline ? 'status-online' : 'status-offline';
+    const unsyncedCount = syncManager.getCounts().unsynced;
+    
+    // Update the "Scores to Sync" text line
+    if (els.unsyncedCount) els.unsyncedCount.textContent = unsyncedCount;
+
+    // Update the Header Status/Sync Button
+    if (unsyncedCount > 0 && state.isOnline) {
+        els.status.textContent = 'Sync';
+        els.status.className = 'status-sync ms-2';
+    } else {
+        els.status.textContent = state.isOnline ? 'Online' : 'Offline';
+        els.status.className = (state.isOnline ? 'status-online' : 'status-offline') + ' ms-2';
+    }
+}
+
+function updateOnlineStatus() {
+    updateStatusDisplay();
 }
 
 function loadJudgeInfo() {
@@ -215,18 +230,28 @@ async function refreshData() {
 }
 
 function updateSyncCounts() {
-    els.unsyncedCount.textContent = syncManager.getCounts().unsynced;
+    updateStatusDisplay();
 }
 
 async function handleSync() {
-    if (!state.isOnline) return alert('Must be online');
-    document.getElementById('btn-sync').textContent = 'Syncing...';
+    if (!state.isOnline) return;
+    const unsynced = syncManager.getCounts().unsynced;
+    if (unsynced === 0) return;
+
+    els.status.textContent = '...';
     try {
         const res = await syncManager.sync();
-        alert(`Synced: ${res.synced}, Errors: ${res.errors}`);
-        updateSyncCounts();
-    } finally {
-        document.getElementById('btn-sync').textContent = 'Sync Scores Now';
+        // If there were any successes, maybe show a brief alert or just update counts
+        if (res.synced > 0) {
+            console.log(`Synced ${res.synced} scores.`);
+        }
+        if (res.errors > 0) {
+            alert(`Sync completed with ${res.errors} errors.`);
+        }
+        updateStatusDisplay();
+    } catch (e) {
+        console.error("Sync failed", e);
+        updateStatusDisplay();
     }
 }
 
@@ -248,7 +273,7 @@ function navigate(viewName) {
     // Reset Header on Home
     if (viewName === 'home') {
         document.getElementById('header-title').textContent = 'Coyote Collator';
-        
+
         const syncLine = document.getElementById('header-sync-line');
         if(syncLine) syncLine.style.display = 'block';
 
