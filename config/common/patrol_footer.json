@@ -9,7 +9,7 @@
     "helperText": "Enter POSITIVE number to deduct points",
     "defaultValue": 0,
     "audience": "judge",
-    "kind": "points"
+    "kind": "penalty"
   },
   {
     "id": "judge_notes",

@@ -332,10 +332,16 @@ function openGameDetail(gameId) {
     const gameScores = appData.scores.filter(s => s.game_id === gameId).map(score => {
         let total = 0;
         scoringFields.forEach(f => {
-            // Only sum if kind is "points"
-            if (f.kind === 'points') {
+            // Only sum if kind is "points" or "penalty"
+            if (f.kind === 'points' || f.kind === 'penalty') {
                 const val = parseFloat(score.score_payload[f.id]);
-                if (!isNaN(val)) total += val;
+                if (!isNaN(val)) {
+                    if (f.kind === 'penalty') {
+                        total -= val;
+                    } else {
+                        total += val;
+                    }
+                }
             }
         });
         return { ...score, _total: total };
@@ -486,14 +492,20 @@ function openGameDetail(gameId) {
                     }
                     await updateScoreField(score.uuid, field.id, newVal);
 
-                    // Live update the total if it's a points field
-                    if (field.kind === 'points') {
+                    // Live update the total if it's a points or penalty field
+                    if (field.kind === 'points' || field.kind === 'penalty') {
                         // Recalculate local _total
                         let total = 0;
                         scoringFields.forEach(f => {
-                            if (f.kind === 'points') {
+                            if (f.kind === 'points' || f.kind === 'penalty') {
                                 const v = parseFloat(score.score_payload[f.id]);
-                                if (!isNaN(v)) total += v;
+                                if (!isNaN(v)) {
+                                    if (f.kind === 'penalty') {
+                                        total -= v;
+                                    } else {
+                                        total += v;
+                                    }
+                                }
                             }
                         });
                         score._total = total;
@@ -507,7 +519,12 @@ function openGameDetail(gameId) {
                 td.appendChild(input);
                 tr.appendChild(td);
             } else {
-                tr.appendChild(createTd(formatValue(val, field.type)));
+                const td = createTd(formatValue(val, field.type));
+                if (field.kind === 'penalty') {
+                    td.style.color = 'red';
+                    td.style.fontWeight = 'bold';
+                }
+                tr.appendChild(td);
             }
         });
 
@@ -832,7 +849,7 @@ function showEditModal(score, game) {
     const existing = document.getElementById('edit-modal');
     if (existing) existing.remove();
 
-    const sortFn = (a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999);
+    const sortFn = (a, b) => (a.sortOrder ?? 900) - (b.sortOrder ?? 900);
     const allFields = [
         ...(game.fields || []),
         ...(appData.commonScoring || [])
@@ -856,9 +873,11 @@ function showEditModal(score, game) {
         const group = document.createElement('div');
         group.style.marginBottom = '15px';
 
+        const isPenalty = field.kind === 'penalty';
         const label = document.createElement('label');
         label.style.display = 'block';
         label.style.fontWeight = 'bold';
+        if (isPenalty) label.style.color = 'red';
         label.innerText = field.label + (field.adminOnly ? ' (Admin Only)' : '');
         group.appendChild(label);
 
@@ -873,6 +892,11 @@ function showEditModal(score, game) {
             input.value = val !== undefined ? val : '';
             input.style.width = '100%';
             input.style.padding = '8px';
+            if (isPenalty) {
+                input.style.color = 'red';
+                input.style.fontWeight = 'bold';
+                input.style.borderColor = 'red';
+            }
         }
         input.dataset.fieldId = field.id;
         input.dataset.fieldType = field.type;
