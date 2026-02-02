@@ -20,7 +20,32 @@ let finalMode = false;
 document.addEventListener('DOMContentLoaded', async () => {
     await loadData();
     setupNavigation();
-    refreshCurrentView();
+
+    // Handle initial route from URL
+    const params = new URLSearchParams(window.location.search);
+    const view = params.get('view') || 'dashboard';
+    const gameId = params.get('gameId');
+
+    if (view === 'detail' && gameId) {
+        switchView('detail', false);
+        openGameDetail(gameId);
+    } else {
+        switchView(view, false);
+    }
+
+    // Handle back/forward buttons
+    window.addEventListener('popstate', (event) => {
+        if (event.state && event.state.view) {
+            if (event.state.view === 'detail' && event.state.gameId) {
+                switchView('detail', false);
+                openGameDetail(event.state.gameId);
+            } else {
+                switchView(event.state.view, false);
+            }
+        } else {
+            switchView('dashboard', false);
+        }
+    });
 });
 
 async function loadData() {
@@ -61,6 +86,13 @@ function setupNavigation() {
     const viewModeSelect = document.getElementById('view-mode-select');
     const clearScoresBtn = document.getElementById('btn-clear-scores');
     const resetDbBtn = document.getElementById('btn-reset-db');
+
+    // Branding click goes back to dashboard
+    const brand = document.querySelector('header h1');
+    if (brand) {
+        brand.style.cursor = 'pointer';
+        brand.onclick = () => switchView('dashboard');
+    }
 
     if (clearScoresBtn) {
         clearScoresBtn.addEventListener('click', async () => {
@@ -143,12 +175,34 @@ function refreshCurrentView() {
     else if (currentView === 'matrix') renderMatrix();
 }
 
-function switchView(viewName) {
+function switchView(viewName, pushToHistory = true) {
     currentView = viewName;
     document.querySelectorAll('main > section').forEach(sec => sec.classList.add('hidden'));
     document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active'));
 
-    if (viewName === 'overview') {
+    const headerActions = document.querySelector('header div:nth-child(2)');
+    const navBar = document.querySelector('header nav');
+
+    // Hide/Show header elements based on view
+    if (viewName === 'dashboard') {
+        if (headerActions) headerActions.classList.add('hidden');
+        if (navBar) navBar.classList.add('hidden');
+        setSubtitle('');
+    } else {
+        if (headerActions) headerActions.classList.remove('hidden');
+        if (navBar) navBar.classList.remove('hidden');
+    }
+
+    if (pushToHistory) {
+        const url = new URL(window.location);
+        url.searchParams.set('view', viewName);
+        if (viewName !== 'detail') url.searchParams.delete('gameId');
+        window.history.pushState({ view: viewName, gameId: activeGameId }, '', url);
+    }
+
+    if (viewName === 'dashboard') {
+        document.getElementById('view-dashboard').classList.remove('hidden');
+    } else if (viewName === 'overview') {
         document.getElementById('view-overview').classList.remove('hidden');
         document.getElementById('nav-overview').classList.add('active');
         setSubtitle('Game Overview');
@@ -390,6 +444,14 @@ function openGameDetail(gameId) {
     if (activeGameId !== gameId) {
         activeGameId = gameId;
         detailSort = { col: 'troop_number', dir: 'asc' };
+
+        // Update URL/History if we are already in detail view
+        if (currentView === 'detail') {
+            const url = new URL(window.location);
+            url.searchParams.set('view', 'detail');
+            url.searchParams.set('gameId', gameId);
+            window.history.pushState({ view: 'detail', gameId: gameId }, '', url);
+        }
     }
 
     const title = formatGameTitle(game);
