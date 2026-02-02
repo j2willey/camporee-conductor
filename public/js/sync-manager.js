@@ -9,12 +9,22 @@ export class SyncManager {
     }
 
     addToQueue(scoreData) {
-        const queue = this.getQueue();
-        // Add synched: false flag
+        let queue = this.getQueue();
+
+        // Find if this game/entity combo already exists in the queue
+        const existingIdx = queue.findIndex(s => s.game_id === scoreData.game_id && s.entity_id === scoreData.entity_id);
+
         scoreData._synced = false;
-        queue.push(scoreData);
+
+        if (existingIdx !== -1) {
+            // Overwrite existing record (updates values and resets sync status to false)
+            queue[existingIdx] = scoreData;
+        } else {
+            queue.push(scoreData);
+        }
+
         localStorage.setItem(this.STORAGE_KEY, JSON.stringify(queue));
-        return queue.length; // return count of unsynced items
+        return queue.filter(q => !q._synced).length;
     }
 
     async sync() {

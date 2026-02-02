@@ -195,6 +195,13 @@ function navigate(viewName) {
     Object.values(views).forEach(el => el.classList.add('hidden'));
     views[viewName].classList.remove('hidden');
 
+    // Reset Header style unless we are actively scoring (renderForm handles it there)
+    if (viewName !== 'scoring') {
+        const header = document.querySelector('header');
+        header.style.backgroundColor = '';
+        header.style.color = '';
+    }
+
     // Reset Header on Home
     if (viewName === 'home') {
         document.getElementById('header-title').textContent = 'Coyote Collator';
@@ -258,10 +265,34 @@ function renderEntityList(filter = '') {
     const requiredType = state.currentStation.type || state.viewMode;
     const term = filter.toLowerCase();
 
+    // Get list of already scored entities for this game from sync manager
+    const queue = syncManager.getQueue();
+    const scoredIds = new Set(queue
+        .filter(s => s.game_id === state.currentStation.id)
+        .map(s => s.entity_id)
+    );
+
     const filtered = state.entities.filter(e =>
         e.type === requiredType &&
-        (e.name.toLowerCase().includes(term) || e.troop_number.includes(term))
+        (e.name.toLowerCase().includes(term) || e.troop_number.includes(term) || e.id.toLowerCase().includes(term))
     );
+
+    // SORTING:
+    // 1. Not Done (not in scoredIds) first
+    // 2. By Troop Number
+    // 3. By Patrol Name
+    filtered.sort((a, b) => {
+        const doneA = scoredIds.has(a.id);
+        const doneB = scoredIds.has(b.id);
+
+        if (doneA !== doneB) return doneA ? 1 : -1;
+
+        const troopA = parseInt(a.troop_number) || 0;
+        const troopB = parseInt(b.troop_number) || 0;
+        if (troopA !== troopB) return troopA - troopB;
+
+        return a.name.localeCompare(b.name);
+    });
 
     els.entityHeader.textContent = `Select ${requiredType === 'patrol' ? 'Patrol' : (requiredType === 'exhibition' ? 'Exhibition Team' : 'Troop')}`;
 
@@ -275,13 +306,21 @@ function renderEntityList(filter = '') {
         </button>
     `;
 
-    const listHtml = filtered.map(e => `
-        <div class="list-group-item list-group-item-action p-2 d-flex justify-content-between align-items-center"
-             onclick="app.selectEntity('${e.id}')" style="cursor:pointer; border-left: 4px solid var(--bs-primary); margin-bottom: 4px;">
-            <div class="fw-bold text-truncate" style="max-width: 70%;">${e.name}</div>
-            <span class="badge bg-secondary rounded-pill">Tr ${e.troop_number}</span>
-        </div>
-    `).join('');
+    const listHtml = filtered.map(e => {
+        const isDone = scoredIds.has(e.id);
+        // Display format: Troop Number, Patrol ID, Patrol Name
+        const displayLabel = `Tr ${e.troop_number} | #${e.id} | ${e.name}`;
+
+        return `
+            <div class="list-group-item list-group-item-action p-3 d-flex justify-content-between align-items-center"
+                onclick="app.selectEntity('${e.id}')"
+                style="cursor:pointer; border-left: 5px solid ${isDone ? '#adb5bd' : '#0d6efd'}; margin-bottom: 6px; ${isDone ? 'background-color: #f1f3f5; opacity: 0.6;' : 'background-color: #fff;'}">
+                <div class="fw-bold text-truncate" style="max-width: 85%; font-size: 1.05rem;">
+                    ${isDone ? `<del class="text-muted">${displayLabel}</del>` : displayLabel}
+                </div>
+                ${isDone ? '<span class="badge bg-light text-dark border">Done</span>' : ''}
+            </div>`;
+    }).join('');
 
     els.entityList.innerHTML = addButton + listHtml;
 }
@@ -325,18 +364,40 @@ async function promptNewEntity(type) {
 
 function selectEntity(id) {
     state.currentEntity = state.entities.find(e => e.id === id);
-    renderForm();
+
+    // Check for existing score in the local queue
+    const queue = syncManager.getQueue();
+    const existingScore = queue.find(s => s.game_id === state.currentStation.id && s.entity_id === id);
+
+    renderForm(existingScore);
     navigate('scoring');
 }
 
 function showEntitySelect() { navigate('entity'); }
 
-function renderForm() {
+function renderForm(existingScore = null) {
     const s = state.currentStation;
     const e = state.currentEntity;
+    const btnSubmit = document.getElementById('btn-submit');
+    const header = document.querySelector('header');
 
     // Update Header
-    document.getElementById('header-title').textContent = formatGameTitle(s);
+    if (existingScore) {
+        document.getElementById('header-title').textContent = `EDIT: ${formatGameTitle(s)}`;
+        header.style.backgroundColor = '#f39c12'; // Warning orange
+        header.style.color = '#fff';
+        btnSubmit.innerText = 'Re-Submit Score';
+        btnSubmit.classList.remove('btn-secondary');
+        btnSubmit.classList.add('btn-warning');
+    } else {
+        document.getElementById('header-title').textContent = formatGameTitle(s);
+        header.style.backgroundColor = ''; // Restore to CSS default
+        header.style.color = '';
+        btnSubmit.innerText = 'Submit Score';
+        btnSubmit.classList.add('btn-secondary');
+        btnSubmit.classList.remove('btn-warning');
+    }
+
     const sub = document.getElementById('header-subtitle');
     sub.textContent = `${e.troop_number} - ${e.name}`;
     sub.style.display = 'block';
@@ -357,7 +418,8 @@ function renderForm() {
 
     if (visibleFields.length > 0) {
         visibleFields.forEach(f => {
-            els.scoreForm.innerHTML += generateFieldHTML(f);
+            const val = existingScore ? existingScore.score_payload[f.id] : null;
+            els.scoreForm.innerHTML += generateFieldHTML(f, val);
         });
     }
 }
@@ -502,14 +564,14 @@ function stopStopwatch() {
 
 // -----------------------
 
-function generateFieldHTML(field) {
+function generateFieldHTML(field, value = null) {
     const id = field.id;
 
     // 1. Textarea: Vertical Stack (Exception)
     if (field.type === 'textarea') {
         return `<div class="mb-4">
             <label class="form-label fw-bold" for="f_${id}">${field.label}</label>
-            <textarea class="form-control" id="f_${id}" rows="3" placeholder="${field.placeholder || ''}"></textarea>
+            <textarea class="form-control" id="f_${id}" rows="3" placeholder="${field.placeholder || ''}">${value || ''}</textarea>
         </div>`;
     }
 
@@ -518,19 +580,25 @@ function generateFieldHTML(field) {
     let labelContent = `<label class="form-label fw-bold mb-0" for="f_${id}">${field.label}</label>`;
 
     if (field.type === 'boolean') {
+        const checked = value === true ? 'checked' : '';
         input = `<div class="form-check form-switch d-flex justify-content-end mb-0">
-                    <input class="form-check-input" type="checkbox" id="f_${id}" style="transform: scale(1.4);">
+                    <input class="form-check-input" type="checkbox" id="f_${id}" style="transform: scale(1.4);" ${checked}>
                  </div>`;
     }
     else if (field.type === 'range') {
-        const mid = Math.ceil((field.max||5)/2);
+        const currentVal = value !== null ? value : Math.ceil((field.max||5)/2);
         input = `<div class="d-flex align-items-center">
-                    <input type="range" class="form-range flex-grow-1" id="f_${id}" min="${field.min||0}" max="${field.max||5}" value="${mid}" oninput="document.getElementById('d_${id}').innerText=this.value">
-                    <span class="fw-bold text-primary ms-2" id="d_${id}" style="min-width:1.5em; text-align: right;">${mid}</span>
+                    <input type="range" class="form-range flex-grow-1" id="f_${id}" min="${field.min||0}" max="${field.max||5}" value="${currentVal}" oninput="document.getElementById('d_${id}').innerText=this.value">
+                    <span class="fw-bold text-primary ms-2" id="d_${id}" style="min-width:1.5em; text-align: right;">${currentVal}</span>
                  </div>`;
     }
     else if (field.type === 'timed') {
-        // Updated Stopwatch Layout
+        // Parse "MM:SS"
+        let mm = '';
+        let ss = '';
+        if (value && typeof value === 'string' && value.includes(':')) {
+            [mm, ss] = value.split(':');
+        }
 
         // Label col gets the Start button
         labelContent = `<div class="d-flex justify-content-between align-items-center w-100">
@@ -540,19 +608,22 @@ function generateFieldHTML(field) {
 
         // Input col gets the mm:ss edit fields
         input = `<div class="input-group input-group-sm">
-                    <input type="number" class="form-control text-center px-1" id="f_${id}_mm" placeholder="MM" inputmode="numeric" pattern="[0-9]*" onchange="app.combineTime('${id}')">
+                    <input type="number" class="form-control text-center px-1" id="f_${id}_mm" placeholder="MM" inputmode="numeric" pattern="[0-9]*" onchange="app.combineTime('${id}')" value="${mm}">
                     <span class="input-group-text px-1">:</span>
-                    <input type="number" class="form-control text-center px-1" id="f_${id}_ss" placeholder="SS" inputmode="numeric" pattern="[0-9]*" onchange="app.combineTime('${id}')">
-                 </div><input type="hidden" id="f_${id}_val">`;
+                    <input type="number" class="form-control text-center px-1" id="f_${id}_ss" placeholder="SS" inputmode="numeric" pattern="[0-9]*" onchange="app.combineTime('${id}')" value="${ss}">
+                 </div><input type="hidden" id="f_${id}_val" value="${value || ''}">`;
     }
     else if (field.type === 'number') {
-        input = `<input type="number" class="form-control form-control-sm" id="f_${id}" inputmode="numeric" pattern="[0-9]*" placeholder="${field.placeholder || ''}">`;
+        input = `<input type="number" class="form-control form-control-sm" id="f_${id}" inputmode="numeric" pattern="[0-9]*" placeholder="${field.placeholder || ''}" value="${value !== null ? value : ''}">`;
     }
     else if (field.type === 'select') {
-        input = `<select class="form-select form-select-sm" id="f_${id}">${field.options.map(o=>`<option value="${o}">${o}</option>`).join('')}</select>`;
+        input = `<select class="form-select form-select-sm" id="f_${id}">${field.options.map(o=> {
+            const selected = (o === value) ? 'selected' : '';
+            return `<option value="${o}" ${selected}>${o}</option>`;
+        }).join('')}</select>`;
     }
     else {
-        input = `<input type="text" class="form-control form-control-sm" id="f_${id}">`;
+        input = `<input type="text" class="form-control form-control-sm" id="f_${id}" value="${value || ''}">`;
     }
 
     return `<div class="row py-2 border-bottom align-items-center">
@@ -589,8 +660,11 @@ function submitScore(e) {
         else payload[f.id] = el.value;
     }
 
+    const queue = syncManager.getQueue();
+    const existing = queue.find(s => s.game_id === state.currentStation.id && s.entity_id === state.currentEntity.id);
+
     const packet = {
-        uuid: crypto.randomUUID(),
+        uuid: existing ? existing.uuid : crypto.randomUUID(),
         game_id: state.currentStation.id,
         entity_id: state.currentEntity.id,
         score_payload: payload,
@@ -605,7 +679,11 @@ function submitScore(e) {
     syncManager.addToQueue(packet);
     updateSyncCounts();
     alert('Score Saved!');
-    app.navigate('home');
+
+    // Return to the entity list for the same game, not the home screen
+    renderEntityList();
+    navigate('entity');
+
     if(state.isOnline) syncManager.sync().then(updateSyncCounts);
 }
 
