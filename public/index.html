@@ -23,7 +23,13 @@
         </div>
         <div class="d-flex align-items-center">
             <button id="status-indicator" class="status-offline ms-2" style="white-space: nowrap;">Offline</button>
-            <button class="btn btn-sm btn-outline text-white border-white ms-2" onclick="app.toggleJudgeModal()" style="width: 44px; height: 38px; padding: 0; display: flex; align-items: center; justify-content: center;" title="Judge Profile">
+            <button id="header-back-btn" class="btn btn-sm btn-outline text-white border-white ms-2 hidden" onclick="app.handleBack()" style="width: 44px; height: 38px; padding: 0; display: flex; align-items: center; justify-content: center;" title="Back">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+            </button>
+            <button id="judge-profile-btn" class="btn btn-sm btn-outline text-white border-white ms-2" onclick="app.toggleJudgeModal()" style="width: 44px; height: 38px; padding: 0; display: flex; align-items: center; justify-content: center;" title="Judge Profile">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
                     <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
                 </svg>
@@ -73,15 +79,11 @@
     <main>
         <!-- View: Home / Sync -->
         <div id="view-home">
-             <div class="card">
-                <div class="d-flex justify-content-between align-items-center mb-3">
+             <div class="card mb-3">
+                <div class="d-flex justify-content-between align-items-center">
                     <h2 class="mb-0" id="welcome-text">Welcome, Judge.</h2>
                 </div>
-
-                <div class="sync-status text-center">
-                    <button id="btn-reload-data" class="btn btn-outline" style="width: 100%;">Reload Config & Roster</button>
-                    <small id="last-updated" style="display:block; margin-top:0.5rem; color:#666;"></small>
-                </div>
+                <small id="last-updated" style="display:block; margin-top:0.25rem; color:#666;"></small>
              </div>
 
              <h3>Select Station</h3>
@@ -93,7 +95,6 @@
 
         <!-- View: Entity Selection -->
         <div id="view-entity" class="hidden">
-            <button class="btn btn-outline" onclick="app.navigate('home')">← Back</button>
             <h2 id="entity-header">Select Team</h2>
 
             <input type="text" id="entity-search" placeholder="Search by number or name..." style="margin-bottom: 1rem;">
@@ -105,7 +106,6 @@
 
         <!-- View: Scoring Form -->
         <div id="view-scoring" class="hidden">
-            <button class="btn btn-outline" onclick="app.showEntitySelect()">← Change Team</button>
             <h2 id="scoring-title">Station Name</h2>
             <h3 id="scoring-team">Team Name</h3>
 

@@ -8,13 +8,16 @@ const state = {
     currentStation: null,
     currentEntity: null,
     isOnline: navigator.onLine,
-    viewMode: 'patrol' // NEW: Default to Patrols
+    viewMode: 'patrol', // NEW: Default to Patrols
+    drafts: {} // key: "stationId_entityId", value: { fieldId: value }
 };
 
 // UI References
 const els = {
     status: document.getElementById('status-indicator'),
     unsyncedCount: document.getElementById('unsynced-count'),
+    backBtn: document.getElementById('header-back-btn'),
+    profileBtn: document.getElementById('judge-profile-btn'),
     stationList: document.getElementById('station-list'),
     entityList: document.getElementById('entity-list'),
     entitySearch: document.getElementById('entity-search'),
@@ -55,9 +58,12 @@ async function init() {
 
     // Listeners
     els.status.addEventListener('click', handleSync);
-    document.getElementById('btn-reload-data').addEventListener('click', refreshData);
+    // document.getElementById('btn-reload-data') is now handled in injectModeTabs
     els.entitySearch.addEventListener('input', (e) => renderEntityList(e.target.value));
     document.getElementById('btn-submit').addEventListener('click', submitScore);
+
+    // Initial view setup
+    navigate('home');
 }
 
 // NEW: Inject Tabs for Patrol vs Troop
@@ -66,24 +72,28 @@ function injectModeTabs() {
     if (!stationList) return;
 
     const container = stationList.parentNode;
+    const h3 = stationList.previousElementSibling;
 
     // Create the tabs container above the station list
     const tabContainer = document.createElement('div');
-    tabContainer.style.cssText = "display: flex; gap: 10px; margin-bottom: 1rem;";
+    tabContainer.style.cssText = "display: flex; gap: 8px; margin-bottom: 1rem; align-items: stretch;";
 
     tabContainer.innerHTML = `
-        <div style="flex:1">
-            <input type="radio" name="vmode" id="mode-patrol" style="display:none" checked>
-            <label class="btn" id="btn-mode-patrol" for="mode-patrol" onclick="app.setMode('patrol')">Patrol Events</label>
+        <div style="flex: 1.25">
+            <input type="radio" name="vmode" id="mode-patrol" style="display:none" ${state.viewMode === 'patrol' ? 'checked' : ''}>
+            <label class="btn px-1 ${state.viewMode === 'patrol' ? '' : 'btn-outline'}" id="btn-mode-patrol" for="mode-patrol" onclick="app.setMode('patrol')" style="height: 100%; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; margin-bottom: 0;">Patrol Events</label>
         </div>
-        <div style="flex:1">
-            <input type="radio" name="vmode" id="mode-troop" style="display:none">
-            <label class="btn btn-outline" id="btn-mode-troop" for="mode-troop" onclick="app.setMode('troop')">Troop Events</label>
+        <div style="flex: 1.25">
+            <input type="radio" name="vmode" id="mode-troop" style="display:none" ${state.viewMode === 'troop' ? 'checked' : ''}>
+            <label class="btn px-1 ${state.viewMode === 'troop' ? '' : 'btn-outline'}" id="btn-mode-troop" for="mode-troop" onclick="app.setMode('troop')" style="height: 100%; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; margin-bottom: 0;">Troop Events</label>
+        </div>
+        <div style="flex: 0.75">
+            <button class="btn btn-outline px-1" id="btn-reload-data" onclick="app.refreshData()" style="height: 100%; width: 100%; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; margin-bottom: 0;">Reload</button>
         </div>
     `;
 
-    // Insert before the list
-    container.insertBefore(tabContainer, stationList);
+    // Insert before the H3 header so H3 appears below the buttons
+    container.insertBefore(tabContainer, h3 || stationList);
 }
 
 function setMode(mode) {
@@ -95,21 +105,58 @@ function setMode(mode) {
 
     if (pBtn && tBtn) {
         if (mode === 'patrol') {
-            pBtn.className = 'btn';
-            tBtn.className = 'btn btn-outline';
+            pBtn.classList.remove('btn-outline');
+            tBtn.classList.add('btn-outline');
         } else {
-            pBtn.className = 'btn btn-outline';
-            tBtn.className = 'btn';
+            pBtn.classList.add('btn-outline');
+            tBtn.classList.remove('btn-outline');
         }
     }
 
     renderStationList();
 }
 
+function saveDraft() {
+    if (!state.currentStation || !state.currentEntity) return;
+
+    const draftKey = `${state.currentStation.id}_${state.currentEntity.id}`;
+    const payload = {};
+    const allFields = [...(state.currentStation.fields||[]), ...(state.config.common_scoring||[])];
+
+    for(const f of allFields) {
+        const el = document.getElementById(`f_${f.id}`);
+        // Handle timed fields separately via their hidden val if needed,
+        // but easier to just check the inputs directly for drafts
+        if (f.type === 'timed') {
+            const mm = document.getElementById(`f_${f.id}_mm`)?.value || '';
+            const ss = document.getElementById(`f_${f.id}_ss`)?.value || '';
+            if (mm || ss) payload[f.id] = `${mm.padStart(2,'0')}:${ss.padStart(2,'0')}`;
+        } else if (f.type === 'boolean') {
+            payload[f.id] = el?.checked;
+        } else {
+            if (el) payload[f.id] = el.value;
+        }
+    }
+
+    const drafts = JSON.parse(localStorage.getItem('coyote_drafts') || '{}');
+    drafts[draftKey] = payload;
+    localStorage.setItem('coyote_drafts', JSON.stringify(drafts));
+}
+
+function handleBack() {
+    const visibleView = Object.keys(views).find(key => !views[key].classList.contains('hidden'));
+    if (visibleView === 'scoring') {
+        renderEntityList();
+        navigate('entity');
+    } else if (visibleView === 'entity') {
+        navigate('home');
+    }
+}
+
 function updateStatusDisplay() {
     state.isOnline = navigator.onLine;
     const unsyncedCount = syncManager.getCounts().unsynced;
-    
+
     // Update the "Scores to Sync" text line
     if (els.unsyncedCount) els.unsyncedCount.textContent = unsyncedCount;
 
@@ -270,6 +317,21 @@ function navigate(viewName) {
         if(sub) sub.style.display = 'none';
     }
 
+    // Header buttons logic (Back button vs Status/Profile)
+    if (viewName === 'home') {
+        els.backBtn.classList.add('hidden');
+        els.status.classList.remove('hidden');
+        els.profileBtn.classList.remove('hidden');
+    } else if (viewName === 'entity') {
+        els.backBtn.classList.remove('hidden');
+        els.status.classList.add('hidden');
+        els.profileBtn.classList.add('hidden');
+    } else if (viewName === 'scoring') {
+        els.backBtn.classList.remove('hidden');
+        els.status.classList.add('hidden');
+        els.profileBtn.classList.add('hidden');
+    }
+
     // Reset Header on Home
     if (viewName === 'home') {
         document.getElementById('header-title').textContent = 'Coyote Collator';
@@ -337,6 +399,9 @@ function renderEntityList(filter = '') {
     const requiredType = state.currentStation.type || state.viewMode;
     const term = filter.toLowerCase();
 
+    // drafts check
+    const drafts = JSON.parse(localStorage.getItem('coyote_drafts') || '{}');
+
     // Get list of already scored entities for this game from sync manager
     const queue = syncManager.getQueue();
     const scoredIds = new Set(queue
@@ -380,17 +445,23 @@ function renderEntityList(filter = '') {
 
     const listHtml = filtered.map(e => {
         const isDone = scoredIds.has(e.id);
+        const draftKey = `${state.currentStation.id}_${e.id}`;
+        const hasDraft = !!drafts[draftKey];
+
         // Display format: Troop Number, Patrol ID, Patrol Name
         const displayLabel = `Tr ${e.troop_number} | #${e.id} | ${e.name}`;
 
         return `
             <div class="list-group-item list-group-item-action p-3 d-flex justify-content-between align-items-center"
                 onclick="app.selectEntity('${e.id}')"
-                style="cursor:pointer; border-left: 5px solid ${isDone ? '#adb5bd' : '#0d6efd'}; margin-bottom: 6px; ${isDone ? 'background-color: #f1f3f5; opacity: 0.6;' : 'background-color: #fff;'}">
+                style="cursor:pointer; border-left: 5px solid ${isDone ? '#adb5bd' : (hasDraft ? '#ffc107' : '#0d6efd')}; margin-bottom: 6px; ${isDone ? 'background-color: #f1f3f5; opacity: 0.6;' : 'background-color: #fff;'}">
                 <div class="fw-bold text-truncate" style="max-width: 85%; font-size: 1.05rem;">
                     ${isDone ? `<del class="text-muted">${displayLabel}</del>` : displayLabel}
                 </div>
-                ${isDone ? '<span class="badge bg-light text-dark border">Done</span>' : ''}
+                <div>
+                    ${hasDraft && !isDone ? '<span class="badge bg-warning text-dark me-1">Draft</span>' : ''}
+                    ${isDone ? '<span class="badge bg-light text-dark border">Done</span>' : ''}
+                </div>
             </div>`;
     }).join('');
 
@@ -453,6 +524,13 @@ function renderForm(existingScore = null) {
     const btnSubmit = document.getElementById('btn-submit');
     const header = document.querySelector('header');
 
+    // Check for draft if no existing score
+    let draftData = null;
+    if (!existingScore) {
+        const drafts = JSON.parse(localStorage.getItem('coyote_drafts') || '{}');
+        draftData = drafts[`${s.id}_${e.id}`];
+    }
+
     // Update Header
     if (existingScore) {
         document.getElementById('header-title').textContent = `EDIT: ${formatGameTitle(s)}`;
@@ -490,10 +568,21 @@ function renderForm(existingScore = null) {
 
     if (visibleFields.length > 0) {
         visibleFields.forEach(f => {
-            const val = existingScore ? existingScore.score_payload[f.id] : null;
+            let val = null;
+            if (existingScore) {
+                val = existingScore.score_payload[f.id];
+            } else if (draftData) {
+                val = draftData[f.id];
+            }
             els.scoreForm.innerHTML += generateFieldHTML(f, val);
         });
     }
+
+    // Attach change listeners to save drafts
+    const inputs = els.scoreForm.querySelectorAll('input, select, textarea');
+    inputs.forEach(input => {
+        input.addEventListener('input', () => app.saveDraft());
+    });
 }
 
 if (!window.startStopwatch) {
@@ -715,6 +804,7 @@ function combineTime(id) {
     const m = document.getElementById(`f_${id}_mm`).value || '00';
     const s = document.getElementById(`f_${id}_ss`).value || '00';
     document.getElementById(`f_${id}_val`).value = `${m.padStart(2,'0')}:${s.padStart(2,'0')}`;
+    app.saveDraft();
 }
 
 function submitScore(e) {
@@ -736,7 +826,7 @@ function submitScore(e) {
     const existing = queue.find(s => s.game_id === state.currentStation.id && s.entity_id === state.currentEntity.id);
 
     const packet = {
-        uuid: existing ? existing.uuid : crypto.randomUUID(),
+        uuid: existing ? existing.uuid : (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2)),
         game_id: state.currentStation.id,
         entity_id: state.currentEntity.id,
         score_payload: payload,
@@ -749,6 +839,13 @@ function submitScore(e) {
     if(packet.judge_email) localStorage.setItem('judge_info', JSON.stringify({name:packet.judge_name, email:packet.judge_email, unit:packet.judge_unit}));
 
     syncManager.addToQueue(packet);
+
+    // Clear draft on successful submission
+    const draftKey = `${state.currentStation.id}_${state.currentEntity.id}`;
+    const drafts = JSON.parse(localStorage.getItem('coyote_drafts') || '{}');
+    delete drafts[draftKey];
+    localStorage.setItem('coyote_drafts', JSON.stringify(drafts));
+
     updateSyncCounts();
     alert('Score Saved!');
 
@@ -759,5 +856,5 @@ function submitScore(e) {
     if(state.isOnline) syncManager.sync().then(updateSyncCounts);
 }
 
-window.app = { init, navigate, refreshData, selectStation, selectEntity, showEntitySelect, combineTime, submitScore, setMode, promptNewEntity, toggleJudgeModal, saveJudgeInfo };
+window.app = { init, navigate, refreshData, selectStation, selectEntity, showEntitySelect, combineTime, submitScore, setMode, promptNewEntity, toggleJudgeModal, saveJudgeInfo, handleBack, saveDraft };
 init();
