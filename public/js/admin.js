@@ -650,7 +650,7 @@ function renderRoster() {
         summary.style = "font-weight:bold; cursor:pointer; list-style:none; display:flex; align-items:center; padding: 4px 10px; background-color: #f1f3f4; border-bottom: 1px solid #e0e0e0;";
         summary.innerHTML = `
             <span style="font-size:0.8rem; margin-right:8px; color:#5f6368; transition: transform 0.2s;">▼</span>
-            <span style="font-size:0.95rem;">Troop ${troop.troop_number} - ${troop.name}</span>
+            <span style="font-size:0.95rem;">${troop.name.startsWith('T') ? '' : 'Troop '}${troop.name}</span>
             <button class="btn btn-sm btn-link ms-auto text-decoration-none p-0 text-success fw-bold" style="font-size: 0.8rem;" onclick="addEntity(${troop.id})">+ Add Patrol</button>
         `;
 
