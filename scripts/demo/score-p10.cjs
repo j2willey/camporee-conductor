@@ -6,21 +6,17 @@ const patrols = [
   {
     "name": "Skeleton Fishing",
     "scores": {
-      "patrol_flag": 3,
-      "patrol_yell": 5,
       "uniformly_spaced": 3,
       "proper_lashings_2_ea_20_pt": 20,
       "tight_and_sturdy": 5,
       "spirited_celebration": 5,
       "disassemble_ladder_stack_materials": 5,
-      "unscoutlike": -10,
       "time_mm_ss": "22:36"
     }
   },
   {
     "name": "Dark Dragons",
     "scores": {
-      "patrol_yell": 5,
       "proper_lashings_2_ea_20_pt": 6,
       "tight_and_sturdy": 1,
       "secured_to_anchor_post": 2,
@@ -34,7 +30,6 @@ const patrols = [
   {
     "name": "Wolves",
     "scores": {
-      "patrol_yell": 5,
       "uniformly_spaced": 3,
       "proper_lashings_2_ea_20_pt": 20,
       "tight_and_sturdy": 3,
@@ -47,8 +42,6 @@ const patrols = [
   {
     "name": "Space Pirates",
     "scores": {
-      "patrol_flag": 5,
-      "patrol_yell": 5,
       "ascending_order": 5,
       "uniformly_spaced": 4,
       "proper_lashings_2_ea_20_pt": 30,
@@ -64,8 +57,6 @@ const patrols = [
   {
     "name": "Wolf Warriors",
     "scores": {
-      "patrol_flag": 5,
-      "patrol_yell": 5,
       "ascending_order": 5,
       "uniformly_spaced": 5,
       "proper_lashings_2_ea_20_pt": 40,
@@ -81,8 +72,6 @@ const patrols = [
   {
     "name": "Fearless Foxes",
     "scores": {
-      "patrol_flag": 5,
-      "patrol_yell": 5,
       "ascending_order": 5,
       "uniformly_spaced": 5,
       "proper_lashings_2_ea_20_pt": 40,
@@ -95,8 +84,6 @@ const patrols = [
   {
     "name": "Falcons",
     "scores": {
-      "patrol_flag": 5,
-      "patrol_yell": 5,
       "ascending_order": 5,
       "uniformly_spaced": 4,
       "proper_lashings_2_ea_20_pt": 40,
@@ -110,7 +97,7 @@ const patrols = [
     }
   }
 ];
-const fieldConfigs = [{"id":"ascending_order","label":"ascending order","type":"number","audience":"judge","kind":"points"},{"id":"uniformly_spaced","label":"uniformly spaced","type":"number","audience":"judge","kind":"points"},{"id":"proper_lashings_2_ea_20_pt","label":"Proper lashings\n(2 ea × 20 pt)","type":"number","audience":"judge","kind":"points"},{"id":"tight_and_sturdy","label":"tight and sturdy","type":"number","audience":"judge","kind":"points"},{"id":"secured_to_anchor_post","label":"secured to anchor post","type":"number","audience":"judge","kind":"points"},{"id":"all_patrol_members_complete_the_climb_within_time_limit","label":"All patrol members complete the climb within time limit","type":"time_mm_ss","audience":"judge","kind":"points"},{"id":"spirited_celebration","label":"Spirited celebration","type":"number","audience":"judge","kind":"points"},{"id":"disassemble_ladder_stack_materials","label":"Disassemble ladder, \nstack materials","type":"number","audience":"judge","kind":"points"},{"id":"more_than_one_scout_on_ladder_at_a_time_5_pt_each_instance","label":"More than one Scout\non ladder at a time \n(-5 pt each instance)","type":"time_mm_ss","audience":"judge","kind":"points"},{"id":"time_mm_ss","label":"Time\nmm:ss","type":"time_mm_ss","audience":"judge","kind":"points"},{"id":"patrol_flag","label":"Patrol Flag?","sortOrder":1,"type":"range","min":0,"max":5,"defaultValue":0},{"id":"patrol_yell","label":"Patrol Yell?","sortOrder":2,"type":"range","min":0,"max":5,"defaultValue":0},{"id":"patrol_spirit","label":"Patrol Spirit","sortOrder":3,"type":"range","min":0,"max":5,"defaultValue":0},{"id":"unscoutlike","label":"Un-Scout-like Behavior (Penalty)","sortOrder":998,"type":"number","min":0,"max":100,"helperText":"Enter POSITIVE number to deduct points","defaultValue":0},{"id":"judge_notes","label":"Judge Notes / Comments","sortOrder":999,"type":"textarea","placeholder":"Optional notes on performance..."}];
+const fieldConfigs = [{"id":"ascending_order","label":"ascending order","type":"number","audience":"judge","kind":"points"},{"id":"uniformly_spaced","label":"uniformly spaced","type":"number","audience":"judge","kind":"points"},{"id":"proper_lashings_2_ea_20_pt","label":"Proper lashings\n(2 ea × 20 pt)","type":"number","audience":"judge","kind":"points"},{"id":"tight_and_sturdy","label":"tight and sturdy","type":"number","audience":"judge","kind":"points"},{"id":"secured_to_anchor_post","label":"secured to anchor post","type":"number","audience":"judge","kind":"points"},{"id":"all_patrol_members_complete_the_climb_within_time_limit","label":"All patrol members complete the climb within time limit","type":"time_mm_ss","audience":"judge","kind":"points"},{"id":"spirited_celebration","label":"Spirited celebration","type":"number","audience":"judge","kind":"points"},{"id":"disassemble_ladder_stack_materials","label":"Disassemble ladder, \nstack materials","type":"number","audience":"judge","kind":"points"},{"id":"more_than_one_scout_on_ladder_at_a_time_5_pt_each_instance","label":"More than one Scout\non ladder at a time \n(-5 pt each instance)","type":"time_mm_ss","audience":"judge","kind":"points"},{"id":"time_mm_ss","label":"Time\nmm:ss","type":"time_mm_ss","audience":"judge","kind":"points"}];
 
 async function run() {
     const { page, waitTime, sleep, finish, startDemo } = await getContext({ mobile: true });
@@ -175,7 +162,11 @@ async function run() {
 
         // 4. Submit
         console.log("Submitting...");
-        const dialogHandler = async dialog => { await dialog.accept(); };
+        const dialogHandler = async dialog => {
+            // Add tiny delay so it doesn't flash
+            await new Promise(r => setTimeout(r, 400));
+            await dialog.accept();
+        };
         page.on('dialog', dialogHandler);
         await page.click('#btn-submit');
 

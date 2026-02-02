@@ -22,12 +22,6 @@ async function run() {
         { num: '2019', name: 'T2019', patrols: ['Krabbie Patties', 'Ice Dragons', 'Wolf Warriors', 'Fearless Foxes'] }
     ];
 
-    // Setup dialog handlers to fulfill the prompts
-    let currentPromptValue = "";
-    page.on('dialog', async dialog => {
-        await dialog.accept(currentPromptValue);
-    });
-
     await startDemo();
     await page.goto('http://localhost:3000/admin.html');
     await sleep(waitTime);
@@ -36,21 +30,16 @@ async function run() {
     await page.click('#nav-registration');
     await sleep(waitTime);
 
-    for (const troop of roster) {
-        console.log(`Adding Troop ${troop.num}...`);
-
-        // Add Troop
-        currentPromptValue = troop.num;
-        // Note: The prompt sequence is Num then Name
-        // We'll need to update currentPromptValue dynamically if possible, or use a queue.
-    }
-
-    // REDO dialog handler for sequential prompts
-    page.removeAllListeners('dialog');
-
+    // Dialog handler for sequential prompts
     let promptQueue = [];
     page.on('dialog', async dialog => {
-        const val = promptQueue.shift();
+        const val = promptQueue.shift() || "";
+        console.log(`  DIALOG [${dialog.type()}]: "${dialog.message()}"`);
+        console.log(`  ACTION: Entering "${val}"...`);
+
+        // Wait while the dialog is visible so the user can see what's happening
+        await new Promise(r => setTimeout(r, waitTime));
+
         await dialog.accept(val);
     });
 
@@ -67,8 +56,8 @@ async function run() {
             promptQueue.push(patrol);
             // Click the "+ Add Patrol" button inside the correct troop details
             // The summary text contains "Troop [num]"
-            const troopRow = page.locator('.roster-group', { hasText: `Troop ${troop.num}` });
-            await troopRow.locator('button:has-text("+ Add Patrol")').click();
+            const troopRow = page.locator('.roster-group', { hasText: `Troop ${troop.num}` }).first();
+            await troopRow.locator('button:has-text("+ Add Patrol")').first().click();
             await sleep(waitTime);
         }
     }

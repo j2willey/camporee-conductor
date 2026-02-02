@@ -6,9 +6,6 @@ const patrols = [
   {
     "name": "Spooky Shrimp",
     "scores": {
-      "unscoutlike": -10,
-      "patrol_flag": 5,
-      "patrol_yell": 5,
       "start": 10,
       "target_destination": 6,
       "distance_from_target": -5,
@@ -20,8 +17,6 @@ const patrols = [
   {
     "name": "Atomic Duckies",
     "scores": {
-      "patrol_flag": 5,
-      "patrol_yell": 5,
       "start": 7,
       "target_destination": 17,
       "distance_from_target": -13,
@@ -33,7 +28,6 @@ const patrols = [
   {
     "name": "Orcas",
     "scores": {
-      "patrol_yell": 5,
       "start": 10,
       "target_destination": 6,
       "distance_from_target": -8,
@@ -45,7 +39,6 @@ const patrols = [
   {
     "name": "Wolves",
     "scores": {
-      "patrol_yell": 5,
       "start": 8,
       "target_destination": 16,
       "distance_from_target": -13,
@@ -57,8 +50,6 @@ const patrols = [
   {
     "name": "Goofy Goobers",
     "scores": {
-      "patrol_flag": 5,
-      "patrol_yell": 5,
       "start": 18,
       "target_destination": 5,
       "distance_from_target": -3,
@@ -70,7 +61,6 @@ const patrols = [
   {
     "name": "Fancy Frogs",
     "scores": {
-      "patrol_yell": 5,
       "start": 10,
       "target_destination": 6,
       "distance_from_target": -1,
@@ -82,8 +72,6 @@ const patrols = [
   {
     "name": "Ice Dragons",
     "scores": {
-      "patrol_flag": 5,
-      "patrol_yell": 5,
       "start": 10,
       "target_destination": 6,
       "distance_from_target": -9,
@@ -95,8 +83,6 @@ const patrols = [
   {
     "name": "Wolf Warriors",
     "scores": {
-      "patrol_flag": 5,
-      "patrol_yell": 5,
       "start": 10,
       "target_destination": 6,
       "distance_from_target": -6,
@@ -108,8 +94,6 @@ const patrols = [
   {
     "name": "Falcons",
     "scores": {
-      "patrol_flag": 5,
-      "patrol_yell": 5,
       "start": 10,
       "target_destination": 6,
       "distance_from_target": -8,
@@ -119,7 +103,7 @@ const patrols = [
     }
   }
 ];
-const fieldConfigs = [{"id":"check_folder_column_info_change","label":"Check folder Column info change","type":"number","audience":"judge","kind":"points"},{"id":"start","label":"Start","type":"number","audience":"judge","kind":"points"},{"id":"target_destination","label":"Target Destination","type":"number","audience":"judge","kind":"points"},{"id":"distance_from_target","label":"Distance from \nTarget","type":"number","audience":"judge","kind":"points"},{"id":"flag_height","label":"Flag Height","type":"number","audience":"judge","kind":"points"},{"id":"vball_width","label":"Vball width","type":"number","audience":"judge","kind":"points"},{"id":"time_mm_ss","label":"Time\nmm:ss","type":"time_mm_ss","audience":"judge","kind":"points"},{"id":"time","label":"Time","type":"time_mm_ss","audience":"judge","kind":"points"},{"id":"patrol_flag","label":"Patrol Flag?","sortOrder":1,"type":"range","min":0,"max":5,"defaultValue":0},{"id":"patrol_yell","label":"Patrol Yell?","sortOrder":2,"type":"range","min":0,"max":5,"defaultValue":0},{"id":"patrol_spirit","label":"Patrol Spirit","sortOrder":3,"type":"range","min":0,"max":5,"defaultValue":0},{"id":"unscoutlike","label":"Un-Scout-like Behavior (Penalty)","sortOrder":998,"type":"number","min":0,"max":100,"helperText":"Enter POSITIVE number to deduct points","defaultValue":0},{"id":"judge_notes","label":"Judge Notes / Comments","sortOrder":999,"type":"textarea","placeholder":"Optional notes on performance..."}];
+const fieldConfigs = [{"id":"check_folder_column_info_change","label":"Check folder Column info change","type":"number","audience":"judge","kind":"points"},{"id":"start","label":"Start","type":"number","audience":"judge","kind":"points"},{"id":"target_destination","label":"Target Destination","type":"number","audience":"judge","kind":"points"},{"id":"distance_from_target","label":"Distance from \nTarget","type":"number","audience":"judge","kind":"points"},{"id":"flag_height","label":"Flag Height","type":"number","audience":"judge","kind":"points"},{"id":"vball_width","label":"Vball width","type":"number","audience":"judge","kind":"points"},{"id":"time_mm_ss","label":"Time\nmm:ss","type":"time_mm_ss","audience":"judge","kind":"points"},{"id":"time","label":"Time","type":"time_mm_ss","audience":"judge","kind":"points"}];
 
 async function run() {
     const { page, waitTime, sleep, finish, startDemo } = await getContext({ mobile: true });
@@ -184,7 +168,11 @@ async function run() {
 
         // 4. Submit
         console.log("Submitting...");
-        const dialogHandler = async dialog => { await dialog.accept(); };
+        const dialogHandler = async dialog => {
+            // Add tiny delay so it doesn't flash
+            await new Promise(r => setTimeout(r, 400));
+            await dialog.accept();
+        };
         page.on('dialog', dialogHandler);
         await page.click('#btn-submit');
 

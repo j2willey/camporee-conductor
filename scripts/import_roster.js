@@ -44,20 +44,16 @@ const importData = db.transaction(() => {
     // Process Troops
     const troopLines = readCsvLines(troopPath);
     for (const line of troopLines) {
-        // Troop ID, Troop (Name)
-        // Example: 0013,T13
         const cols = line.split(',');
         if (cols.length < 2) continue;
 
         const troopIdStr = cols[0].trim();
         const name = cols[1].trim();
+        const idNum = parseInt(troopIdStr, 10);
+        if (isNaN(idNum)) continue;
 
-        const id = parseInt(troopIdStr, 10);
-        if (isNaN(id)) continue;
-
-        // troop_number: Parse Troop ID as string (or integer) to store the number.
-        // Convert to int then string to normalize (remove leading zeros)
-        const troopNumber = id.toString();
+        const troopNumber = idNum.toString();
+        const id = `t${troopNumber}`; // e.g. t13
 
         insertStmt.run(id, name, 'troop', troopNumber);
         troopCount++;
@@ -66,17 +62,16 @@ const importData = db.transaction(() => {
     // Process Patrols
     const patrolLines = readCsvLines(patrolPath);
     for (const line of patrolLines) {
-        // Patrol ID, Troop (Number), Patrol (Name), ...
-        // Example: 1001,13,Skeleton Fishing,5,,,
         const cols = line.split(',');
         if (cols.length < 3) continue;
 
-        const patrolIdStr = cols[0].trim();
         const troopNumStr = cols[1].trim();
         const name = cols[2].trim();
 
-        const id = parseInt(patrolIdStr, 10);
-        if (isNaN(id)) continue;
+        if (!name) continue; // Skip empty names
+
+        // 4 digit number, beginning 4300 and prefixed with a p
+        const id = `p${4300 + patrolCount}`;
 
         insertStmt.run(id, name, 'patrol', troopNumStr);
         patrolCount++;

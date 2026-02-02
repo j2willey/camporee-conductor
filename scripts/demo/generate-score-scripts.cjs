@@ -168,7 +168,12 @@ async function run() {
 
         // 4. Submit
         console.log("Submitting...");
-        const dialogHandler = async dialog => { await dialog.accept(); };
+        const dialogHandler = async dialog => {
+            console.log(`  DIALOG [${dialog.type()}]: "${dialog.message()}"`);
+            // Wait so the user can read the confirmation
+            await new Promise(r => setTimeout(r, waitTime));
+            await dialog.accept();
+        };
         page.on('dialog', dialogHandler);
         await page.click('#btn-submit');
 

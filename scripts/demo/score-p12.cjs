@@ -6,7 +6,6 @@ const patrols = [
   {
     "name": "Spooky Shrimp",
     "scores": {
-      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "time_mm_ss": "DNF"
     }
@@ -14,7 +13,6 @@ const patrols = [
   {
     "name": "Eaglez",
     "scores": {
-      "patrol_yell": 5,
       "patrol_sprirt": 4,
       "time_mm_ss": 0.9270833333333334
     }
@@ -22,8 +20,6 @@ const patrols = [
   {
     "name": "Chunky Monkeys",
     "scores": {
-      "patrol_flag": 5,
-      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "time_mm_ss": 0.5
     }
@@ -31,8 +27,6 @@ const patrols = [
   {
     "name": "Raptors",
     "scores": {
-      "patrol_flag": 5,
-      "patrol_yell": 5,
       "patrol_sprirt": 4,
       "time_mm_ss": 0.6881944444444444
     }
@@ -40,8 +34,6 @@ const patrols = [
   {
     "name": "Orcas",
     "scores": {
-      "patrol_flag": 5,
-      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "time_mm_ss": 0.6458333333333334
     }
@@ -49,8 +41,6 @@ const patrols = [
   {
     "name": "Ice Dragons",
     "scores": {
-      "patrol_flag": 5,
-      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "time_mm_ss": 0.5763888888888888
     }
@@ -58,8 +48,6 @@ const patrols = [
   {
     "name": "Fearless Firebirds",
     "scores": {
-      "patrol_flag": 5,
-      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "time_mm_ss": 0.8395833333333333
     }
@@ -67,14 +55,12 @@ const patrols = [
   {
     "name": "Falcons",
     "scores": {
-      "patrol_flag": 5,
-      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "time_mm_ss": 0.6375
     }
   }
 ];
-const fieldConfigs = [{"id":"patrol_sprirt","label":"Patrol Sprirt","type":"number","audience":"judge","kind":"points"},{"id":"time_mm_ss","label":"Time\nmm:ss","type":"time_mm_ss","audience":"judge","kind":"points"},{"id":"patrol_flag","label":"Patrol Flag?","sortOrder":1,"type":"range","min":0,"max":5,"defaultValue":0},{"id":"patrol_yell","label":"Patrol Yell?","sortOrder":2,"type":"range","min":0,"max":5,"defaultValue":0},{"id":"patrol_spirit","label":"Patrol Spirit","sortOrder":3,"type":"range","min":0,"max":5,"defaultValue":0},{"id":"unscoutlike","label":"Un-Scout-like Behavior (Penalty)","sortOrder":998,"type":"number","min":0,"max":100,"helperText":"Enter POSITIVE number to deduct points","defaultValue":0},{"id":"judge_notes","label":"Judge Notes / Comments","sortOrder":999,"type":"textarea","placeholder":"Optional notes on performance..."}];
+const fieldConfigs = [{"id":"patrol_sprirt","label":"Patrol Sprirt","type":"number","audience":"judge","kind":"points"},{"id":"time_mm_ss","label":"Time\nmm:ss","type":"time_mm_ss","audience":"judge","kind":"points"}];
 
 async function run() {
     const { page, waitTime, sleep, finish, startDemo } = await getContext({ mobile: true });
@@ -139,7 +125,11 @@ async function run() {
 
         // 4. Submit
         console.log("Submitting...");
-        const dialogHandler = async dialog => { await dialog.accept(); };
+        const dialogHandler = async dialog => {
+            // Add tiny delay so it doesn't flash
+            await new Promise(r => setTimeout(r, 400));
+            await dialog.accept();
+        };
         page.on('dialog', dialogHandler);
         await page.click('#btn-submit');
 

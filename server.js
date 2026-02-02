@@ -22,11 +22,11 @@ const db = new Database(path.join(dataDir, 'camporee.db'));
 // Initialize Tables
 db.exec(`
   CREATE TABLE IF NOT EXISTS entities (
-    id INTEGER PRIMARY KEY,
+    id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     type TEXT CHECK(type IN ('patrol', 'troop')) NOT NULL,
     troop_number TEXT NOT NULL,
-    parent_id INTEGER
+    parent_id TEXT
   );
 
   CREATE TABLE IF NOT EXISTS judges (
@@ -39,7 +39,7 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS scores (
     uuid TEXT PRIMARY KEY,
     game_id TEXT NOT NULL,
-    entity_id INTEGER NOT NULL,
+    entity_id TEXT NOT NULL,
     score_payload TEXT NOT NULL,
     timestamp INTEGER NOT NULL,
     judge_id INTEGER,
@@ -55,9 +55,28 @@ db.exec(`
 
 // Migration for existing databases
 try {
-  db.exec("ALTER TABLE entities ADD COLUMN parent_id INTEGER");
+  db.exec("ALTER TABLE entities ADD COLUMN parent_id TEXT");
 } catch (e) { /* Column already exists */ }
 
+function getNextEntityId(type) {
+    if (type === 'patrol') {
+        const row = db.prepare("SELECT id FROM entities WHERE type='patrol' AND id LIKE 'p%' ORDER BY id DESC LIMIT 1").get();
+        let nextNum = 4300;
+        if (row && row.id) {
+            const currentNum = parseInt(row.id.substring(1));
+            if (!isNaN(currentNum)) nextNum = currentNum + 1;
+        }
+        return `p${nextNum}`;
+    } else {
+        const row = db.prepare("SELECT id FROM entities WHERE type='troop' AND id LIKE 't%' ORDER BY id DESC LIMIT 1").get();
+        let nextNum = 1000;
+        if (row && row.id) {
+            const currentNum = parseInt(row.id.substring(1));
+            if (!isNaN(currentNum)) nextNum = currentNum + 1;
+        }
+        return `t${nextNum}`;
+    }
+}
 
 app.use(express.json());
 app.use(express.static('public'));
@@ -354,9 +373,10 @@ app.post('/api/entities', (req, res) => {
   }
 
   try {
-    const insert = db.prepare('INSERT INTO entities (name, type, troop_number, parent_id) VALUES (?, ?, ?, ?)');
-    const info = insert.run(name, type, troop_number, parent_id || null);
-    res.json({ id: info.lastInsertRowid, name, type, troop_number, parent_id: parent_id || null });
+    const id = getNextEntityId(type);
+    const insert = db.prepare('INSERT INTO entities (id, name, type, troop_number, parent_id) VALUES (?, ?, ?, ?, ?)');
+    insert.run(id, name, type, troop_number, parent_id || null);
+    res.json({ id, name, type, troop_number, parent_id: parent_id || null });
   } catch (err) {
     console.error('Registration error:', err);
     res.status(500).json({ error: 'Database error' });
