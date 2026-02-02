@@ -249,7 +249,7 @@ app.post('/api/score', (req, res) => {
 app.get('/api/admin/all-data', (req, res) => {
   try {
     const rows = db.prepare(`
-        SELECT s.uuid, s.game_id, s.timestamp, e.name as entity_name, e.troop_number, e.type as entity_type, s.score_payload
+        SELECT s.uuid, s.game_id, s.entity_id, s.timestamp, e.name as entity_name, e.troop_number, e.type as entity_type, s.score_payload
         FROM scores s JOIN entities e ON s.entity_id = e.id
     `).all();
 
@@ -276,7 +276,7 @@ app.get('/api/admin/all-data', (req, res) => {
 app.get('/api/export', (req, res) => {
     try {
         const rows = db.prepare(`
-            SELECT s.uuid, s.game_id, s.timestamp, e.name as entity_name, e.troop_number, e.type as entity_type, s.score_payload
+            SELECT s.uuid, s.game_id, s.entity_id, s.timestamp, e.name as entity_name, e.troop_number, e.type as entity_type, s.score_payload
             FROM scores s JOIN entities e ON s.entity_id = e.id
             ORDER BY s.timestamp DESC
         `).all();

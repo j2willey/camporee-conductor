@@ -14,6 +14,7 @@ let currentViewMode = 'patrol'; // 'patrol', 'troop', or 'exhibition'
 let matrixTranspose = false;
 let detailSort = { col: '_finalRank', dir: 'asc' };
 let activeGameId = null;
+let finalMode = false;
 
 // Initialization
 document.addEventListener('DOMContentLoaded', async () => {
@@ -56,7 +57,6 @@ function setupNavigation() {
     const navOverview = document.getElementById('nav-overview');
     const navMatrix = document.getElementById('nav-matrix');
     const navRegistration = document.getElementById('nav-registration');
-    const backBtn = document.getElementById('back-to-overview');
     const transposeBtn = document.getElementById('btn-transpose');
     const viewModeSelect = document.getElementById('view-mode-select');
     const clearScoresBtn = document.getElementById('btn-clear-scores');
@@ -107,25 +107,26 @@ function setupNavigation() {
     }
 
     navOverview.addEventListener('click', () => switchView('overview'));
-    navMatrix.addEventListener('click', () => switchView('matrix'));
+    if (navMatrix) {
+        navMatrix.addEventListener('click', () => switchView('matrix'));
+    }
 
     if (navRegistration) {
         navRegistration.addEventListener('click', () => switchView('registration'));
     }
 
-    backBtn.addEventListener('click', () => switchView('overview'));
-
-    // ... rest of listeners
     // Form Listener
     const regForm = document.getElementById('reg-form');
     if (regForm) {
         regForm.addEventListener('submit', handleRegistration);
     }
 
-    transposeBtn.addEventListener('click', () => {
-        matrixTranspose = !matrixTranspose;
-        renderMatrix();
-    });
+    if (transposeBtn) {
+        transposeBtn.addEventListener('click', () => {
+            matrixTranspose = !matrixTranspose;
+            renderMatrix();
+        });
+    }
 
     if (viewModeSelect) {
         viewModeSelect.addEventListener('change', (e) => {
@@ -133,31 +134,11 @@ function setupNavigation() {
             refreshCurrentView();
         });
     }
-
-    // Toggle Compact View (Final Ranking Mode)
-    const toggleCompact = document.getElementById('toggle-compact-view');
-    if (toggleCompact) {
-        toggleCompact.addEventListener('change', (e) => {
-            const container = document.querySelector('.table-container');
-            if (e.target.checked) {
-                container.classList.add('compact-mode');
-            } else {
-                container.classList.remove('compact-mode');
-            }
-        });
-    }
-
-    // View Type Toggles
-    const rdCard = document.getElementById('view-type-card');
-    const rdList = document.getElementById('view-type-list');
-    if(rdCard) rdCard.addEventListener('change', () => { currentViewType = 'card'; refreshCurrentView(); });
-    if(rdList) rdList.addEventListener('change', () => { currentViewType = 'list'; refreshCurrentView(); });
 }
 
 function refreshCurrentView() {
     if (currentView === 'overview') {
-        if(currentViewType === 'list') renderOverviewList();
-        else renderOverview();
+        renderOverviewList();
     }
     else if (currentView === 'matrix') renderMatrix();
 }
@@ -170,10 +151,13 @@ function switchView(viewName) {
     if (viewName === 'overview') {
         document.getElementById('view-overview').classList.remove('hidden');
         document.getElementById('nav-overview').classList.add('active');
+        setSubtitle('Game Overview');
         refreshCurrentView();
     } else if (viewName === 'matrix') {
         document.getElementById('view-matrix').classList.remove('hidden');
-        document.getElementById('nav-matrix').classList.add('active');
+        const mBtn = document.getElementById('nav-matrix');
+        if (mBtn) mBtn.classList.add('active');
+        // renderMatrix sets its own subtitle
         renderMatrix();
     } else if (viewName === 'detail') {
         document.getElementById('view-detail').classList.remove('hidden');
@@ -182,7 +166,24 @@ function switchView(viewName) {
         document.getElementById('view-registration').classList.remove('hidden');
         const regBtn = document.getElementById('nav-registration');
         if(regBtn) regBtn.classList.add('active');
+        setSubtitle('Registration');
         renderRoster();
+    }
+}
+
+function setSubtitle(text) {
+    const subtitle = document.getElementById('header-subtitle');
+    if (subtitle) {
+        subtitle.innerText = text ? ` - ${text}` : '';
+    }
+}
+
+function toggleFinalMode(checked) {
+    finalMode = checked;
+    const main = document.querySelector('main');
+    if (main) {
+        if (finalMode) main.classList.add('compact-mode');
+        else main.classList.remove('compact-mode');
     }
 }
 
@@ -229,10 +230,12 @@ function calculateScoreContext() {
         if (game) {
             const fields = game.fields || [];
             fields.forEach(f => {
-                const val = parseFloat(score.score_payload[f.id]);
-                if (!isNaN(val)) {
-                    if (f.kind === 'penalty') total -= val;
-                    else total += val;
+                if (f.kind === 'points' || f.kind === 'penalty') {
+                    const val = parseFloat(score.score_payload[f.id]);
+                    if (!isNaN(val)) {
+                        if (f.kind === 'penalty') total -= val;
+                        else total += val;
+                    }
                 }
             });
         }
@@ -277,37 +280,6 @@ function calculateScoreContext() {
 
 // --- Overview ---
 
-function renderOverview() {
-    const grid = document.getElementById('games-grid');
-    grid.innerHTML = '';
-    // Show grid container
-    grid.style.display = 'grid';
-    grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(200px, 1fr))';
-    grid.style.gap = '20px';
-
-    const games = getFilteredGames();
-
-    if (games.length === 0) {
-        grid.innerHTML = `<p>No ${currentViewMode} games found.</p>`;
-        return;
-    }
-
-    games.forEach(game => {
-        const card = document.createElement('div');
-        card.className = 'card';
-        const count = appData.stats[game.id] || 0;
-        const isFinal = appData.gameStatuses[game.id] === 'finalized';
-
-        card.innerHTML = `
-            <h3>${formatGameTitle(game)}</h3>
-            <div class="stat">${count} Scores</div>
-            ${isFinal ? '<div class="badge bg-success mt-2">Finalized</div>' : ''}
-        `;
-        card.addEventListener('click', () => openGameDetail(game.id));
-        grid.appendChild(card);
-    });
-}
-
 function renderOverviewList() {
     const grid = document.getElementById('games-grid');
     grid.innerHTML = '';
@@ -336,6 +308,24 @@ function renderOverviewList() {
     `;
 
     const tbody = table.querySelector('tbody');
+
+    // Inject Leaderboard row
+    const lbTr = document.createElement('tr');
+    lbTr.style.cursor = 'pointer';
+    lbTr.className = 'table-info';
+    lbTr.onclick = () => switchView('matrix');
+    lbTr.innerHTML = `
+        <td class="fw-bold">Game 0. Leader Board</td>
+        <td>-</td>
+        <td class="text-center">
+            <span class="badge bg-info text-dark">Aggregated</span>
+        </td>
+        <td class="text-end">
+            <button class="btn btn-sm btn-info">Open</button>
+        </td>
+    `;
+    tbody.appendChild(lbTr);
+
     games.forEach(game => {
         const count = appData.stats[game.id] || 0;
         const isFinal = appData.gameStatuses[game.id] === 'finalized';
@@ -402,7 +392,9 @@ function openGameDetail(gameId) {
         detailSort = { col: 'troop_number', dir: 'asc' };
     }
 
-    document.getElementById('detail-title').innerText = formatGameTitle(game);
+    const title = formatGameTitle(game);
+    document.getElementById('detail-title').innerText = title;
+    setSubtitle(title);
     const table = document.getElementById('detail-table');
     table.innerHTML = '';
     table.className = 'spreadsheet-table'; // Enforce spreadsheet look
@@ -513,10 +505,11 @@ function openGameDetail(gameId) {
 
         if (detailSort.col === colId) {
             const arrow = detailSort.dir === 'asc' ? ' ▲' : ' ▼';
-            const innerDiv = th.querySelector('div');
+            const innerDiv = th.querySelector('.header-text') || th.querySelector('div');
             if (innerDiv) {
-                // Ensure we don't double-nest or lose the div structure
-                innerDiv.innerText += arrow;
+                const arrowSpan = document.createElement('span');
+                arrowSpan.innerText = arrow;
+                innerDiv.appendChild(arrowSpan);
             } else {
                 th.innerText += arrow;
             }
@@ -560,18 +553,24 @@ function openGameDetail(gameId) {
         headerRow.appendChild(th);
     });
 
-    const thTotal = createTh('Total');
-    thTotal.className = 'rotate-header';
+    const thTotal = createTh('Game<br>Total');
     addSortBtn(thTotal, '_total');
     headerRow.appendChild(thTotal);
 
-    const thRank = createTh('Rank');
-    thRank.className = 'rotate-header'; // Match Total rotating style
+    const thRank = document.createElement('th');
+    thRank.innerHTML = `
+        <div style="display:flex; flex-direction:column; align-items:center; gap:5px; padding:2px;">
+            <div class="form-check form-switch p-0" style="min-height:auto; display:flex; align-items:center; justify-content:center;" onclick="event.stopPropagation()">
+                <input class="form-check-input ms-0" type="checkbox" id="toggle-compact-view" ${finalMode ? 'checked' : ''} onchange="toggleFinalMode(this.checked)" style="transform: scale(0.9); cursor:pointer; margin-top:0;">
+                <span class="fw-bold text-uppercase ms-1" style="font-size: 0.6rem; color:#666;">Final</span>
+            </div>
+            <div class="header-text" style="font-weight:bold; line-height:1.1;">Game<br>Rank</div>
+        </div>
+    `;
     addSortBtn(thRank, '_finalRank');
     headerRow.appendChild(thRank);
 
-    const thPoints = createTh('Points');
-    thPoints.className = 'rotate-header';
+    const thPoints = createTh('Overall<br>Points');
     addSortBtn(thPoints, '_finalPoints');
     headerRow.appendChild(thPoints);
 
@@ -752,6 +751,11 @@ function renderMatrix() {
     table.innerHTML = '';
     table.className = 'spreadsheet-table'; // Match the scoreboard look
 
+    const modeTitle = currentViewMode.charAt(0).toUpperCase() + currentViewMode.slice(1);
+    const lbTitle = `${modeTitle} Leader Board`;
+    document.getElementById('matrix-title').innerText = lbTitle;
+    setSubtitle(lbTitle);
+
     const entities = appData.entities.filter(e => e.type === currentViewMode);
 
     // Sort Entities
@@ -823,12 +827,19 @@ function renderMatrixNormal(table, games, patrols) {
         headerRow.appendChild(th);
     });
 
-    const thTotal = createTh('Net Score');
-    thTotal.className = 'rotate-header';
+    const thTotal = createTh('Overall<br>Points');
     headerRow.appendChild(thTotal);
 
-    const thRank = createTh('Overall Rank');
-    thRank.className = 'rotate-header';
+    const thRank = document.createElement('th');
+    thRank.innerHTML = `
+        <div style="display:flex; flex-direction:column; align-items:center; gap:5px; padding:2px;">
+            <div class="form-check form-switch p-0" style="min-height:auto; display:flex; align-items:center; justify-content:center;" onclick="event.stopPropagation()">
+                <input class="form-check-input ms-0" type="checkbox" id="toggle-compact-view" ${finalMode ? 'checked' : ''} onchange="toggleFinalMode(this.checked)" style="transform: scale(0.9); cursor:pointer; margin-top:0;">
+                <span class="fw-bold text-uppercase ms-1" style="font-size: 0.6rem; color:#666;">Final</span>
+            </div>
+            <div class="header-text" style="font-weight:bold; line-height:1.1;">Overall<br>Rank</div>
+        </div>
+    `;
     headerRow.appendChild(thRank);
 
     thead.appendChild(headerRow);
@@ -934,7 +945,7 @@ function renderMatrixTransposed(table, games, patrols) {
 
     // Add Net Score row
     const totalRow = document.createElement('tr');
-    const tdLabel = createTd('Net Score');
+    const tdLabel = createTd('Overall<br>Points');
     tdLabel.style.fontWeight = 'bold';
     totalRow.appendChild(tdLabel);
     patrols.forEach(p => {
@@ -947,7 +958,7 @@ function renderMatrixTransposed(table, games, patrols) {
 
     // Add Overall Rank row
     const rankRow = document.createElement('tr');
-    const tdRankLabel = createTd('Overall Rank');
+    const tdRankLabel = createTd('Overall<br>Rank');
     tdRankLabel.style.fontWeight = 'bold';
     rankRow.appendChild(tdRankLabel);
     patrols.forEach(p => {

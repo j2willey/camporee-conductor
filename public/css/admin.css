@@ -112,3 +112,12 @@ tr:hover { background-color: #f1f1f1; }
 .compact-mode .table {
     width: 100%;
 }
+
+/* Shrink padding for edit buttons in tables */
+.spreadsheet-table .btn-link {
+    padding: 0;
+    line-height: 1;
+    text-decoration: none;
+    border: none;
+    background: none;
+}

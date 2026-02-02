@@ -11,17 +11,10 @@
 </head>
 <body>
     <header>
-        <h1>Coyote Admin</h1>
+        <h1>Coyote Admin<span id="header-subtitle"></span></h1>
         <div style="display:flex; align-items:center; gap:10px; margin-left:auto; margin-right:20px;">
             <button id="btn-clear-scores" style="background:none; border:1px solid #f39c12; color:#f39c12; padding:5px 10px; cursor:pointer; border-radius:4px; margin-right:10px; font-size:0.8rem;">⚠ Clear Scores</button>
             <button id="btn-reset-db" style="background:none; border:1px solid #e74c3c; color:#e74c3c; padding:5px 10px; cursor:pointer; border-radius:4px; margin-right:15px; font-size:0.8rem;">☢ Reset DB</button>
-            <div class="btn-group btn-group-sm me-3" role="group">
-                <input type="radio" class="btn-check" name="view-type" id="view-type-card" autocomplete="off">
-                <label class="btn btn-outline-light" for="view-type-card" title="Card View">Grid</label>
-
-                <input type="radio" class="btn-check" name="view-type" id="view-type-list" autocomplete="off" checked>
-                <label class="btn btn-outline-light" for="view-type-list" title="List View">List</label>
-            </div>
             <label for="view-mode-select" style="color:white; font-weight:bold;">Filter:</label>
             <select id="view-mode-select" style="padding:5px; border-radius:4px; font-weight:bold;">
                 <option value="patrol">Patrol Games</option>
@@ -31,7 +24,6 @@
         </div>
         <nav>
             <button id="nav-overview" class="active">Overview</button>
-            <button id="nav-matrix">Leaderboard</button>
             <button id="nav-registration">Registration</button>
         </nav>
     </header>
@@ -40,7 +32,7 @@
         <!-- View 1: Overview -->
         <section id="view-overview">
             <div class="controls">
-                <h2>Game Overview</h2>
+                <h2 class="hidden">Game Overview</h2>
             </div>
             <div id="games-grid" class="dashboard-grid">
                 <!-- Cards injected here -->
@@ -49,15 +41,8 @@
 
         <!-- View 2: Game Detail -->
         <section id="view-detail" class="hidden">
-            <div class="controls">
-                <h2 id="detail-title">Game Detail</h2>
-                <div style="display:flex; align-items:center; gap:15px;">
-                    <div class="form-check form-switch mb-0">
-                        <input class="form-check-input" type="checkbox" id="toggle-compact-view" style="transform: scale(1.2);">
-                        <label class="form-check-label ms-2 fw-bold" for="toggle-compact-view">Final Ranking Mode</label>
-                    </div>
-                    <button id="back-to-overview">Back to Overview</button>
-                </div>
+            <div class="controls hidden">
+                <h2 id="detail-title" class="hidden">Game Detail</h2>
             </div>
             <div class="table-container">
                 <table id="detail-table">
@@ -69,8 +54,7 @@
         <!-- View 3: Matrix -->
         <section id="view-matrix" class="hidden">
             <div class="controls">
-                <h2>Scoring Matrix</h2>
-                <button id="btn-transpose">Transpose</button>
+                <h2 id="matrix-title" class="hidden">Leader Board</h2>
             </div>
             <div class="table-container">
                 <table id="matrix-table">
@@ -82,7 +66,7 @@
         <!-- View 4: Registration (Tree) -->
         <section id="view-registration" class="hidden">
             <div class="controls">
-                <h2>Entity Registration</h2>
+                <h2 class="hidden">Entity Registration</h2>
                 <button onclick="addEntity(null)" class="btn" style="background-color:#27ae60;">+ Add Troop</button>
             </div>
 
