@@ -200,6 +200,81 @@ function formatGameTitle(game) {
     return game.name; // Fallback for Exhibition etc
 }
 
+// --- Score & Ranking Utils ---
+
+function getOrdinalSuffix(i) {
+    const j = i % 10, k = i % 100;
+    if (j === 1 && k !== 11) return i + "st";
+    if (j === 2 && k !== 12) return i + "nd";
+    if (j === 3 && k !== 13) return i + "rd";
+    return i + "th";
+}
+
+function getPointsForRank(r) {
+    const m = String(r).match(/\d+/);
+    const n = m ? parseInt(m[0]) : 999;
+    if (n === 1) return 100;
+    if (n === 2) return 90;
+    if (n === 3) return 80;
+    if (n === 4) return 70;
+    if (n === 5) return 60;
+    return 50;
+}
+
+function calculateScoreContext() {
+    // 1. Calculate totals for every score
+    const enrichedScores = appData.scores.map(score => {
+        const game = appData.games.find(g => g.id === score.game_id);
+        let total = 0;
+        if (game) {
+            const fields = game.fields || [];
+            fields.forEach(f => {
+                const val = parseFloat(score.score_payload[f.id]);
+                if (!isNaN(val)) {
+                    if (f.kind === 'penalty') total -= val;
+                    else total += val;
+                }
+            });
+        }
+        return { ...score, _total: total };
+    });
+
+    // 2. Group by game to calculate dense ranks
+    const gameGroups = {};
+    enrichedScores.forEach(s => {
+        if (!gameGroups[s.game_id]) gameGroups[s.game_id] = [];
+        gameGroups[s.game_id].push(s);
+    });
+
+    const finalPointsMap = {}; // { entity_id: { game_id: points } }
+
+    Object.keys(gameGroups).forEach(gameId => {
+        const scores = gameGroups[gameId];
+        scores.sort((a, b) => b._total - a._total);
+
+        let currentAutoRank = 0;
+        let lastTotal = null;
+        scores.forEach(s => {
+            if (s._total !== lastTotal) {
+                currentAutoRank++;
+                lastTotal = s._total;
+            }
+            s._autoRank = getOrdinalSuffix(currentAutoRank);
+
+            // Apply Manual Overrides
+            const finalRank = s.score_payload.manual_rank || s._autoRank;
+            const autoPts = getPointsForRank(finalRank);
+            const mPts = s.score_payload.manual_points;
+            const finalPoints = (mPts !== undefined && mPts !== "" && mPts !== null) ? parseFloat(mPts) : autoPts;
+
+            if (!finalPointsMap[s.entity_id]) finalPointsMap[s.entity_id] = {};
+            finalPointsMap[s.entity_id][gameId] = finalPoints;
+        });
+    });
+
+    return finalPointsMap;
+}
+
 // --- Overview ---
 
 function renderOverview() {
@@ -369,19 +444,8 @@ function openGameDetail(gameId) {
             currentAutoRank++;
             lastTotal = s._total;
         }
-        s._autoRank = currentAutoRank;
+        s._autoRank = getOrdinalSuffix(currentAutoRank);
     });
-
-    const getPointsForRank = (r) => {
-        const m = String(r).match(/\d+/);
-        const n = m ? parseInt(m[0]) : 999;
-        if (n === 1) return 100;
-        if (n === 2) return 90;
-        if (n === 3) return 80;
-        if (n === 4) return 70;
-        if (n === 5) return 60;
-        return 50;
-    };
 
     // 2. Finalize Rank/Points
     gameScores.forEach(s => {
@@ -686,6 +750,7 @@ function formatValue(val, type) {
 function renderMatrix() {
     const table = document.getElementById('matrix-table');
     table.innerHTML = '';
+    table.className = 'spreadsheet-table'; // Match the scoreboard look
 
     const entities = appData.entities.filter(e => e.type === currentViewMode);
 
@@ -710,6 +775,41 @@ function renderMatrix() {
 }
 
 function renderMatrixNormal(table, games, patrols) {
+    // 1. Calculate points map (points for every score)
+    const pointsMap = calculateScoreContext();
+
+    // 2. Calculate totals per patrol
+    patrols.forEach(p => {
+        let total = 0;
+        games.forEach(g => {
+            if (pointsMap[p.id] && pointsMap[p.id][g.id]) {
+                total += pointsMap[p.id][g.id];
+            }
+        });
+        p._leaderboardTotal = total;
+    });
+
+    // 3. Dense Rank the patrol leaderboard totals
+    const sortedForRank = [...patrols].sort((a,b) => b._leaderboardTotal - a._leaderboardTotal);
+    let curRank = 0;
+    let lastLT = null;
+    sortedForRank.forEach(p => {
+        if (p._leaderboardTotal !== lastLT) {
+            curRank++;
+            lastLT = p._leaderboardTotal;
+        }
+        p._autoOverallRank = getOrdinalSuffix(curRank);
+    });
+
+    // 4. Sort patrols based on Leaderboard Total (desc) by default
+    patrols.sort((a, b) => {
+        if (b._leaderboardTotal !== a._leaderboardTotal) return b._leaderboardTotal - a._leaderboardTotal;
+        const numA = parseInt(a.troop_number) || 0;
+        const numB = parseInt(b.troop_number) || 0;
+        if (numA !== numB) return numA - numB;
+        return a.name.localeCompare(b.name);
+    });
+
     // Header: Entity Info + Games
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
@@ -718,10 +818,19 @@ function renderMatrixNormal(table, games, patrols) {
 
     games.forEach(g => {
         const th = createTh(formatGameTitle(g));
-        // truncate if too long?
+        th.className = 'rotate-header';
         th.title = g.name;
         headerRow.appendChild(th);
     });
+
+    const thTotal = createTh('Net Score');
+    thTotal.className = 'rotate-header';
+    headerRow.appendChild(thTotal);
+
+    const thRank = createTh('Overall Rank');
+    thRank.className = 'rotate-header';
+    headerRow.appendChild(thRank);
+
     thead.appendChild(headerRow);
     table.appendChild(thead);
 
@@ -732,30 +841,73 @@ function renderMatrixNormal(table, games, patrols) {
         tr.appendChild(createTd(patrol.name));
 
         games.forEach(game => {
-            const hasScore = appData.scores.some(s => s.entity_id === patrol.id && s.game_id === game.id);
+            const pts = (pointsMap[patrol.id] && pointsMap[patrol.id][game.id]) || 0;
             const td = document.createElement('td');
             td.className = 'cell-center';
-            if (hasScore) {
-                td.innerHTML = '<span class="check">✅</span>';
+            if (pts > 0) {
+                td.innerText = pts;
             } else {
-                td.innerHTML = '<span style="color:#eee">.</span>';
+                td.innerHTML = '<span style="color:#eee">0</span>';
             }
             tr.appendChild(td);
         });
+
+        // Total Column
+        const tdTotal = createTd(patrol._leaderboardTotal);
+        tdTotal.style.fontWeight = 'bold';
+        tdTotal.classList.add('cell-center');
+        tr.appendChild(tdTotal);
+
+        // Editable Rank Column
+        const tdRank = document.createElement('td');
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'form-control form-control-sm';
+        input.style.width = '100px';
+        input.value = patrol.manual_rank || patrol._autoOverallRank;
+        input.onchange = (e) => updateEntityField(patrol.id, 'manual_rank', e.target.value);
+        tdRank.appendChild(input);
+        tr.appendChild(tdRank);
+
         tbody.appendChild(tr);
     });
     table.appendChild(tbody);
 }
 
 function renderMatrixTransposed(table, games, patrols) {
+    const pointsMap = calculateScoreContext();
+
+    // Calculate totals per patrol
+    patrols.forEach(p => {
+        let total = 0;
+        games.forEach(g => {
+            if (pointsMap[p.id] && pointsMap[p.id][g.id]) {
+                total += pointsMap[p.id][g.id];
+            }
+        });
+        p._leaderboardTotal = total;
+    });
+
+    // Dense Rank the patrol leaderboard totals
+    const sortedForRankTrans = [...patrols].sort((a,b) => b._leaderboardTotal - a._leaderboardTotal);
+    let curRankTrans = 0;
+    let lastLTTrans = null;
+    sortedForRankTrans.forEach(p => {
+        if (p._leaderboardTotal !== lastLTTrans) {
+            curRankTrans++;
+            lastLTTrans = p._leaderboardTotal;
+        }
+        p._autoOverallRank = getOrdinalSuffix(curRankTrans);
+    });
+
     // Header: Game Name + Patrols
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
     headerRow.appendChild(createTh('Game Name'));
 
     patrols.forEach(p => {
-        const th = createTh(`${p.troop_number}\n${p.name}`);
-        th.style.fontSize = '10px';
+        const th = createTh(`${p.troop_number}<br>${p.name}`);
+        th.className = 'rotate-header';
         headerRow.appendChild(th);
     });
     thead.appendChild(headerRow);
@@ -767,18 +919,50 @@ function renderMatrixTransposed(table, games, patrols) {
         tr.appendChild(createTd(formatGameTitle(game)));
 
         patrols.forEach(patrol => {
-            const hasScore = appData.scores.some(s => s.entity_id === patrol.id && s.game_id === game.id);
+            const pts = (pointsMap[patrol.id] && pointsMap[patrol.id][game.id]) || 0;
             const td = document.createElement('td');
             td.className = 'cell-center';
-            if (hasScore) {
-                td.innerHTML = '<span class="check">✅</span>';
+            if (pts > 0) {
+                td.innerText = pts;
             } else {
-                td.innerHTML = '<span style="color:#eee">.</span>';
+                td.innerHTML = '<span style="color:#eee">0</span>';
             }
             tr.appendChild(td);
         });
         tbody.appendChild(tr);
     });
+
+    // Add Net Score row
+    const totalRow = document.createElement('tr');
+    const tdLabel = createTd('Net Score');
+    tdLabel.style.fontWeight = 'bold';
+    totalRow.appendChild(tdLabel);
+    patrols.forEach(p => {
+        const td = createTd(p._leaderboardTotal);
+        td.style.fontWeight = 'bold';
+        td.className = 'cell-center';
+        totalRow.appendChild(td);
+    });
+    tbody.appendChild(totalRow);
+
+    // Add Overall Rank row
+    const rankRow = document.createElement('tr');
+    const tdRankLabel = createTd('Overall Rank');
+    tdRankLabel.style.fontWeight = 'bold';
+    rankRow.appendChild(tdRankLabel);
+    patrols.forEach(p => {
+        const td = document.createElement('td');
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'form-control form-control-sm';
+        input.style.width = '60px'; // Smaller for transposed
+        input.value = p.manual_rank || p._autoOverallRank;
+        input.onchange = (e) => updateEntityField(p.id, 'manual_rank', e.target.value);
+        td.appendChild(input);
+        rankRow.appendChild(td);
+    });
+    tbody.appendChild(rankRow);
+
     table.appendChild(tbody);
 }
 
@@ -1086,6 +1270,29 @@ async function updateScoreField(uuid, fieldId, value) {
 
         if (!response.ok) {
             throw new Error('Failed to update score');
+        }
+    } catch (err) {
+        console.error('Update failed:', err);
+        alert('Failed to save change. Please refresh.');
+    }
+}
+
+async function updateEntityField(entityId, fieldId, value) {
+    const entity = appData.entities.find(e => e.id === entityId);
+    if (!entity) return;
+
+    // Update local copy
+    entity[fieldId] = value;
+
+    try {
+        const response = await fetch('/api/entities/' + entityId, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ [fieldId]: value })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to update entity');
         }
     } catch (err) {
         console.error('Update failed:', err);

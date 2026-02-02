@@ -26,7 +26,8 @@ db.exec(`
     name TEXT NOT NULL,
     type TEXT CHECK(type IN ('patrol', 'troop')) NOT NULL,
     troop_number TEXT NOT NULL,
-    parent_id TEXT
+    parent_id TEXT,
+    manual_rank TEXT
   );
 
   CREATE TABLE IF NOT EXISTS judges (
@@ -58,6 +59,10 @@ db.exec(`
 // Migration for existing databases
 try {
   db.exec("ALTER TABLE entities ADD COLUMN parent_id TEXT");
+} catch (e) { /* Column already exists */ }
+
+try {
+  db.exec("ALTER TABLE entities ADD COLUMN manual_rank TEXT");
 } catch (e) { /* Column already exists */ }
 
 function getNextEntityId(type) {
@@ -177,6 +182,19 @@ app.get('/api/entities', (req, res) => {
     console.error('Error fetching entities:', err);
     res.status(500).json({ error: 'Database error' });
   }
+});
+
+app.put('/api/entities/:id', (req, res) => {
+    const { id } = req.params;
+    const { manual_rank } = req.body;
+    try {
+        const stmt = db.prepare('UPDATE entities SET manual_rank = ? WHERE id = ?');
+        stmt.run(manual_rank, id);
+        res.json({ status: 'success' });
+    } catch (err) {
+        console.error('Update entity error:', err);
+        res.status(500).json({ error: 'Database error' });
+    }
 });
 
 // 3. POST /api/score (Submit Score)
