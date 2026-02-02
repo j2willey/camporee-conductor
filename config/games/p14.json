@@ -6,22 +6,30 @@
     {
       "id": "patrol_sprirt",
       "label": "Patrol Sprirt",
-      "type": "number"
+      "type": "number",
+      "audience": "judge",
+      "kind": "points"
     },
     {
       "id": "knot_correctly_tied",
       "label": "Knot correctly tied",
-      "type": "number"
+      "type": "number",
+      "audience": "judge",
+      "kind": "points"
     },
     {
       "id": "knot_rationale",
       "label": "Knot Rationale",
-      "type": "number"
+      "type": "number",
+      "audience": "judge",
+      "kind": "points"
     },
     {
       "id": "time_points",
       "label": "Time Points",
-      "type": "time_mm_ss"
+      "type": "time_mm_ss",
+      "audience": "judge",
+      "kind": "points"
     }
   ]
 }

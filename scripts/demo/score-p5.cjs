@@ -204,7 +204,7 @@ const patrols = [
     }
   }
 ];
-const fieldConfigs = [{"id":"mix_batter","label":"Mix batter","type":"number"},{"id":"prep_skillet","label":"prep skillet","type":"number"},{"id":"batter_into_skillet","label":"batter into skillet","type":"number"},{"id":"pancake_resembles_fish","label":"Pancake resembles Fish","type":"number"},{"id":"fully_cook_pancake","label":"Fully Cook Pancake","type":"number"},{"id":"catch_eat","label":"Catch & Eat....","type":"number"},{"id":"wash_and_clean_up","label":"Wash and Clean up","type":"number"},{"id":"sum","label":"SUM","type":"number"},{"id":"time_mm_ss","label":"Time\nmm:ss","type":"time_mm_ss"},{"id":"patrol_flag","label":"Patrol Flag?","sortOrder":1,"type":"range","min":0,"max":5,"defaultValue":0},{"id":"patrol_yell","label":"Patrol Yell?","sortOrder":2,"type":"range","min":0,"max":5,"defaultValue":0},{"id":"patrol_spirit","label":"Patrol Spirit","sortOrder":3,"type":"range","min":0,"max":5,"defaultValue":0},{"id":"unscoutlike","label":"Un-Scout-like Behavior (Penalty)","sortOrder":998,"type":"number","min":0,"max":100,"helperText":"Enter POSITIVE number to deduct points","defaultValue":0},{"id":"judge_notes","label":"Judge Notes / Comments","sortOrder":999,"type":"textarea","placeholder":"Optional notes on performance..."}];
+const fieldConfigs = [{"id":"mix_batter","label":"Mix batter","type":"number","audience":"judge","kind":"points"},{"id":"prep_skillet","label":"prep skillet","type":"number","audience":"judge","kind":"points"},{"id":"batter_into_skillet","label":"batter into skillet","type":"number","audience":"judge","kind":"points"},{"id":"pancake_resembles_fish","label":"Pancake resembles Fish","type":"number","audience":"judge","kind":"points"},{"id":"fully_cook_pancake","label":"Fully Cook Pancake","type":"number","audience":"judge","kind":"points"},{"id":"catch_eat","label":"Catch & Eat....","type":"number","audience":"judge","kind":"points"},{"id":"wash_and_clean_up","label":"Wash and Clean up","type":"number","audience":"judge","kind":"points"},{"id":"sum","label":"SUM","type":"number","audience":"judge","kind":"points"},{"id":"time_mm_ss","label":"Time\nmm:ss","type":"time_mm_ss","audience":"judge","kind":"points"},{"id":"patrol_flag","label":"Patrol Flag?","sortOrder":1,"type":"range","min":0,"max":5,"defaultValue":0},{"id":"patrol_yell","label":"Patrol Yell?","sortOrder":2,"type":"range","min":0,"max":5,"defaultValue":0},{"id":"patrol_spirit","label":"Patrol Spirit","sortOrder":3,"type":"range","min":0,"max":5,"defaultValue":0},{"id":"unscoutlike","label":"Un-Scout-like Behavior (Penalty)","sortOrder":998,"type":"number","min":0,"max":100,"helperText":"Enter POSITIVE number to deduct points","defaultValue":0},{"id":"judge_notes","label":"Judge Notes / Comments","sortOrder":999,"type":"textarea","placeholder":"Optional notes on performance..."}];
 
 async function run() {
     const { page, waitTime, sleep, finish, startDemo } = await getContext({ mobile: true });
@@ -230,6 +230,7 @@ async function run() {
         for (const [fieldId, val] of Object.entries(p.scores)) {
             const field = fieldConfigs.find(f => f.id === fieldId);
             if (!field) continue;
+            if (field.audience === 'admin') continue; // Judges can't see/fill admin fields
 
             if (field.type === 'time_mm_ss') {
                 let mm = '00', ss = '00';

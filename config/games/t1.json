@@ -6,32 +6,44 @@
     {
       "id": "car_name",
       "label": "Car Name",
-      "type": "number"
+      "type": "number",
+      "audience": "judge",
+      "kind": "points"
     },
     {
       "id": "compliance",
       "label": "Compliance",
-      "type": "number"
+      "type": "number",
+      "audience": "judge",
+      "kind": "points"
     },
     {
       "id": "design",
       "label": "Design",
-      "type": "number"
+      "type": "number",
+      "audience": "judge",
+      "kind": "points"
     },
     {
       "id": "functionality",
       "label": "Functionality",
-      "type": "number"
+      "type": "number",
+      "audience": "judge",
+      "kind": "points"
     },
     {
       "id": "construction",
       "label": "Construction",
-      "type": "number"
+      "type": "number",
+      "audience": "judge",
+      "kind": "points"
     },
     {
       "id": "showmanship",
       "label": "Showmanship",
-      "type": "number"
+      "type": "number",
+      "audience": "judge",
+      "kind": "points"
     }
   ]
 }

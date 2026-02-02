@@ -353,9 +353,11 @@ function renderForm() {
         ...(state.config.common_scoring || [])
     ].sort(sortFn);
 
-    if (allFields.length > 0) {
-        allFields.forEach(f => {
-            if (!f.adminOnly) els.scoreForm.innerHTML += generateFieldHTML(f);
+    const visibleFields = allFields.filter(f => f.audience === 'judge');
+
+    if (visibleFields.length > 0) {
+        visibleFields.forEach(f => {
+            els.scoreForm.innerHTML += generateFieldHTML(f);
         });
     }
 }

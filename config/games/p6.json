@@ -6,42 +6,58 @@
     {
       "id": "check_folder_column_info_change",
       "label": "Check folder Column info change",
-      "type": "number"
+      "type": "number",
+      "audience": "judge",
+      "kind": "points"
     },
     {
       "id": "start",
       "label": "Start",
-      "type": "number"
+      "type": "number",
+      "audience": "judge",
+      "kind": "points"
     },
     {
       "id": "target_destination",
       "label": "Target Destination",
-      "type": "number"
+      "type": "number",
+      "audience": "judge",
+      "kind": "points"
     },
     {
       "id": "distance_from_target",
       "label": "Distance from \nTarget",
-      "type": "number"
+      "type": "number",
+      "audience": "judge",
+      "kind": "points"
     },
     {
       "id": "flag_height",
       "label": "Flag Height",
-      "type": "number"
+      "type": "number",
+      "audience": "judge",
+      "kind": "points"
     },
     {
       "id": "vball_width",
       "label": "Vball width",
-      "type": "number"
+      "type": "number",
+      "audience": "judge",
+      "kind": "points"
     },
     {
       "id": "time_mm_ss",
       "label": "Time\nmm:ss",
-      "type": "time_mm_ss"
+      "type": "time_mm_ss",
+      "audience": "judge",
+      "kind": "points"
     },
     {
       "id": "time",
       "label": "Time",
-      "type": "time_mm_ss"
+      "type": "time_mm_ss",
+      "audience": "judge",
+      "kind": "points"
     }
   ]
 }

@@ -6,7 +6,9 @@
     {
       "id": "patrol_spirit",
       "label": "Patrol Spirit",
-      "type": "number"
+      "type": "number",
+      "audience": "judge",
+      "kind": "points"
     }
   ]
 }

@@ -10,6 +10,8 @@ let appData = {
 
 let currentView = 'overview';
 let currentViewType = 'list'; // 'card' or 'list'
+let currentViewMode = 'patrol'; // 'patrol', 'troop', or 'exhibition'
+let matrixTranspose = false;
 let detailSort = { col: 'troop_number', dir: 'asc' };
 let activeGameId = null;
 
@@ -327,7 +329,8 @@ function openGameDetail(gameId) {
     const gameScores = appData.scores.filter(s => s.game_id === gameId).map(score => {
         let total = 0;
         allFields.forEach(f => {
-            if (!f.excludeFromTotal) {
+            // Only sum if kind is "points"
+            if (f.kind === 'points') {
                 const val = parseFloat(score.score_payload[f.id]);
                 if (!isNaN(val)) total += val;
             }

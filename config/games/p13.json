@@ -6,7 +6,9 @@
     {
       "id": "patrol_sprirt",
       "label": "Patrol Sprirt",
-      "type": "number"
+      "type": "number",
+      "audience": "judge",
+      "kind": "points"
     }
   ]
 }

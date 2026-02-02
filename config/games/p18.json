@@ -6,17 +6,23 @@
     {
       "id": "patrol_sprirt",
       "label": "Patrol Sprirt",
-      "type": "number"
+      "type": "number",
+      "audience": "judge",
+      "kind": "points"
     },
     {
       "id": "scouts_moving",
       "label": "Scouts Moving",
-      "type": "number"
+      "type": "number",
+      "audience": "judge",
+      "kind": "points"
     },
     {
       "id": "hits",
       "label": "Hits",
-      "type": "number"
+      "type": "number",
+      "audience": "judge",
+      "kind": "points"
     }
   ]
 }

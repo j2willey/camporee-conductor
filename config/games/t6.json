@@ -6,7 +6,9 @@
     {
       "id": "points",
       "label": "Points",
-      "type": "number"
+      "type": "number",
+      "audience": "judge",
+      "kind": "points"
     }
   ]
 }

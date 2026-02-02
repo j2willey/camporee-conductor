@@ -6,12 +6,16 @@
     {
       "id": "patrol_sprirt",
       "label": "Patrol Sprirt",
-      "type": "number"
+      "type": "number",
+      "audience": "judge",
+      "kind": "points"
     },
     {
       "id": "time_in_seconds",
       "label": "Time in Seconds",
-      "type": "time_mm_ss"
+      "type": "time_mm_ss",
+      "audience": "judge",
+      "kind": "points"
     }
   ]
 }

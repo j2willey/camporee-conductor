@@ -42,7 +42,8 @@ Fields define a single input on the scoring form. These are used in both the `fi
     "id": "time_to_boil",
     "label": "Time to Boil",
     "type": "time_mm_ss",
-    "excludeFromTotal": true,
+    "kind": "metric",
+    "audience": "judge",
     "sortOrder": 10
 }
 ```
@@ -59,8 +60,8 @@ Fields define a single input on the scoring form. These are used in both the `fi
 | `defaultValue` | `any` | No | Initial value. |
 | `placeholder` | `string` | No | Helper text inside the input. |
 | `options` | `string[]`| No | Array of strings for `select` type. |
-| `adminOnly` | `boolean` | No | If `true`, this field is hidden from the Judge's entry form but visible/editable by Admin. Use for calculated scores. |
-| `excludeFromTotal` | `boolean` | No | If `true`, the value of this field is NOT added to the "Total Score" column in the Admin Dashboard. Use for raw data (times, counts) that don't map 1:1 to points. |
+| `audience` | `string` | No | Controls visibility. `"judge"` (default): visible to field judges. `"admin"`: hidden from judges, visible/editable only by admin. |
+| `kind` | `string` | No | Controls summation behavior. `"points"` (default): value is added to "Total Score". `"metric"`: value is raw data (e.g. time, counts) and not added to total. |
 | `sortOrder` | `number` | No | Controls the display order of fields. Lower numbers appear first. Defaults to 900. |
 
 ### Supported Field Types

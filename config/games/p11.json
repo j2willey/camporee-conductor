@@ -6,27 +6,37 @@
     {
       "id": "patrol_sprirt",
       "label": "Patrol Sprirt",
-      "type": "number"
+      "type": "number",
+      "audience": "judge",
+      "kind": "points"
     },
     {
       "id": "bonus_for_scout_sea_worthy_puns_jokes",
       "label": "BONUS for Scout Sea worthy Puns/Jokes",
-      "type": "number"
+      "type": "number",
+      "audience": "judge",
+      "kind": "points"
     },
     {
       "id": "time_raft_1_mm_sec",
       "label": "Time\nRaft 1\nmm::sec",
-      "type": "time_mm_ss"
+      "type": "time_mm_ss",
+      "audience": "judge",
+      "kind": "points"
     },
     {
       "id": "optional_time_raft_3_mm_sec",
       "label": "OPTIONAL\nTime\nRaft 3\nmm::sec",
-      "type": "time_mm_ss"
+      "type": "time_mm_ss",
+      "audience": "judge",
+      "kind": "points"
     },
     {
       "id": "avg_time_mm_sec",
       "label": "AVG Time\nmm::sec",
-      "type": "time_mm_ss"
+      "type": "time_mm_ss",
+      "audience": "judge",
+      "kind": "points"
     }
   ]
 }

@@ -6,12 +6,16 @@
     {
       "id": "dish",
       "label": "Dish",
-      "type": "number"
+      "type": "number",
+      "audience": "judge",
+      "kind": "points"
     },
     {
       "id": "cooking_techniques",
       "label": "Cooking Techniques",
-      "type": "number"
+      "type": "number",
+      "audience": "judge",
+      "kind": "points"
     }
   ]
 }

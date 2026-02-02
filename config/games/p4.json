@@ -6,17 +6,23 @@
     {
       "id": "correct_assembly",
       "label": "Correct Assembly",
-      "type": "number"
+      "type": "number",
+      "audience": "judge",
+      "kind": "points"
     },
     {
       "id": "repacking_tent",
       "label": "\"repacking Tent\"",
-      "type": "number"
+      "type": "number",
+      "audience": "judge",
+      "kind": "points"
     },
     {
       "id": "time",
       "label": "Time",
-      "type": "time_mm_ss"
+      "type": "time_mm_ss",
+      "audience": "judge",
+      "kind": "points"
     }
   ]
 }

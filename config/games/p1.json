@@ -9,7 +9,9 @@
       "type": "number",
       "min": 0,
       "max": 5,
-      "defaultValue": 0
+      "defaultValue": 0,
+      "audience": "judge",
+      "kind": "points"
     },
     {
       "id": "charing_or_powder",
@@ -17,7 +19,9 @@
       "type": "number",
       "min": 0,
       "max": 5,
-      "defaultValue": 0
+      "defaultValue": 0,
+      "audience": "judge",
+      "kind": "points"
     },
     {
       "id": "smoke",
@@ -25,7 +29,9 @@
       "type": "number",
       "min": 0,
       "max": 5,
-      "defaultValue": 0
+      "defaultValue": 0,
+      "audience": "judge",
+      "kind": "points"
     },
     {
       "id": "ember",
@@ -33,7 +39,9 @@
       "type": "number",
       "min": 0,
       "max": 5,
-      "defaultValue": 0
+      "defaultValue": 0,
+      "audience": "judge",
+      "kind": "points"
     },
     {
       "id": "ignite_tinder",
@@ -41,7 +49,9 @@
       "type": "number",
       "min": 0,
       "max": 5,
-      "defaultValue": 0
+      "defaultValue": 0,
+      "audience": "judge",
+      "kind": "points"
     },
     {
       "id": "ignite_kindling",
@@ -49,7 +59,9 @@
       "type": "number",
       "min": 0,
       "max": 5,
-      "defaultValue": 0
+      "defaultValue": 0,
+      "audience": "judge",
+      "kind": "points"
     },
     {
       "id": "water_boils",
@@ -57,7 +69,9 @@
       "type": "number",
       "min": 0,
       "max": 5,
-      "defaultValue": 0
+      "defaultValue": 0,
+      "audience": "judge",
+      "kind": "points"
     },
     {
       "id": "extinguish_fire_reset",
@@ -65,7 +79,9 @@
       "type": "number",
       "min": 0,
       "max": 5,
-      "defaultValue": 0
+      "defaultValue": 0,
+      "audience": "judge",
+      "kind": "points"
     },
     {
       "id": "matches_used_count",
@@ -74,19 +90,22 @@
       "min": 0,
       "max": 20,
       "defaultValue": 0,
-      "excludeFromTotal": true
+      "audience": "judge",
+      "kind": "points"
     },
     {
       "id": "time_to_boil_or_n_a_mm_ss",
       "label": "Time to Boil or N.A.\n\nmm:ss",
       "type": "time_mm_ss",
-      "excludeFromTotal": true
+      "audience": "judge",
+      "kind": "points"
     },
     {
       "id": "judges_points_calc",
       "label": "Calculated Points",
       "type": "number",
-      "adminOnly": true
+      "audience": "judge",
+      "kind": "points"
     }
   ]
 }

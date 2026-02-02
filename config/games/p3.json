@@ -6,17 +6,23 @@
     {
       "id": "skit_name",
       "label": "Skit name",
-      "type": "number"
+      "type": "number",
+      "audience": "judge",
+      "kind": "points"
     },
     {
       "id": "approx_length_in_minutes",
       "label": "Approx. Length in minutes",
-      "type": "number"
+      "type": "number",
+      "audience": "judge",
+      "kind": "points"
     },
     {
       "id": "points",
       "label": "points",
-      "type": "number"
+      "type": "number",
+      "audience": "judge",
+      "kind": "points"
     }
   ]
 }

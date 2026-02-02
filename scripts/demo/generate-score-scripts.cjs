@@ -129,6 +129,7 @@ async function run() {
         for (const [fieldId, val] of Object.entries(p.scores)) {
             const field = fieldConfigs.find(f => f.id === fieldId);
             if (!field) continue;
+            if (field.audience === 'admin') continue; // Judges can't see/fill admin fields
 
             if (field.type === 'time_mm_ss') {
                 let mm = '00', ss = '00';

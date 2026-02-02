@@ -6,12 +6,16 @@
     {
       "id": "check_folder_column_info_change",
       "label": "Check folder Column info change",
-      "type": "number"
+      "type": "number",
+      "audience": "judge",
+      "kind": "points"
     },
     {
       "id": "questions_correct",
       "label": "Questions Correct",
-      "type": "number"
+      "type": "number",
+      "audience": "judge",
+      "kind": "points"
     }
   ]
 }
