@@ -277,7 +277,7 @@ function renderEntityList(filter = '') {
 
     const listHtml = filtered.map(e => `
         <div class="list-group-item list-group-item-action p-2 d-flex justify-content-between align-items-center"
-             onclick="app.selectEntity(${e.id})" style="cursor:pointer; border-left: 4px solid var(--bs-primary); margin-bottom: 4px;">
+             onclick="app.selectEntity('${e.id}')" style="cursor:pointer; border-left: 4px solid var(--bs-primary); margin-bottom: 4px;">
             <div class="fw-bold text-truncate" style="max-width: 70%;">${e.name}</div>
             <span class="badge bg-secondary rounded-pill">Tr ${e.troop_number}</span>
         </div>

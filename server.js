@@ -47,6 +47,8 @@ db.exec(`
     FOREIGN KEY(judge_id) REFERENCES judges(id)
   );
 
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_game_entity ON scores (game_id, entity_id);
+
   CREATE TABLE IF NOT EXISTS game_status (
     game_id TEXT PRIMARY KEY,
     status TEXT
@@ -203,8 +205,13 @@ app.post('/api/score', (req, res) => {
         }
 
         const insert = db.prepare(`
-          INSERT OR IGNORE INTO scores (uuid, game_id, entity_id, score_payload, timestamp, judge_id)
+          INSERT INTO scores (uuid, game_id, entity_id, score_payload, timestamp, judge_id)
           VALUES (?, ?, ?, ?, ?, ?)
+          ON CONFLICT(game_id, entity_id) DO UPDATE SET
+            score_payload = excluded.score_payload,
+            timestamp = excluded.timestamp,
+            judge_id = excluded.judge_id,
+            uuid = excluded.uuid
         `);
         return insert.run(uuid, game_id, entity_id, JSON.stringify(score_payload), timestamp, judgeId);
     });

@@ -325,10 +325,13 @@ function openGameDetail(gameId) {
         ...(appData.commonScoring || [])
     ].sort(sortOrderFn);
 
+    const scoringFields = allFields.filter(f => f.id !== 'judge_notes');
+    const notesField = allFields.find(f => f.id === 'judge_notes');
+
     // Filter and Enrich
     const gameScores = appData.scores.filter(s => s.game_id === gameId).map(score => {
         let total = 0;
-        allFields.forEach(f => {
+        scoringFields.forEach(f => {
             // Only sum if kind is "points"
             if (f.kind === 'points') {
                 const val = parseFloat(score.score_payload[f.id]);
@@ -419,7 +422,10 @@ function openGameDetail(gameId) {
     addSortBtn(thTime, 'timestamp');
     headerRow.appendChild(thTime);
 
-    allFields.forEach(field => {
+    // Edit Column (Emoji only, positioned after Time)
+    headerRow.appendChild(createTh('✏️'));
+
+    scoringFields.forEach(field => {
         const th = document.createElement('th');
         th.className = 'rotate-header';
         th.innerHTML = `<div>${field.label}</div>`;
@@ -434,20 +440,37 @@ function openGameDetail(gameId) {
     addSortBtn(thTotal, '_total');
     headerRow.appendChild(thTotal);
 
-    headerRow.appendChild(createTh('Edit'));
+    if (notesField) {
+        const thNotes = createTh('Notes');
+        thNotes.style.minWidth = '250px';
+        headerRow.appendChild(thNotes);
+    }
+
     thead.appendChild(headerRow);
     table.appendChild(thead);
 
-    // Build Body
     const tbody = document.createElement('tbody');
     gameScores.forEach(score => {
         const tr = document.createElement('tr');
 
         tr.appendChild(createTd(score.troop_number));
         tr.appendChild(createTd(score.entity_name));
-        tr.appendChild(createTd(new Date(score.timestamp).toLocaleTimeString()));
 
-        allFields.forEach(field => {
+        // Time format: HH:MM
+        const ts = new Date(score.timestamp);
+        const timeStr = ts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+        tr.appendChild(createTd(timeStr));
+
+        // Action: Edit (Positioned after Time, emoji only)
+        const actionTd = document.createElement('td');
+        const btn = document.createElement('button');
+        btn.innerHTML = '✏️';
+        btn.className = 'btn-link';
+        btn.onclick = () => showEditModal(score, game);
+        actionTd.appendChild(btn);
+        tr.appendChild(actionTd);
+
+        scoringFields.forEach(field => {
             const val = score.score_payload[field.id];
             tr.appendChild(createTd(formatValue(val, field.type)));
         });
@@ -455,14 +478,15 @@ function openGameDetail(gameId) {
         // Total Column
         tr.appendChild(createTd(`<strong>${score._total}</strong>`));
 
-        // Action: Edit
-        const actionTd = document.createElement('td');
-        const btn = document.createElement('button');
-        btn.innerText = '✏️ Score';
-        btn.className = 'btn-link'; // Minimal styling
-        btn.onclick = () => showEditModal(score, game);
-        actionTd.appendChild(btn);
-        tr.appendChild(actionTd);
+        // Judge Notes (Last)
+        if (notesField) {
+            const val = score.score_payload[notesField.id] || '';
+            const tdNotes = createTd(val);
+            tdNotes.style.whiteSpace = 'normal';
+            tdNotes.style.textAlign = 'left';
+            tdNotes.style.minWidth = '200px';
+            tr.appendChild(tdNotes);
+        }
 
         tbody.appendChild(tr);
     });
@@ -470,7 +494,7 @@ function openGameDetail(gameId) {
     if (gameScores.length === 0) {
         const tr = document.createElement('tr');
         const td = document.createElement('td');
-        td.colSpan = 5 + allFields.length;
+        td.colSpan = 5 + scoringFields.length + (notesField ? 1 : 0);
         td.innerText = "No scores submitted yet.";
         td.style.textAlign = 'center';
         td.style.padding = '20px';
@@ -651,7 +675,7 @@ function renderRoster() {
         summary.innerHTML = `
             <span style="font-size:0.8rem; margin-right:8px; color:#5f6368; transition: transform 0.2s;">▼</span>
             <span style="font-size:0.95rem;">${troop.name.startsWith('T') ? '' : 'Troop '}${troop.name}</span>
-            <button class="btn btn-sm btn-link ms-auto text-decoration-none p-0 text-success fw-bold" style="font-size: 0.8rem;" onclick="addEntity(${troop.id})">+ Add Patrol</button>
+            <button class="btn btn-sm btn-link ms-auto text-decoration-none p-0 text-success fw-bold" style="font-size: 0.8rem;" onclick="addEntity('${troop.id}')">+ Add Patrol</button>
         `;
 
         // Simple arrow toggle logic

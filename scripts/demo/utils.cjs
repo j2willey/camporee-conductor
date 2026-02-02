@@ -22,6 +22,9 @@ async function getContext(options = {}) {
     const context = await browser.newContext(contextOptions);
     const page = await context.newPage();
 
+    page.on('console', msg => console.log('PAGE LOG:', msg.text()));
+    page.on('pageerror', err => console.log('PAGE ERROR:', err.message));
+
     async function sleep(ms) {
         if (!isInteractive) return;
 
