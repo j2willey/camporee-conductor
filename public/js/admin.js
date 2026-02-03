@@ -145,6 +145,16 @@ function setupNavigation() {
         exportAwardsBtn.onclick = () => exportAwardsCSV();
     }
 
+    const createStickersBtn = document.getElementById('btn-create-stickers');
+    if (createStickersBtn) {
+        createStickersBtn.onclick = () => renderStickers(false);
+    }
+
+    const printPreviewBtn = document.getElementById('btn-print-preview');
+    if (printPreviewBtn) {
+        printPreviewBtn.onclick = () => window.print();
+    }
+
     // Form Listener
     const regForm = document.getElementById('reg-form');
     if (regForm) {
@@ -244,6 +254,7 @@ function switchView(viewName, pushToHistory = true) {
         setSubtitle('Awards & Exports');
     }
 }
+window.switchView = switchView;
 
 function setSubtitle(text) {
     const subtitle = document.getElementById('header-subtitle');
@@ -387,6 +398,199 @@ function exportAwardsCSV() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+}
+
+function renderStickers(autoPrint = true) {
+    const el1 = document.getElementById('awards-line1');
+    const el2 = document.getElementById('awards-line2');
+    const headerLine1 = el1?.value || "";
+    const headerLine2 = el2?.value || "";
+
+    const pointsMap = calculateScoreContext();
+    const games = appData.games.filter(g => (g.type || 'patrol') === currentViewMode);
+
+    const resultsByGroup = []; // Each item is { title: string, winners: [] }
+
+    // 1. Individual Games
+    games.forEach(game => {
+        const gameScores = appData.scores.filter(s => s.game_id === game.id).map(score => {
+            let total = 0;
+            const fields = [...(game.fields || []), ...(appData.commonScoring || [])];
+            fields.forEach(f => {
+                if (f.kind === 'points' || f.kind === 'penalty') {
+                    const val = parseFloat(score.score_payload[f.id]);
+                    if (!isNaN(val)) {
+                        if (f.kind === 'penalty') total -= val;
+                        else total += val;
+                    }
+                }
+            });
+            return { ...score, _total: total };
+        });
+
+        const sorted = [...gameScores].sort((a,b) => b._total - a._total);
+        let curRank = 0;
+        let lastT = null;
+        const gameWinners = [];
+
+        // Identify any "entryname" fields for this game
+        const entryFields = [...(game.fields || []), ...(appData.commonScoring || [])].filter(f => f.kind === 'entryname');
+
+        sorted.forEach(s => {
+            if (s._total !== lastT) {
+                curRank++;
+                lastT = s._total;
+            }
+            s._autoRank = getOrdinalSuffix(curRank);
+            const finalRank = s.score_payload.manual_rank || s._autoRank;
+            const rankClean = String(finalRank).toLowerCase().trim();
+            const topRanks = ['1', '1st', '2', '2nd', '3', '3rd'];
+
+            if (topRanks.includes(rankClean)) {
+                // Line 4: "(1st|2nd|3rd) Place" - "Tnnn" + patrol name if patrol games + ,entryname
+                let line4 = `${finalRank} Place - T${s.troop_number}`;
+                if (currentViewMode === 'patrol') {
+                    line4 += ` ${s.entity_name}`;
+                }
+
+                if (entryFields.length > 0) {
+                    const entryVals = entryFields.map(f => s.score_payload[f.id]).filter(v => v).join(", ");
+                    if (entryVals) line4 += `, ${entryVals}`;
+                }
+
+                gameWinners.push({
+                    gameName: formatGameTitle(game),
+                    line4: line4
+                });
+            }
+        });
+        if (gameWinners.length > 0) {
+            resultsByGroup.push({ title: game.id, winners: gameWinners });
+        }
+    });
+
+    // 2. Overall Leaderboard
+    const entities = appData.entities.filter(e => e.type === currentViewMode);
+    entities.forEach(p => {
+        let total = 0;
+        games.forEach(g => {
+            if (pointsMap[p.id] && pointsMap[p.id][g.id]) {
+                total += pointsMap[p.id][g.id];
+            }
+        });
+        p._leaderboardTotal = total;
+    });
+
+    const lbSorted = [...entities].sort((a,b) => b._leaderboardTotal - a._leaderboardTotal);
+    let curLBRank = 0;
+    let lastLBT = null;
+    const overallWinners = [];
+
+    lbSorted.forEach(p => {
+        if (p._leaderboardTotal !== lastLBT) {
+            curLBRank++;
+            lastLBT = p._leaderboardTotal;
+        }
+        p._autoOverallRank = getOrdinalSuffix(curLBRank);
+        const finalRank = p.manual_rank || p._autoOverallRank;
+        const rankClean = String(finalRank).toLowerCase().trim();
+        const topRanks = ['1', '1st', '2', '2nd', '3', '3rd'];
+
+        if (topRanks.includes(rankClean) || (p.manual_rank && p.manual_rank.length > 0)) {
+            let line4 = `${finalRank}${topRanks.includes(rankClean) ? " Place" : ""} - T${p.troop_number}`;
+            if (currentViewMode === 'patrol') {
+                line4 += ` ${p.name}`;
+            }
+
+            overallWinners.push({
+                gameName: "OVERALL LEADERBOARD",
+                line4: line4
+            });
+        }
+    });
+    if (overallWinners.length > 0) {
+        resultsByGroup.push({ title: 'OVERALL', winners: overallWinners });
+    }
+
+    if (resultsByGroup.length === 0) {
+        alert("No awards found to print.");
+        return;
+    }
+
+    // Build the table(s)
+    const printContainer = document.getElementById('stickers-container');
+    const previewWrapper = document.getElementById('stickers-preview-table-wrapper');
+    const previewContainer = document.getElementById('stickers-preview-container');
+    const printBtn = document.getElementById('btn-print-preview');
+
+    printContainer.innerHTML = '';
+    previewWrapper.innerHTML = '';
+
+    const printTable = document.createElement('table');
+    printTable.className = 'sticker-table';
+
+    const previewTable = document.createElement('table');
+    previewTable.className = 'sticker-preview-table';
+
+    resultsByGroup.forEach(group => {
+        let cellsInCurrentRow = 0;
+        let trPrint = document.createElement('tr');
+        let trPreview = document.createElement('tr');
+
+        printTable.appendChild(trPrint);
+        previewTable.appendChild(trPreview);
+
+        group.winners.forEach((w, idx) => {
+            if (cellsInCurrentRow === 3) {
+                trPrint = document.createElement('tr');
+                trPreview = document.createElement('tr');
+                printTable.appendChild(trPrint);
+                previewTable.appendChild(trPreview);
+                cellsInCurrentRow = 0;
+            }
+
+            const innerHtml = `
+                <div class="sticker-content">
+                    ${headerLine1 ? `<div class="sticker-header">${headerLine1}</div>` : ''}
+                    ${headerLine2 ? `<div class="sticker-header">${headerLine2}</div>` : ''}
+                    <div class="sticker-game">${w.gameName}</div>
+                    <div class="sticker-info">${w.line4}</div>
+                </div>
+            `;
+
+            const tdPrint = document.createElement('td');
+            tdPrint.innerHTML = innerHtml;
+            trPrint.appendChild(tdPrint);
+
+            const tdPreview = document.createElement('td');
+            tdPreview.innerHTML = innerHtml;
+            trPreview.appendChild(tdPreview);
+
+            cellsInCurrentRow++;
+        });
+
+        // Pad the remainder
+        if (cellsInCurrentRow > 0 && cellsInCurrentRow < 3) {
+            for (let i = cellsInCurrentRow; i < 3; i++) {
+                trPrint.appendChild(document.createElement('td'));
+                trPreview.appendChild(document.createElement('td'));
+            }
+        }
+    });
+
+    printContainer.appendChild(printTable);
+    previewWrapper.appendChild(previewTable);
+
+    // Show preview area
+    if (previewContainer) previewContainer.classList.remove('hidden');
+    if (printBtn) printBtn.classList.remove('hidden');
+
+    if (autoPrint) {
+        window.print();
+    } else {
+        // Scroll to preview
+        previewContainer.scrollIntoView({ behavior: 'smooth' });
+    }
 }
 
 function toggleFinalMode(checked) {
