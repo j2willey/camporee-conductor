@@ -11,20 +11,29 @@
 </head>
 <body>
     <header>
-        <h1>Coyote Admin<span id="header-subtitle"></span></h1>
-        <div class="hidden" style="display:flex; align-items:center; gap:10px; margin-left:auto; margin-right:20px;">
+        <div style="display:flex; align-items:center;">
+            <button id="header-back-btn" class="hidden" onclick="handleBack()" style="background:none; border:none; color:white; cursor:pointer; padding:0; margin-right:15px; display:flex; align-items:center; justify-content:center;" title="Back">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+            </button>
+            <h1>Coyote Admin<span id="header-subtitle"></span></h1>
+        </div>
+        <div id="header-actions" class="hidden" style="display:flex; align-items:center; gap:10px; margin-left:auto; margin-right:20px;">
             <button id="btn-clear-scores" style="background:none; border:1px solid #f39c12; color:#f39c12; padding:5px 10px; cursor:pointer; border-radius:4px; margin-right:10px; font-size:0.8rem;">⚠ Clear Scores</button>
             <button id="btn-reset-db" style="background:none; border:1px solid #e74c3c; color:#e74c3c; padding:5px 10px; cursor:pointer; border-radius:4px; margin-right:15px; font-size:0.8rem;">☢ Reset DB</button>
-            <label for="view-mode-select" style="color:white; font-weight:bold;">Filter:</label>
-            <select id="view-mode-select" style="padding:5px; border-radius:4px; font-weight:bold;">
-                <option value="patrol">Patrol Games</option>
-                <option value="troop">Troop Games</option>
-                <option value="exhibition">Exhibition Games</option>
-            </select>
+            <div id="mode-filter-container" style="display:flex; align-items:center; gap:10px;">
+                <label for="view-mode-select" style="color:white; font-weight:bold;">Filter:</label>
+                <select id="view-mode-select" style="padding:5px; border-radius:4px; font-weight:bold;">
+                    <option value="patrol">Patrol Games</option>
+                    <option value="troop">Troop Games</option>
+                    <option value="exhibition">Exhibition Games</option>
+                </select>
+            </div>
         </div>
         <nav class="hidden">
-            <button id="nav-overview" class="active">Overview</button>
-            <button id="nav-registration">Registration</button>
+            <button id="nav-dashboard">Dashboard</button>
         </nav>
     </header>
 

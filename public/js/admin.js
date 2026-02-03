@@ -79,9 +79,7 @@ async function loadData() {
 }
 
 function setupNavigation() {
-    const navOverview = document.getElementById('nav-overview');
-    const navMatrix = document.getElementById('nav-matrix');
-    const navRegistration = document.getElementById('nav-registration');
+    const navDashboard = document.getElementById('nav-dashboard');
     const transposeBtn = document.getElementById('btn-transpose');
     const viewModeSelect = document.getElementById('view-mode-select');
     const clearScoresBtn = document.getElementById('btn-clear-scores');
@@ -138,13 +136,8 @@ function setupNavigation() {
         });
     }
 
-    navOverview.addEventListener('click', () => switchView('overview'));
-    if (navMatrix) {
-        navMatrix.addEventListener('click', () => switchView('matrix'));
-    }
-
-    if (navRegistration) {
-        navRegistration.addEventListener('click', () => switchView('registration'));
+    if (navDashboard) {
+        navDashboard.addEventListener('click', () => switchView('dashboard'));
     }
 
     const exportAwardsBtn = document.getElementById('btn-export-awards');
@@ -173,6 +166,15 @@ function setupNavigation() {
     }
 }
 
+function handleBack() {
+    if (currentView === 'detail' || currentView === 'matrix') {
+        switchView('overview');
+    } else {
+        switchView('dashboard');
+    }
+}
+window.handleBack = handleBack;
+
 function refreshCurrentView() {
     if (currentView === 'overview') {
         renderOverviewList();
@@ -183,19 +185,35 @@ function refreshCurrentView() {
 function switchView(viewName, pushToHistory = true) {
     currentView = viewName;
     document.querySelectorAll('main > section').forEach(sec => sec.classList.add('hidden'));
-    document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active'));
 
-    const headerActions = document.querySelector('header div:nth-child(2)');
+    const headerActions = document.getElementById('header-actions');
+    const modeFilter = document.getElementById('mode-filter-container');
     const navBar = document.querySelector('header nav');
+    const backBtn = document.getElementById('header-back-btn');
 
     // Hide/Show header elements based on view
     if (viewName === 'dashboard') {
         if (headerActions) headerActions.classList.add('hidden');
         if (navBar) navBar.classList.add('hidden');
+        if (backBtn) backBtn.classList.add('hidden');
         setSubtitle('');
     } else {
         if (headerActions) headerActions.classList.remove('hidden');
         if (navBar) navBar.classList.remove('hidden');
+
+        // Filter pull-down: only overview and awards
+        if (viewName === 'overview' || viewName === 'awards') {
+            if (modeFilter) modeFilter.classList.remove('hidden');
+        } else {
+            if (modeFilter) modeFilter.classList.add('hidden');
+        }
+
+        // Back Button: Visible on all views except dashboard
+        if (viewName !== 'dashboard') {
+            if (backBtn) backBtn.classList.remove('hidden');
+        } else {
+            if (backBtn) backBtn.classList.add('hidden');
+        }
     }
 
     if (pushToHistory) {
@@ -209,22 +227,16 @@ function switchView(viewName, pushToHistory = true) {
         document.getElementById('view-dashboard').classList.remove('hidden');
     } else if (viewName === 'overview') {
         document.getElementById('view-overview').classList.remove('hidden');
-        document.getElementById('nav-overview').classList.add('active');
         setSubtitle('Game Overview');
         refreshCurrentView();
     } else if (viewName === 'matrix') {
         document.getElementById('view-matrix').classList.remove('hidden');
-        const mBtn = document.getElementById('nav-matrix');
-        if (mBtn) mBtn.classList.add('active');
         // renderMatrix sets its own subtitle
         renderMatrix();
     } else if (viewName === 'detail') {
         document.getElementById('view-detail').classList.remove('hidden');
-        document.getElementById('nav-overview').classList.add('active');
     } else if (viewName === 'registration') {
         document.getElementById('view-registration').classList.remove('hidden');
-        const regBtn = document.getElementById('nav-registration');
-        if(regBtn) regBtn.classList.add('active');
         setSubtitle('Registration');
         renderRoster();
     } else if (viewName === 'awards') {
