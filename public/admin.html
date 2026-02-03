@@ -34,6 +34,7 @@
         </div>
         <nav class="hidden">
             <button id="nav-dashboard">Dashboard</button>
+            <button id="nav-judges">Judges</button>
         </nav>
     </header>
 
@@ -54,6 +55,10 @@
                     <button class="dashboard-link-btn" onclick="switchView('awards', true)">
                         <span style="font-size: 3rem;">🏆</span>
                         <br>Awards
+                    </button>
+                    <button class="dashboard-link-btn" onclick="switchView('judges', true)">
+                        <span style="font-size: 3rem;">⚖️</span>
+                        <br>Judges
                     </button>
                 </div>
             </div>
@@ -142,6 +147,15 @@
                     <!-- Sticker Table Injected Here -->
                 </div>
             </div>
+        </section>
+
+        <!-- View 6: Judges Directory -->
+        <section id="view-judges" class="hidden">
+            <div class="controls" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h2>Judges Directory</h2>
+                <button id="btn-copy-emails" class="btn btn-secondary">📋 Copy All Emails</button>
+            </div>
+            <div id="judges-list" class="table-container"></div>
         </section>
     </main>
 </body>

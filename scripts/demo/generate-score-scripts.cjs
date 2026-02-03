@@ -17,7 +17,7 @@ if (!fs.existsSync(excelPath)) {
 }
 
 const workbook = XLSX.readFile(excelPath);
-const files = fs.readdirSync(gamesDir);
+const files = fs.readdirSync(gamesDir).sort();
 
 // Clean up old scripts to avoid stale data
 fs.readdirSync(outputDir).forEach(f => {
@@ -26,8 +26,11 @@ fs.readdirSync(outputDir).forEach(f => {
     }
 });
 
+let gameCounter = 0;
+
 files.forEach(file => {
     if (!file.startsWith('p') || !file.endsWith('.json')) return;
+    gameCounter++;
 
     const game = JSON.parse(fs.readFileSync(path.join(gamesDir, file), 'utf8'));
     const gameId = game.id;
@@ -111,10 +114,22 @@ files.forEach(file => {
 
     if (patrolsToScore.length === 0) return;
 
+    // Generate Judge Info
+    const judgeNum = gameCounter;
+    const judgeName = `Demo Judge ${judgeNum}`;
+    const judgeEmail = `demojudge${judgeNum}@acme.com`;
+    const isDistrict = Math.random() > 0.5;
+    const judgeUnit = isDistrict ? 'District' : `Troop ${Math.floor(Math.random() * 899) + 100}`;
+
     const scriptContent = `const { getContext } = require('./utils.cjs');
 
 const gameId = "${gameId}";
 const gameName = "${gameName}";
+const judgeInfo = {
+    name: "${judgeName}",
+    email: "${judgeEmail}",
+    unit: "${judgeUnit}"
+};
 const patrols = ${JSON.stringify(patrolsToScore, null, 2)};
 const fieldConfigs = ${JSON.stringify(allFields)};
 
@@ -122,6 +137,29 @@ async function run() {
     const { page, waitTime, sleep, finish, startDemo } = await getContext({ mobile: true });
 
     await startDemo();
+    await sleep(waitTime);
+
+    // 0. Set Judge Info
+    console.log(\`Setting Judge Info: \${judgeInfo.name} (\${judgeInfo.unit})\`);
+
+    const isModalHidden = await page.evaluate(() => {
+        const el = document.getElementById('judge-modal');
+        return el ? el.classList.contains('hidden') : true;
+    });
+
+    if (isModalHidden) {
+        await page.click('#judge-profile-btn');
+        await sleep(waitTime / 2);
+    }
+
+    await page.fill('#judge-name', judgeInfo.name);
+    await page.fill('#judge-email', judgeInfo.email);
+    await page.fill('#judge-unit', judgeInfo.unit);
+
+    // Click Save (try button, fallback to JS)
+    const saveBtn = await page.$('#judge-modal button.btn-primary');
+    if (saveBtn) await saveBtn.click();
+    else await page.evaluate(() => app.saveJudgeInfo());
     await sleep(waitTime);
 
     // 1. Select Game (Only once, app returns to entity list after submit)

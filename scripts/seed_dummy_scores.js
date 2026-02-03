@@ -9,17 +9,27 @@ const db = new Database(dbPath);
 console.log('🌱 Seeding dummy scores...');
 
 try {
-    // 1. Ensure we have a Judge
-    // We need a judge to attach scores to, or the Foreign Key constraint will fail.
-    const judgeInfo = db.prepare(`
-        INSERT INTO judges (name, email, unit)
-        VALUES ('Judge Dredd', 'dredd@mega-city.com', 'Hall of Justice')
-        ON CONFLICT(email) DO UPDATE SET name=name
-        RETURNING id
-    `).get();
+    // 1. Create a pool of Judges
+    const judgeData = [
+        { name: 'Judge Dredd', email: 'dredd@mega-city.com', unit: 'Hall of Justice' },
+        { name: 'Judge Judy', email: 'judy@tv.com', unit: 'CBS' },
+        { name: 'Simon Cowell', email: 'simon@idol.com', unit: 'Sony Music' },
+        { name: 'Gordon Ramsay', email: 'gordon@kitchen.com', unit: 'Hell\'s Kitchen' }
+    ];
 
-    const judgeId = judgeInfo.id;
-    console.log(`   Using Judge ID: ${judgeId}`);
+    const judgeIds = [];
+    const upsertJudge = db.prepare(`
+        INSERT INTO judges (name, email, unit)
+        VALUES (?, ?, ?)
+        ON CONFLICT(email) DO UPDATE SET name=excluded.name
+        RETURNING id
+    `);
+
+    judgeData.forEach(j => {
+        const res = upsertJudge.run(j.name, j.email, j.unit);
+        judgeIds.push(res.id);
+    });
+    console.log(`   Prepared ${judgeIds.length} judges.`);
 
     // 2. Get some Entities (Patrols)
     const entities = db.prepare("SELECT id, name FROM entities WHERE type='patrol' LIMIT 5").all();
@@ -37,13 +47,16 @@ try {
     let count = 0;
 
     // START LOOP
-    entities.forEach(entity => {
+    entities.forEach((entity, idx) => {
         const payload = JSON.stringify({
             attempt_friction_fire: Math.floor(Math.random() * 5) + 1,
             ignite_tinder: Math.floor(Math.random() * 5) + 1,
             water_boils: Math.floor(Math.random() * 5) + 1,
             judge_notes: "Automatically seeded demo score."
         });
+
+        // Cycle through judges
+        const judgeId = judgeIds[idx % judgeIds.length];
 
         insertScore.run(
             randomUUID(),

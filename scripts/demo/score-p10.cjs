@@ -2,6 +2,11 @@ const { getContext } = require('./utils.cjs');
 
 const gameId = "p10";
 const gameName = "Ladder Lashing";
+const judgeInfo = {
+    name: "Demo Judge 2",
+    email: "demojudge2@acme.com",
+    unit: "Troop 375"
+};
 const patrols = [
   {
     "name": "Skeleton Fishing",
@@ -103,6 +108,29 @@ async function run() {
     const { page, waitTime, sleep, finish, startDemo } = await getContext({ mobile: true });
 
     await startDemo();
+    await sleep(waitTime);
+
+    // 0. Set Judge Info
+    console.log(`Setting Judge Info: ${judgeInfo.name} (${judgeInfo.unit})`);
+
+    const isModalHidden = await page.evaluate(() => {
+        const el = document.getElementById('judge-modal');
+        return el ? el.classList.contains('hidden') : true;
+    });
+
+    if (isModalHidden) {
+        await page.click('#judge-profile-btn');
+        await sleep(waitTime / 2);
+    }
+
+    await page.fill('#judge-name', judgeInfo.name);
+    await page.fill('#judge-email', judgeInfo.email);
+    await page.fill('#judge-unit', judgeInfo.unit);
+
+    // Click Save (try button, fallback to JS)
+    const saveBtn = await page.$('#judge-modal button.btn-primary');
+    if (saveBtn) await saveBtn.click();
+    else await page.evaluate(() => app.saveJudgeInfo());
     await sleep(waitTime);
 
     // 1. Select Game (Only once, app returns to entity list after submit)

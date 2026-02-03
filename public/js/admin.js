@@ -81,6 +81,7 @@ async function loadData() {
 function setupNavigation() {
     const navDashboard = document.getElementById('nav-dashboard');
     const transposeBtn = document.getElementById('btn-transpose');
+    const navJudges = document.getElementById('nav-judges');
     const viewModeSelect = document.getElementById('view-mode-select');
     const clearScoresBtn = document.getElementById('btn-clear-scores');
     const resetDbBtn = document.getElementById('btn-reset-db');
@@ -145,6 +146,13 @@ function setupNavigation() {
     if (navDashboard) {
         navDashboard.addEventListener('click', () => switchView('dashboard'));
     }
+
+    if (navJudges) {
+        navJudges.addEventListener('click', () => switchView('judges'));
+    }
+
+    const copyEmailsBtn = document.getElementById('btn-copy-emails');
+    if (copyEmailsBtn) copyEmailsBtn.onclick = copyJudgeEmails;
 
     const exportAwardsBtn = document.getElementById('btn-export-awards');
     if (exportAwardsBtn) {
@@ -277,6 +285,10 @@ function switchView(viewName, pushToHistory = true) {
     } else if (viewName === 'awards') {
         document.getElementById('view-awards').classList.remove('hidden');
         setSubtitle('Awards & Exports');
+    } else if (viewName === 'judges') {
+        document.getElementById('view-judges').classList.remove('hidden');
+        setSubtitle('Judges Directory');
+        renderJudgesView();
     }
 }
 window.switchView = switchView;
@@ -1735,6 +1747,84 @@ async function updateScoreField(uuid, fieldId, value) {
         console.error('Update failed:', err);
         alert('Failed to save change. Please refresh.');
     }
+}
+
+async function renderJudgesView() {
+    const container = document.getElementById('judges-list');
+    container.innerHTML = '<p class="text-muted">Loading judges...</p>';
+
+    try {
+        const res = await fetch('/api/admin/judges');
+        if (!res.ok) throw new Error('Failed to load judges');
+        const judges = await res.json();
+
+        // Store for copy action
+        appData.judges = judges;
+
+        if (judges.length === 0) {
+            container.innerHTML = '<div class="alert alert-info">No judges found.</div>';
+            return;
+        }
+
+        let html = `
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Unit</th>
+                        <th class="text-center">Scores</th>
+                        <th>Games Judged</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        judges.forEach(j => {
+            const gameNames = (j.games_judged || []).map(gid => {
+                const g = appData.games.find(x => x.id === gid);
+                return g ? formatGameTitle(g) : gid;
+            }).join(', ');
+
+            html += `
+                <tr>
+                    <td class="fw-bold">${j.name || '-'}</td>
+                    <td><a href="mailto:${j.email}">${j.email}</a></td>
+                    <td>${j.unit || '-'}</td>
+                    <td class="text-center">${j.score_count}</td>
+                    <td><small class="text-muted">${gameNames}</small></td>
+                </tr>
+            `;
+        });
+
+        html += '</tbody></table>';
+        container.innerHTML = html;
+
+    } catch (err) {
+        console.error(err);
+        container.innerHTML = `<div class="alert alert-danger">Error: ${err.message}</div>`;
+    }
+}
+
+function copyJudgeEmails() {
+    if (!appData.judges || appData.judges.length === 0) {
+        alert('No judges loaded.');
+        return;
+    }
+    // Filter out empty emails and join with semicolon
+    const emails = appData.judges.map(j => j.email).filter(e => e).join('; ');
+
+    if (!emails) {
+        alert('No emails found.');
+        return;
+    }
+
+    navigator.clipboard.writeText(emails).then(() => {
+        alert('Emails copied to clipboard!');
+    }).catch(err => {
+        console.error('Failed to copy', err);
+        prompt("Copy these emails:", emails);
+    });
 }
 
 async function updateEntityField(entityId, fieldId, value) {

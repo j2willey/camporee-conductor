@@ -222,11 +222,16 @@ app.post('/api/score', (req, res) => {
         let judgeId = null;
 
         if (judge_email) {
-            const getJudge = db.prepare('SELECT id FROM judges WHERE email = ?');
+            const getJudge = db.prepare('SELECT id, name, unit FROM judges WHERE email = ?');
             const existingJudge = getJudge.get(judge_email);
 
             if (existingJudge) {
                 judgeId = existingJudge.id;
+                // Update details if changed
+                if ((judge_name && existingJudge.name !== judge_name) || (judge_unit && existingJudge.unit !== judge_unit)) {
+                    db.prepare('UPDATE judges SET name = ?, unit = ? WHERE id = ?')
+                      .run(judge_name || existingJudge.name, judge_unit || existingJudge.unit, judgeId);
+                }
             } else if (judge_name) {
                 const insertJudge = db.prepare('INSERT INTO judges (name, email, unit) VALUES (?, ?, ?)');
                 const info = insertJudge.run(judge_name, judge_email, judge_unit || null);
@@ -282,6 +287,34 @@ app.get('/api/admin/all-data', (req, res) => {
 
     res.json({ scores: parsed, stats, game_status: statusMap });
   } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// GET /api/admin/judges
+app.get('/api/admin/judges', (req, res) => {
+  try {
+    const judges = db.prepare('SELECT * FROM judges').all();
+    const scores = db.prepare('SELECT judge_id, game_id FROM scores WHERE judge_id IS NOT NULL').all();
+
+    const stats = {};
+    scores.forEach(s => {
+        if (!stats[s.judge_id]) stats[s.judge_id] = { count: 0, games: new Set() };
+        stats[s.judge_id].count++;
+        stats[s.judge_id].games.add(s.game_id);
+    });
+
+    const result = judges.map(j => {
+        const s = stats[j.id] || { count: 0, games: new Set() };
+        return {
+            ...j,
+            score_count: s.count,
+            games_judged: Array.from(s.games).sort()
+        };
+    });
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // GET /api/export (Download CSV)

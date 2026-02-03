@@ -215,6 +215,10 @@ async function runImport() {
         const patrolIdIdx = headers.findIndex(h => h && normalize(h) === 'patrolid');
         if (patrolIdIdx === -1) continue;
 
+        // Assign a unique judge for this game (Sheet) to populate Judges Directory
+        const gameJudgeName = `Judge - ${game.name}`;
+        const gameJudgeEmail = `judge.${game.id}@coyote.local`;
+
         // Iterate Rows
         for (let r = headerRowIdx + 2; r < rows.length; r++) {
             const row = rows[r];
@@ -261,8 +265,8 @@ async function runImport() {
                 entity_id: entityId,
                 score_payload: payload,
                 timestamp: Date.now(),
-                judge_name: 'Excel Import',
-                judge_email: 'import@local'
+                judge_name: gameJudgeName,
+                judge_email: gameJudgeEmail
             };
 
             try {
