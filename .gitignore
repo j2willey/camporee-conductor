@@ -26,3 +26,4 @@ Thumbs.db
 
 # Docker (Optional: if you have local override files)
 docker-compose.override.yml
+camporee/active/

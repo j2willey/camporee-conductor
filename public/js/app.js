@@ -140,7 +140,7 @@ function saveDraft() {
         const el = document.getElementById(`f_${f.id}`);
         // Handle timed fields separately via their hidden val if needed,
         // but easier to just check the inputs directly for drafts
-        if (f.type === 'timed') {
+        if (f.type === 'timed' || f.type === 'stopwatch') {
             const mm = document.getElementById(`f_${f.id}_mm`)?.value || '';
             const ss = document.getElementById(`f_${f.id}_ss`)?.value || '';
             if (mm || ss) payload[f.id] = `${mm.padStart(2,'0')}:${ss.padStart(2,'0')}`;
@@ -771,7 +771,7 @@ function generateFieldHTML(field, value = null) {
                     <span class="fw-bold ms-2" id="d_${id}" style="min-width:1.5em; text-align: right; ${isPenalty ? 'color: red !important;' : 'color: var(--bs-primary);'}">${currentVal}</span>
                  </div>`;
     }
-    else if (field.type === 'timed') {
+    else if (field.type === 'timed' || field.type === 'stopwatch') {
         // Parse "MM:SS"
         let mm = '';
         let ss = '';
@@ -805,7 +805,7 @@ function generateFieldHTML(field, value = null) {
         input = `<input type="text" class="form-control form-control-sm" id="f_${id}" value="${value || ''}" style="${penaltyStyle}">`;
     }
 
-    if (field.type !== 'timed' && field.type !== 'textarea') {
+    if (field.type !== 'timed' && field.type !== 'stopwatch' && field.type !== 'textarea') {
          labelContent = `<label class="form-label fw-bold mb-0" for="f_${id}" style="${penaltyStyle}">${field.label}</label>`;
     }
 
@@ -850,7 +850,7 @@ function submitScore(e) {
         const el = document.getElementById(`f_${f.id}`);
         if(!el) continue;
         if(f.type === 'boolean') payload[f.id] = el.checked;
-        else if(f.type === 'timed') { combineTime(f.id); payload[f.id] = document.getElementById(`f_${f.id}_val`).value; }
+        else if(f.type === 'timed' || f.type === 'stopwatch') { combineTime(f.id); payload[f.id] = document.getElementById(`f_${f.id}_val`).value; }
         else payload[f.id] = el.value;
     }
 
