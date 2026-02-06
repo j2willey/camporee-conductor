@@ -8,7 +8,7 @@ const __dirname = path.dirname(__filename);
 
 // CONFIG
 const SOURCE_DIR = process.cwd();
-const OUTPUT_DIR = path.join(process.cwd(), 'config', 'games');
+const OUTPUT_DIR = path.join(process.cwd(), 'camporee', 'camp0001', 'games');
 
 // Columns to IGNORE (Common Scoring or metadata)
 const IGNORED = [

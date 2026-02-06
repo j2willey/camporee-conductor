@@ -11,6 +11,8 @@ const patrols = [
   {
     "name": "Flaming Flamingoes",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "knot_correctly_tied": 78,
       "time_points": 30
@@ -19,6 +21,8 @@ const patrols = [
   {
     "name": "Atomic Duckies",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "knot_correctly_tied": 98,
       "time_points": 30
@@ -27,6 +31,8 @@ const patrols = [
   {
     "name": "Raptors",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "knot_correctly_tied": 93,
       "time_points": 30
@@ -35,6 +41,8 @@ const patrols = [
   {
     "name": "Dark Dragons",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "knot_correctly_tied": 97,
       "time_points": 30
@@ -43,6 +51,8 @@ const patrols = [
   {
     "name": "Eggos",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "knot_correctly_tied": 88,
       "time_points": 30
@@ -51,6 +61,8 @@ const patrols = [
   {
     "name": "Wolves",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "knot_correctly_tied": 94,
       "time_points": 30
@@ -59,6 +71,8 @@ const patrols = [
   {
     "name": "Card Board Boxes",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "knot_correctly_tied": 98,
       "time_points": 30
@@ -67,6 +81,8 @@ const patrols = [
   {
     "name": "Space Pirates",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "knot_correctly_tied": 97,
       "time_points": 30
@@ -75,6 +91,8 @@ const patrols = [
   {
     "name": "6'7ers",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "knot_correctly_tied": 98,
       "time_points": 30
@@ -83,6 +101,8 @@ const patrols = [
   {
     "name": "Minions",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "knot_correctly_tied": 88,
       "time_points": 30
@@ -91,6 +111,8 @@ const patrols = [
   {
     "name": "Fancy Frogs",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "knot_correctly_tied": 89,
       "time_points": 30
@@ -99,6 +121,8 @@ const patrols = [
   {
     "name": "Banana Ducks",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "knot_correctly_tied": 94,
       "time_points": 30
@@ -107,6 +131,8 @@ const patrols = [
   {
     "name": "Krabbie Patties",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "knot_correctly_tied": 99,
       "time_points": 30
@@ -115,6 +141,8 @@ const patrols = [
   {
     "name": "Ice Dragons",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "knot_correctly_tied": 94,
       "time_points": 30
@@ -123,13 +151,15 @@ const patrols = [
   {
     "name": "Fearless Firebirds",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "knot_correctly_tied": 99,
       "time_points": 30
     }
   }
 ];
-const fieldConfigs = [{"id":"patrol_sprirt","label":"Patrol Sprirt","type":"number","audience":"judge","kind":"points"},{"id":"knot_correctly_tied","label":"Knot correctly tied","type":"number","audience":"judge","kind":"points"},{"id":"knot_rationale","label":"Knot Rationale","type":"number","audience":"judge","kind":"points"},{"id":"time_points","label":"Time Points","type":"timed","audience":"judge","kind":"points"}];
+const fieldConfigs = [{"id":"patrol_flag","label":"Patrol Flag?","audience":"judge","sortOrder":1,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"patrol_yell","label":"Patrol Yell?","audience":"judge","sortOrder":2,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"patrol_spirit","label":"Patrol Spirit","audience":"judge","sortOrder":3,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"patrol_sprirt","label":"Patrol Sprirt","audience":"judge","sortOrder":900,"config":{},"type":"number","kind":"points","weight":1},{"id":"knot_correctly_tied","label":"Knot correctly tied","audience":"judge","sortOrder":900,"config":{},"type":"number","kind":"points","weight":1},{"id":"knot_rationale","label":"Knot Rationale","audience":"judge","sortOrder":900,"config":{},"type":"number","kind":"points","weight":1},{"id":"time_points","label":"Time Points","audience":"judge","sortOrder":900,"config":{},"type":"stopwatch","kind":"points","weight":1},{"id":"unscoutlike","label":"Un-Scout-like Behavior (Penalty)","audience":"judge","sortOrder":998,"config":{"min":0,"max":100,"defaultValue":0},"type":"number","kind":"penalty","weight":-1},{"id":"judge_notes","label":"Judge Notes / Comments","audience":"judge","sortOrder":999,"config":{"placeholder":"Optional notes on performance..."},"type":"textarea","kind":"metric","weight":0}];
 
 async function run() {
     const { page, waitTime, sleep, finish, startDemo } = await getContext({ mobile: true });
@@ -180,7 +210,7 @@ async function run() {
             if (!field) continue;
             if (field.audience === 'admin') continue; // Judges can't see/fill admin fields
 
-            if (field.type === 'timed') {
+            if (field.type === 'timed' || field.type === 'stopwatch') {
                 let mm = '00', ss = '00';
                 if (typeof val === 'number') {
                     const totalSeconds = Math.round(val * 24 * 60 * 60);

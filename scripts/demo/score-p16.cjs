@@ -5,12 +5,14 @@ const gameName = "Tangled Treasure";
 const judgeInfo = {
     name: "Demo Judge 8",
     email: "demojudge8@acme.com",
-    unit: "District"
+    unit: "Troop 380"
 };
 const patrols = [
   {
     "name": "Eaglez",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "puzzle_points_completed": 95
     }
@@ -18,6 +20,8 @@ const patrols = [
   {
     "name": "Inferno Sharks",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "puzzle_points_completed": 78
     }
@@ -25,6 +29,8 @@ const patrols = [
   {
     "name": "Ducks",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "puzzle_points_completed": 95
     }
@@ -32,6 +38,8 @@ const patrols = [
   {
     "name": "Dark Dragons",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "puzzle_points_completed": 90
     }
@@ -39,6 +47,8 @@ const patrols = [
   {
     "name": "Orcas",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "puzzle_points_completed": 100
     }
@@ -46,6 +56,8 @@ const patrols = [
   {
     "name": "Wolves",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "puzzle_points_completed": 100
     }
@@ -53,6 +65,8 @@ const patrols = [
   {
     "name": "Card Board Boxes",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "puzzle_points_completed": 95
     }
@@ -60,6 +74,8 @@ const patrols = [
   {
     "name": "Space Pirates",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "puzzle_points_completed": 130
     }
@@ -67,6 +83,8 @@ const patrols = [
   {
     "name": "Lakshay's Bros",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "puzzle_points_completed": 130
     }
@@ -74,6 +92,8 @@ const patrols = [
   {
     "name": "Minions",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "puzzle_points_completed": 90
     }
@@ -81,6 +101,8 @@ const patrols = [
   {
     "name": "Goofy Goobers",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "puzzle_points_completed": 90
     }
@@ -88,6 +110,8 @@ const patrols = [
   {
     "name": "Banana Ducks",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "puzzle_points_completed": 100
     }
@@ -95,6 +119,8 @@ const patrols = [
   {
     "name": "Krabbie Patties",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "puzzle_points_completed": 95
     }
@@ -102,6 +128,8 @@ const patrols = [
   {
     "name": "Ice Dragons",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "puzzle_points_completed": 90
     }
@@ -109,6 +137,8 @@ const patrols = [
   {
     "name": "Wolf Warriors",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "puzzle_points_completed": 95
     }
@@ -116,12 +146,14 @@ const patrols = [
   {
     "name": "Falcons",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "puzzle_points_completed": 130
     }
   }
 ];
-const fieldConfigs = [{"id":"patrol_sprirt","label":"Patrol Sprirt","type":"number","audience":"judge","kind":"points"},{"id":"puzzle_points_completed","label":"Puzzle Points Completed","type":"number","audience":"judge","kind":"points"}];
+const fieldConfigs = [{"id":"patrol_flag","label":"Patrol Flag?","audience":"judge","sortOrder":1,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"patrol_yell","label":"Patrol Yell?","audience":"judge","sortOrder":2,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"patrol_spirit","label":"Patrol Spirit","audience":"judge","sortOrder":3,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"patrol_sprirt","label":"Patrol Sprirt","audience":"judge","sortOrder":900,"config":{},"type":"number","kind":"points","weight":1},{"id":"puzzle_points_completed","label":"Puzzle Points Completed","audience":"judge","sortOrder":900,"config":{},"type":"number","kind":"points","weight":1},{"id":"unscoutlike","label":"Un-Scout-like Behavior (Penalty)","audience":"judge","sortOrder":998,"config":{"min":0,"max":100,"defaultValue":0},"type":"number","kind":"penalty","weight":-1},{"id":"judge_notes","label":"Judge Notes / Comments","audience":"judge","sortOrder":999,"config":{"placeholder":"Optional notes on performance..."},"type":"textarea","kind":"metric","weight":0}];
 
 async function run() {
     const { page, waitTime, sleep, finish, startDemo } = await getContext({ mobile: true });
@@ -172,7 +204,7 @@ async function run() {
             if (!field) continue;
             if (field.audience === 'admin') continue; // Judges can't see/fill admin fields
 
-            if (field.type === 'timed') {
+            if (field.type === 'timed' || field.type === 'stopwatch') {
                 let mm = '00', ss = '00';
                 if (typeof val === 'number') {
                     const totalSeconds = Math.round(val * 24 * 60 * 60);

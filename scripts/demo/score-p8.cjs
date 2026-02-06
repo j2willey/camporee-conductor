@@ -5,101 +5,142 @@ const gameName = "Octopus Odyssey";
 const judgeInfo = {
     name: "Demo Judge 20",
     email: "demojudge20@acme.com",
-    unit: "Troop 326"
+    unit: "District"
 };
 const patrols = [
   {
     "name": "Flaming Flamingoes",
     "scores": {
+      "patrol_flag": 3,
+      "patrol_yell": 3,
       "patrol_sprirt": 10
     }
   },
   {
     "name": "Eaglez",
     "scores": {
+      "patrol_flag": 3,
+      "patrol_yell": 3,
       "patrol_sprirt": 10
     }
   },
   {
     "name": "Grease Fires",
     "scores": {
+      "patrol_flag": 3,
+      "patrol_yell": 3,
       "patrol_sprirt": 8
     }
   },
   {
     "name": "Chunky Monkeys",
     "scores": {
+      "unscoutlike": 5,
+      "patrol_flag": 5,
+      "patrol_yell": 3,
       "patrol_sprirt": 10
     }
   },
   {
     "name": "Atomic Duckies",
     "scores": {
+      "unscoutlike": 5,
+      "patrol_flag": 3,
+      "patrol_yell": 3,
       "patrol_sprirt": 10
     }
   },
   {
     "name": "Ducks",
     "scores": {
+      "unscoutlike": 5,
+      "patrol_flag": 3,
+      "patrol_yell": 4,
       "patrol_sprirt": 10
     }
   },
   {
     "name": "Raptors",
     "scores": {
+      "unscoutlike": 5,
+      "patrol_flag": 4,
+      "patrol_yell": 4,
       "patrol_sprirt": 10
     }
   },
   {
     "name": "Orcas",
     "scores": {
+      "unscoutlike": 5,
+      "patrol_flag": 3,
+      "patrol_yell": 3,
       "patrol_sprirt": 4
     }
   },
   {
     "name": "Card Board Boxes",
     "scores": {
+      "unscoutlike": 5,
+      "patrol_flag": 5,
+      "patrol_yell": 3,
       "patrol_sprirt": 10
     }
   },
   {
     "name": "Space Pirates",
     "scores": {
+      "unscoutlike": 5,
+      "patrol_flag": 5,
+      "patrol_yell": 4,
       "patrol_sprirt": 10
     }
   },
   {
     "name": "Lakshay's Bros",
     "scores": {
+      "patrol_flag": 3,
+      "patrol_yell": 4,
       "patrol_sprirt": 10
     }
   },
   {
     "name": "Banana Ducks",
     "scores": {
+      "unscoutlike": 5,
+      "patrol_flag": 5,
+      "patrol_yell": 4,
       "patrol_sprirt": 10
     }
   },
   {
     "name": "Fearless Foxes",
     "scores": {
+      "unscoutlike": 5,
+      "patrol_flag": 3,
+      "patrol_yell": 3,
       "patrol_sprirt": 10
     }
   },
   {
     "name": "Fearless Firebirds",
     "scores": {
+      "unscoutlike": 5,
+      "patrol_flag": 4,
+      "patrol_yell": 4,
       "patrol_sprirt": 7
     }
   },
   {
     "name": "Falcons",
     "scores": {
+      "unscoutlike": 5,
+      "patrol_flag": 5,
+      "patrol_yell": 3,
       "patrol_sprirt": 10
     }
   }
 ];
-const fieldConfigs = [{"id":"patrol_sprirt","label":"Patrol Sprirt","type":"number","audience":"judge","kind":"points"}];
+const fieldConfigs = [{"id":"patrol_flag","label":"Patrol Flag?","audience":"judge","sortOrder":1,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"patrol_yell","label":"Patrol Yell?","audience":"judge","sortOrder":2,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"patrol_spirit","label":"Patrol Spirit","audience":"judge","sortOrder":3,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"patrol_sprirt","label":"Patrol Sprirt","audience":"judge","sortOrder":900,"config":{},"type":"number","kind":"points","weight":1},{"id":"unscoutlike","label":"Un-Scout-like Behavior (Penalty)","audience":"judge","sortOrder":998,"config":{"min":0,"max":100,"defaultValue":0},"type":"number","kind":"penalty","weight":-1},{"id":"judge_notes","label":"Judge Notes / Comments","audience":"judge","sortOrder":999,"config":{"placeholder":"Optional notes on performance..."},"type":"textarea","kind":"metric","weight":0}];
 
 async function run() {
     const { page, waitTime, sleep, finish, startDemo } = await getContext({ mobile: true });
@@ -150,7 +191,7 @@ async function run() {
             if (!field) continue;
             if (field.audience === 'admin') continue; // Judges can't see/fill admin fields
 
-            if (field.type === 'timed') {
+            if (field.type === 'timed' || field.type === 'stopwatch') {
                 let mm = '00', ss = '00';
                 if (typeof val === 'number') {
                     const totalSeconds = Math.round(val * 24 * 60 * 60);

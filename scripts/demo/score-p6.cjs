@@ -5,12 +5,15 @@ const gameName = "Compass Game";
 const judgeInfo = {
     name: "Demo Judge 18",
     email: "demojudge18@acme.com",
-    unit: "Troop 167"
+    unit: "District"
 };
 const patrols = [
   {
     "name": "Spooky Shrimp",
     "scores": {
+      "unscoutlike": -10,
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "start": 10,
       "target_destination": 6,
       "distance_from_target": -5,
@@ -22,6 +25,8 @@ const patrols = [
   {
     "name": "Atomic Duckies",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "start": 7,
       "target_destination": 17,
       "distance_from_target": -13,
@@ -33,6 +38,7 @@ const patrols = [
   {
     "name": "Orcas",
     "scores": {
+      "patrol_yell": 5,
       "start": 10,
       "target_destination": 6,
       "distance_from_target": -8,
@@ -44,6 +50,7 @@ const patrols = [
   {
     "name": "Wolves",
     "scores": {
+      "patrol_yell": 5,
       "start": 8,
       "target_destination": 16,
       "distance_from_target": -13,
@@ -55,6 +62,8 @@ const patrols = [
   {
     "name": "Goofy Goobers",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "start": 18,
       "target_destination": 5,
       "distance_from_target": -3,
@@ -66,6 +75,7 @@ const patrols = [
   {
     "name": "Fancy Frogs",
     "scores": {
+      "patrol_yell": 5,
       "start": 10,
       "target_destination": 6,
       "distance_from_target": -1,
@@ -77,6 +87,8 @@ const patrols = [
   {
     "name": "Ice Dragons",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "start": 10,
       "target_destination": 6,
       "distance_from_target": -9,
@@ -88,6 +100,8 @@ const patrols = [
   {
     "name": "Wolf Warriors",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "start": 10,
       "target_destination": 6,
       "distance_from_target": -6,
@@ -99,6 +113,8 @@ const patrols = [
   {
     "name": "Falcons",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "start": 10,
       "target_destination": 6,
       "distance_from_target": -8,
@@ -108,7 +124,7 @@ const patrols = [
     }
   }
 ];
-const fieldConfigs = [{"id":"check_folder_column_info_change","label":"Check folder Column info change","type":"number","audience":"judge","kind":"points"},{"id":"start","label":"Start","type":"number","audience":"judge","kind":"points"},{"id":"target_destination","label":"Target Destination","type":"number","audience":"judge","kind":"points"},{"id":"distance_from_target","label":"Distance from \nTarget","type":"number","audience":"judge","kind":"points"},{"id":"flag_height","label":"Flag Height","type":"number","audience":"judge","kind":"points"},{"id":"vball_width","label":"Vball width","type":"number","audience":"judge","kind":"points"},{"id":"timed","label":"Time\nmm:ss","type":"timed","audience":"judge","kind":"points"},{"id":"time","label":"Time","type":"timed","audience":"judge","kind":"points"}];
+const fieldConfigs = [{"id":"patrol_flag","label":"Patrol Flag?","audience":"judge","sortOrder":1,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"patrol_yell","label":"Patrol Yell?","audience":"judge","sortOrder":2,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"patrol_spirit","label":"Patrol Spirit","audience":"judge","sortOrder":3,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"check_folder_column_info_change","label":"Check folder Column info change","audience":"judge","sortOrder":900,"config":{},"type":"number","kind":"points","weight":1},{"id":"start","label":"Start","audience":"judge","sortOrder":900,"config":{},"type":"number","kind":"points","weight":1},{"id":"target_destination","label":"Target Destination","audience":"judge","sortOrder":900,"config":{},"type":"number","kind":"points","weight":1},{"id":"distance_from_target","label":"Distance from \nTarget","audience":"judge","sortOrder":900,"config":{},"type":"number","kind":"points","weight":1},{"id":"flag_height","label":"Flag Height","audience":"judge","sortOrder":900,"config":{},"type":"number","kind":"points","weight":1},{"id":"vball_width","label":"Vball width","audience":"judge","sortOrder":900,"config":{},"type":"number","kind":"points","weight":1},{"id":"timed","label":"Time\nmm:ss","audience":"judge","sortOrder":900,"config":{},"type":"stopwatch","kind":"points","weight":1},{"id":"time","label":"Time","audience":"judge","sortOrder":900,"config":{},"type":"stopwatch","kind":"points","weight":1},{"id":"unscoutlike","label":"Un-Scout-like Behavior (Penalty)","audience":"judge","sortOrder":998,"config":{"min":0,"max":100,"defaultValue":0},"type":"number","kind":"penalty","weight":-1},{"id":"judge_notes","label":"Judge Notes / Comments","audience":"judge","sortOrder":999,"config":{"placeholder":"Optional notes on performance..."},"type":"textarea","kind":"metric","weight":0}];
 
 async function run() {
     const { page, waitTime, sleep, finish, startDemo } = await getContext({ mobile: true });
@@ -159,7 +175,7 @@ async function run() {
             if (!field) continue;
             if (field.audience === 'admin') continue; // Judges can't see/fill admin fields
 
-            if (field.type === 'timed') {
+            if (field.type === 'timed' || field.type === 'stopwatch') {
                 let mm = '00', ss = '00';
                 if (typeof val === 'number') {
                     const totalSeconds = Math.round(val * 24 * 60 * 60);

@@ -5,7 +5,7 @@ const gameName = "Boiling the Ocean";
 const judgeInfo = {
     name: "Demo Judge 1",
     email: "demojudge1@acme.com",
-    unit: "District"
+    unit: "Troop 129"
 };
 const patrols = [
   {
@@ -26,6 +26,8 @@ const patrols = [
   {
     "name": "Shadow Panther",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "attempt_friction_fire": 4,
       "charing_or_powder": 2,
       "smoke": 2,
@@ -39,6 +41,7 @@ const patrols = [
   {
     "name": "Grease Fires",
     "scores": {
+      "patrol_yell": 5,
       "attempt_friction_fire": 4,
       "charing_or_powder": 2,
       "smoke": 2,
@@ -50,8 +53,16 @@ const patrols = [
     }
   },
   {
+    "name": "Shampoo Drinkers",
+    "scores": {
+      "patrol_flag": "  "
+    }
+  },
+  {
     "name": "Ducks",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "attempt_friction_fire": 4,
       "charing_or_powder": 2,
       "smoke": 2,
@@ -66,6 +77,8 @@ const patrols = [
   {
     "name": "Raptors",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 3,
       "attempt_friction_fire": 4,
       "charing_or_powder": 2,
       "smoke": 2,
@@ -93,6 +106,8 @@ const patrols = [
   {
     "name": "Card Board Boxes",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "attempt_friction_fire": 4,
       "charing_or_powder": 2,
       "smoke": 2,
@@ -107,6 +122,8 @@ const patrols = [
   {
     "name": "Space Pirates",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "attempt_friction_fire": 4,
       "charing_or_powder": 2,
       "smoke": 2,
@@ -121,6 +138,8 @@ const patrols = [
   {
     "name": "Krabbie Patties",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "attempt_friction_fire": 4,
       "charing_or_powder": 2,
       "smoke": 2,
@@ -136,6 +155,8 @@ const patrols = [
   {
     "name": "Wolf Warriors",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 4,
       "attempt_friction_fire": 4,
       "charing_or_powder": 2,
       "smoke": 2,
@@ -148,6 +169,8 @@ const patrols = [
   {
     "name": "Fearless Firebirds",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "attempt_friction_fire": 4,
       "charing_or_powder": 2,
       "smoke": 2,
@@ -160,7 +183,7 @@ const patrols = [
     }
   }
 ];
-const fieldConfigs = [{"id":"attempt_friction_fire","label":"Attempt Friction Fire","type":"number","min":0,"max":5,"defaultValue":0,"audience":"judge","kind":"points"},{"id":"charing_or_powder","label":"charing or powder","type":"number","min":0,"max":5,"defaultValue":0,"audience":"judge","kind":"points"},{"id":"smoke","label":"smoke","type":"number","min":0,"max":5,"defaultValue":0,"audience":"judge","kind":"points"},{"id":"ember","label":"ember","type":"number","min":0,"max":5,"defaultValue":0,"audience":"judge","kind":"points"},{"id":"ignite_tinder","label":"Ignite tinder","type":"number","min":0,"max":5,"defaultValue":0,"audience":"judge","kind":"points"},{"id":"ignite_kindling","label":"ignite kindling","type":"number","min":0,"max":5,"defaultValue":0,"audience":"judge","kind":"points"},{"id":"water_boils","label":"water boils","type":"number","min":0,"max":5,"defaultValue":0,"audience":"judge","kind":"points"},{"id":"extinguish_fire_reset","label":"Extinguish fire & reset","type":"number","min":0,"max":5,"defaultValue":0,"audience":"judge","kind":"points"},{"id":"matches_used_count","label":"Matches Used\n(Count)","type":"number","min":0,"max":20,"defaultValue":0,"audience":"judge","kind":"metric"},{"id":"matches_score","label":"Matches points\n","type":"number","audience":"admin","kind":"points"},{"id":"time_to_boil","label":"Time to Boil or N.A.\n\nmm:ss","type":"timed","audience":"judge","kind":"metric"},{"id":"time_to_boil_score","label":"Boil time Bonus","type":"number","audience":"admin","kind":"points"},{"id":"judges_points_calc","label":"Calculated Points","type":"number","audience":"admin","kind":"points"}];
+const fieldConfigs = [{"id":"patrol_flag","label":"Patrol Flag?","audience":"judge","sortOrder":1,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"patrol_yell","label":"Patrol Yell?","audience":"judge","sortOrder":2,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"patrol_spirit","label":"Patrol Spirit","audience":"judge","sortOrder":3,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"attempt_friction_fire","label":"Attempt Friction Fire","audience":"judge","sortOrder":900,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"charing_or_powder","label":"charing or powder","audience":"judge","sortOrder":900,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"smoke","label":"smoke","audience":"judge","sortOrder":900,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"ember","label":"ember","audience":"judge","sortOrder":900,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"ignite_tinder","label":"Ignite tinder","audience":"judge","sortOrder":900,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"ignite_kindling","label":"ignite kindling","audience":"judge","sortOrder":900,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"water_boils","label":"water boils","audience":"judge","sortOrder":900,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"extinguish_fire_reset","label":"Extinguish fire & reset","audience":"judge","sortOrder":900,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"matches_used_count","label":"Matches Used\n(Count)","audience":"judge","sortOrder":900,"config":{"min":0,"max":20,"defaultValue":0},"type":"number","kind":"metric","weight":0},{"id":"matches_score","label":"Matches points\n","audience":"admin","sortOrder":900,"config":{},"type":"number","kind":"points","weight":1},{"id":"time_to_boil","label":"Time to Boil or N.A.\n\nmm:ss","audience":"judge","sortOrder":900,"config":{},"type":"stopwatch","kind":"metric","weight":0},{"id":"time_to_boil_score","label":"Boil time Bonus","audience":"admin","sortOrder":900,"config":{},"type":"number","kind":"points","weight":1},{"id":"judges_points_calc","label":"Calculated Points","audience":"admin","sortOrder":900,"config":{},"type":"number","kind":"points","weight":1},{"id":"unscoutlike","label":"Un-Scout-like Behavior (Penalty)","audience":"judge","sortOrder":998,"config":{"min":0,"max":100,"defaultValue":0},"type":"number","kind":"penalty","weight":-1},{"id":"judge_notes","label":"Judge Notes / Comments","audience":"judge","sortOrder":999,"config":{"placeholder":"Optional notes on performance..."},"type":"textarea","kind":"metric","weight":0}];
 
 async function run() {
     const { page, waitTime, sleep, finish, startDemo } = await getContext({ mobile: true });
@@ -211,7 +234,7 @@ async function run() {
             if (!field) continue;
             if (field.audience === 'admin') continue; // Judges can't see/fill admin fields
 
-            if (field.type === 'timed') {
+            if (field.type === 'timed' || field.type === 'stopwatch') {
                 let mm = '00', ss = '00';
                 if (typeof val === 'number') {
                     const totalSeconds = Math.round(val * 24 * 60 * 60);

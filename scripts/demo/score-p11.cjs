@@ -5,12 +5,14 @@ const gameName = "Raft-a-drift at Sea";
 const judgeInfo = {
     name: "Demo Judge 3",
     email: "demojudge3@acme.com",
-    unit: "District"
+    unit: "Troop 295"
 };
 const patrols = [
   {
     "name": "Flaming Flamingoes",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "bonus_for_scout_sea_worthy_puns_jokes": 1,
       "time_raft_1_mm_sec": 0.13819444444444445,
@@ -20,6 +22,8 @@ const patrols = [
   {
     "name": "Chunky Monkeys",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "bonus_for_scout_sea_worthy_puns_jokes": 1,
       "time_raft_1_mm_sec": 0.15416666666666667,
@@ -29,6 +33,8 @@ const patrols = [
   {
     "name": "Atomic Duckies",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "bonus_for_scout_sea_worthy_puns_jokes": 1,
       "time_raft_1_mm_sec": 0.17777777777777778,
@@ -38,6 +44,8 @@ const patrols = [
   {
     "name": "Raptors",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "bonus_for_scout_sea_worthy_puns_jokes": 1,
       "time_raft_1_mm_sec": 0.16805555555555557,
@@ -47,6 +55,8 @@ const patrols = [
   {
     "name": "Orcas",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "bonus_for_scout_sea_worthy_puns_jokes": 1,
       "time_raft_1_mm_sec": 0.1527777777777778,
@@ -56,6 +66,7 @@ const patrols = [
   {
     "name": "Wolves",
     "scores": {
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "bonus_for_scout_sea_worthy_puns_jokes": 1,
       "time_raft_1_mm_sec": 0.11458333333333333,
@@ -65,6 +76,8 @@ const patrols = [
   {
     "name": "Space Pirates",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "bonus_for_scout_sea_worthy_puns_jokes": 1,
       "time_raft_1_mm_sec": 0.15486111111111112,
@@ -74,6 +87,7 @@ const patrols = [
   {
     "name": "Lakshay's Bros",
     "scores": {
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "bonus_for_scout_sea_worthy_puns_jokes": 1,
       "time_raft_1_mm_sec": 0.14652777777777778,
@@ -83,6 +97,8 @@ const patrols = [
   {
     "name": "Krabbie Patties",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "bonus_for_scout_sea_worthy_puns_jokes": 1,
       "time_raft_1_mm_sec": 0.47708333333333336,
@@ -92,6 +108,8 @@ const patrols = [
   {
     "name": "Ice Dragons",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "bonus_for_scout_sea_worthy_puns_jokes": 1,
       "time_raft_1_mm_sec": 0.3958333333333333,
@@ -101,6 +119,8 @@ const patrols = [
   {
     "name": "Fearless Foxes",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "bonus_for_scout_sea_worthy_puns_jokes": 0.5,
       "time_raft_1_mm_sec": 0.3854166666666667,
@@ -110,6 +130,8 @@ const patrols = [
   {
     "name": "Fearless Firebirds",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "bonus_for_scout_sea_worthy_puns_jokes": 1,
       "time_raft_1_mm_sec": 0.2763888888888889,
@@ -119,6 +141,8 @@ const patrols = [
   {
     "name": "Falcons",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "bonus_for_scout_sea_worthy_puns_jokes": 1,
       "time_raft_1_mm_sec": 0.13125,
@@ -126,7 +150,7 @@ const patrols = [
     }
   }
 ];
-const fieldConfigs = [{"id":"patrol_sprirt","label":"Patrol Sprirt","type":"number","audience":"judge","kind":"points"},{"id":"bonus_for_scout_sea_worthy_puns_jokes","label":"BONUS for Scout Sea worthy Puns/Jokes","type":"number","audience":"judge","kind":"points"},{"id":"time_raft_1_mm_sec","label":"Time\nRaft 1\nmm::sec","type":"timed","audience":"judge","kind":"points"},{"id":"optional_time_raft_3_mm_sec","label":"OPTIONAL\nTime\nRaft 3\nmm::sec","type":"timed","audience":"judge","kind":"points"},{"id":"avg_time_mm_sec","label":"AVG Time\nmm::sec","type":"timed","audience":"judge","kind":"points"}];
+const fieldConfigs = [{"id":"patrol_flag","label":"Patrol Flag?","audience":"judge","sortOrder":1,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"patrol_yell","label":"Patrol Yell?","audience":"judge","sortOrder":2,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"patrol_spirit","label":"Patrol Spirit","audience":"judge","sortOrder":3,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"patrol_sprirt","label":"Patrol Sprirt","audience":"judge","sortOrder":900,"config":{},"type":"number","kind":"points","weight":1},{"id":"bonus_for_scout_sea_worthy_puns_jokes","label":"BONUS for Scout Sea worthy Puns/Jokes","audience":"judge","sortOrder":900,"config":{},"type":"number","kind":"points","weight":1},{"id":"time_raft_1_mm_sec","label":"Time\nRaft 1\nmm::sec","audience":"judge","sortOrder":900,"config":{},"type":"stopwatch","kind":"points","weight":1},{"id":"optional_time_raft_3_mm_sec","label":"OPTIONAL\nTime\nRaft 3\nmm::sec","audience":"judge","sortOrder":900,"config":{},"type":"stopwatch","kind":"points","weight":1},{"id":"avg_time_mm_sec","label":"AVG Time\nmm::sec","audience":"judge","sortOrder":900,"config":{},"type":"stopwatch","kind":"points","weight":1},{"id":"unscoutlike","label":"Un-Scout-like Behavior (Penalty)","audience":"judge","sortOrder":998,"config":{"min":0,"max":100,"defaultValue":0},"type":"number","kind":"penalty","weight":-1},{"id":"judge_notes","label":"Judge Notes / Comments","audience":"judge","sortOrder":999,"config":{"placeholder":"Optional notes on performance..."},"type":"textarea","kind":"metric","weight":0}];
 
 async function run() {
     const { page, waitTime, sleep, finish, startDemo } = await getContext({ mobile: true });
@@ -177,7 +201,7 @@ async function run() {
             if (!field) continue;
             if (field.audience === 'admin') continue; // Judges can't see/fill admin fields
 
-            if (field.type === 'timed') {
+            if (field.type === 'timed' || field.type === 'stopwatch') {
                 let mm = '00', ss = '00';
                 if (typeof val === 'number') {
                     const totalSeconds = Math.round(val * 24 * 60 * 60);

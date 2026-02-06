@@ -2,14 +2,11 @@ const fs = require('fs');
 const path = require('path');
 const XLSX = require('xlsx');
 
-const gamesDir = path.join(__dirname, '../../config/games');
+const gamesDir = path.join(__dirname, '../../camporee/camp0001/games');
 const outputDir = __dirname;
 const excelPath = path.join(__dirname, '../../patrol.xlsx');
-const commonPath = path.join(__dirname, '../../config/common.json');
 
 const normalize = (str) => str ? str.toLowerCase().replace(/[^a-z0-9]/g, '') : '';
-
-const commonScoring = fs.existsSync(commonPath) ? JSON.parse(fs.readFileSync(commonPath, 'utf8')) : [];
 
 if (!fs.existsSync(excelPath)) {
     console.error(`Excel file not found: ${excelPath}`);
@@ -34,7 +31,7 @@ files.forEach(file => {
 
     const game = JSON.parse(fs.readFileSync(path.join(gamesDir, file), 'utf8'));
     const gameId = game.id;
-    const gameName = game.name;
+    const gameName = game.content.title;
     const scriptPath = path.join(outputDir, `score-${gameId}.cjs`);
 
     // --- Excel Matching ---
@@ -71,11 +68,8 @@ files.forEach(file => {
     if (patrolNameIdx === -1 && patrolIdIdx === -1) return;
 
     // Map columns to fields
-    // Handle Schema Changes: Check game.fields (legacy) OR game.scoring.components (new)
-    // Also ensure we handle cases where game.scoring exists but components is undefined
-    const gameFields = game.fields || (game.scoring && game.scoring.components) || [];
-
-    const allFields = [...gameFields, ...commonScoring];
+    // v2.9 Schema: Components are in game.scoring.components
+    const allFields = (game.scoring && game.scoring.components) || [];
 
     const fieldMap = [];
     headers.forEach((h, idx) => {
@@ -187,7 +181,7 @@ async function run() {
             if (!field) continue;
             if (field.audience === 'admin') continue; // Judges can't see/fill admin fields
 
-            if (field.type === 'timed') {
+            if (field.type === 'timed' || field.type === 'stopwatch') {
                 let mm = '00', ss = '00';
                 if (typeof val === 'number') {
                     const totalSeconds = Math.round(val * 24 * 60 * 60);

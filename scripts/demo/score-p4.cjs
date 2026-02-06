@@ -1,111 +1,46 @@
 const { getContext } = require('./utils.cjs');
 
-const gameId = "p13";
-const gameName = "Underwater Treasure Hunt";
+const gameId = "p4";
+const gameName = "Coral Reef Construction";
 const judgeInfo = {
-    name: "Demo Judge 5",
-    email: "demojudge5@acme.com",
-    unit: "District"
+    name: "Demo Judge 16",
+    email: "demojudge16@acme.com",
+    unit: "Troop 540"
 };
 const patrols = [
   {
-    "name": "Skeleton Fishing",
-    "scores": {
-      "finds": 51
-    }
-  },
-  {
     "name": "Eaglez",
     "scores": {
-      "finds": 40
+      "patrol_yell": 5
     }
   },
   {
     "name": "Chunky Monkeys",
     "scores": {
-      "finds": 56
-    }
-  },
-  {
-    "name": "Atomic Duckies",
-    "scores": {
-      "finds": 52
-    }
-  },
-  {
-    "name": "Ducks",
-    "scores": {
-      "finds": 57
-    }
-  },
-  {
-    "name": "Raptors",
-    "scores": {
-      "finds": 50
-    }
-  },
-  {
-    "name": "Dark Dragons",
-    "scores": {
-      "finds": 50
+      "patrol_yell": 4
     }
   },
   {
     "name": "Orcas",
     "scores": {
-      "finds": 57
-    }
-  },
-  {
-    "name": "Wolves",
-    "scores": {
-      "finds": 50
+      "patrol_yell": 5
     }
   },
   {
     "name": "Card Board Boxes",
     "scores": {
-      "finds": 53
-    }
-  },
-  {
-    "name": "Lakshay's Bros",
-    "scores": {
-      "finds": 55
-    }
-  },
-  {
-    "name": "Minions",
-    "scores": {
-      "finds": 55
-    }
-  },
-  {
-    "name": "Fancy Frogs",
-    "scores": {
-      "finds": 43
+      "patrol_flag": 5,
+      "patrol_yell": 4
     }
   },
   {
     "name": "Banana Ducks",
     "scores": {
-      "finds": 54
-    }
-  },
-  {
-    "name": "Fearless Firebirds",
-    "scores": {
-      "finds": 34
-    }
-  },
-  {
-    "name": "Falcons",
-    "scores": {
-      "finds": 56
+      "patrol_yell": 4
     }
   }
 ];
-const fieldConfigs = [{"id":"patrol_flag","label":"Patrol Flag?","audience":"judge","sortOrder":1,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"patrol_yell","label":"Patrol Yell?","audience":"judge","sortOrder":2,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"patrol_spirit","label":"Patrol Spirit","audience":"judge","sortOrder":3,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"Teamwork","label":"Teamwork","audience":"judge","sortOrder":900,"config":{},"type":"number","kind":"points","weight":1},{"id":"finder_name","label":"Finder Name","audience":"judge","sortOrder":15,"config":{},"type":"text","kind":"entryname","weight":0},{"id":"finds","label":"finds","audience":"judge","sortOrder":900,"config":{},"type":"number","kind":"points","weight":1},{"id":"unscoutlike","label":"Un-Scout-like Behavior (Penalty)","audience":"judge","sortOrder":998,"config":{"min":0,"max":100,"defaultValue":0},"type":"number","kind":"penalty","weight":-1},{"id":"judge_notes","label":"Judge Notes / Comments","audience":"judge","sortOrder":999,"config":{"placeholder":"Optional notes on performance..."},"type":"textarea","kind":"metric","weight":0}];
+const fieldConfigs = [{"id":"patrol_flag","label":"Patrol Flag?","audience":"judge","sortOrder":1,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"patrol_yell","label":"Patrol Yell?","audience":"judge","sortOrder":2,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"patrol_spirit","label":"Patrol Spirit","audience":"judge","sortOrder":3,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"correct_assembly","label":"Correct Assembly","audience":"judge","sortOrder":900,"config":{},"type":"number","kind":"points","weight":1},{"id":"repacking_tent","label":"\"repacking Tent\"","audience":"judge","sortOrder":900,"config":{},"type":"number","kind":"points","weight":1},{"id":"time","label":"Time","audience":"judge","sortOrder":900,"config":{},"type":"stopwatch","kind":"points","weight":1},{"id":"unscoutlike","label":"Un-Scout-like Behavior (Penalty)","audience":"judge","sortOrder":998,"config":{"min":0,"max":100,"defaultValue":0},"type":"number","kind":"penalty","weight":-1},{"id":"judge_notes","label":"Judge Notes / Comments","audience":"judge","sortOrder":999,"config":{"placeholder":"Optional notes on performance..."},"type":"textarea","kind":"metric","weight":0}];
 
 async function run() {
     const { page, waitTime, sleep, finish, startDemo } = await getContext({ mobile: true });

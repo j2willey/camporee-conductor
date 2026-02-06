@@ -5,18 +5,20 @@ const gameName = "Stepping Shells";
 const judgeInfo = {
     name: "Demo Judge 4",
     email: "demojudge4@acme.com",
-    unit: "Troop 350"
+    unit: "District"
 };
 const patrols = [
   {
     "name": "Spooky Shrimp",
     "scores": {
+      "patrol_yell": 5,
       "patrol_sprirt": 5
     }
   },
   {
     "name": "Eaglez",
     "scores": {
+      "patrol_yell": 5,
       "patrol_sprirt": 4,
       "timed": 0.9270833333333334
     }
@@ -24,6 +26,8 @@ const patrols = [
   {
     "name": "Chunky Monkeys",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "timed": 0.5
     }
@@ -31,6 +35,8 @@ const patrols = [
   {
     "name": "Raptors",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 4,
       "timed": 0.6881944444444444
     }
@@ -38,6 +44,8 @@ const patrols = [
   {
     "name": "Orcas",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "timed": 0.6458333333333334
     }
@@ -45,6 +53,8 @@ const patrols = [
   {
     "name": "Ice Dragons",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "timed": 0.5763888888888888
     }
@@ -52,6 +62,8 @@ const patrols = [
   {
     "name": "Fearless Firebirds",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "timed": 0.8395833333333333
     }
@@ -59,12 +71,14 @@ const patrols = [
   {
     "name": "Falcons",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "timed": 0.6375
     }
   }
 ];
-const fieldConfigs = [{"id":"patrol_sprirt","label":"Patrol Sprirt","type":"number","audience":"judge","kind":"points"},{"id":"timed","label":"Time\nmm:ss","type":"timed","audience":"judge","kind":"points"}];
+const fieldConfigs = [{"id":"patrol_flag","label":"Patrol Flag?","audience":"judge","sortOrder":1,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"patrol_yell","label":"Patrol Yell?","audience":"judge","sortOrder":2,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"patrol_spirit","label":"Patrol Spirit","audience":"judge","sortOrder":3,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"patrol_sprirt","label":"Patrol Sprirt","audience":"judge","sortOrder":900,"config":{},"type":"number","kind":"points","weight":1},{"id":"timed","label":"Time\nmm:ss","audience":"judge","sortOrder":900,"config":{},"type":"stopwatch","kind":"points","weight":1},{"id":"unscoutlike","label":"Un-Scout-like Behavior (Penalty)","audience":"judge","sortOrder":998,"config":{"min":0,"max":100,"defaultValue":0},"type":"number","kind":"penalty","weight":-1},{"id":"judge_notes","label":"Judge Notes / Comments","audience":"judge","sortOrder":999,"config":{"placeholder":"Optional notes on performance..."},"type":"textarea","kind":"metric","weight":0}];
 
 async function run() {
     const { page, waitTime, sleep, finish, startDemo } = await getContext({ mobile: true });
@@ -115,7 +129,7 @@ async function run() {
             if (!field) continue;
             if (field.audience === 'admin') continue; // Judges can't see/fill admin fields
 
-            if (field.type === 'timed') {
+            if (field.type === 'timed' || field.type === 'stopwatch') {
                 let mm = '00', ss = '00';
                 if (typeof val === 'number') {
                     const totalSeconds = Math.round(val * 24 * 60 * 60);

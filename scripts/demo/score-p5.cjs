@@ -5,12 +5,13 @@ const gameName = "Catch Fish Fry Fly";
 const judgeInfo = {
     name: "Demo Judge 17",
     email: "demojudge17@acme.com",
-    unit: "District"
+    unit: "Troop 840"
 };
 const patrols = [
   {
     "name": "Spooky Shrimp",
     "scores": {
+      "patrol_yell": 1,
       "mix_batter": 5,
       "prep_skillet": 5,
       "batter_into_skillet": 5,
@@ -25,6 +26,7 @@ const patrols = [
   {
     "name": "Eaglez",
     "scores": {
+      "patrol_yell": 2,
       "mix_batter": 5,
       "prep_skillet": 5,
       "batter_into_skillet": 4,
@@ -39,6 +41,7 @@ const patrols = [
   {
     "name": "Shampoo Drinkers",
     "scores": {
+      "patrol_yell": 4,
       "mix_batter": 5,
       "prep_skillet": 5,
       "batter_into_skillet": 4,
@@ -53,6 +56,8 @@ const patrols = [
   {
     "name": "Chunky Monkeys",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "mix_batter": 5,
       "prep_skillet": 5,
       "batter_into_skillet": 3,
@@ -65,6 +70,8 @@ const patrols = [
   {
     "name": "Atomic Duckies",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 3,
       "mix_batter": 5,
       "prep_skillet": 5,
       "batter_into_skillet": 5,
@@ -79,6 +86,8 @@ const patrols = [
   {
     "name": "Raptors",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 3,
       "mix_batter": 5,
       "prep_skillet": 5,
       "batter_into_skillet": 5,
@@ -93,6 +102,8 @@ const patrols = [
   {
     "name": "Orcas",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 4,
       "mix_batter": 5,
       "prep_skillet": 5,
       "batter_into_skillet": 4,
@@ -107,6 +118,7 @@ const patrols = [
   {
     "name": "Eggos",
     "scores": {
+      "patrol_yell": 3,
       "mix_batter": 5,
       "prep_skillet": 5,
       "batter_into_skillet": 5,
@@ -121,6 +133,7 @@ const patrols = [
   {
     "name": "Wolves",
     "scores": {
+      "patrol_yell": 5,
       "mix_batter": 5,
       "prep_skillet": 5,
       "batter_into_skillet": 5,
@@ -135,6 +148,8 @@ const patrols = [
   {
     "name": "Card Board Boxes",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "mix_batter": 5,
       "prep_skillet": 5,
       "batter_into_skillet": 5,
@@ -148,6 +163,8 @@ const patrols = [
   {
     "name": "Space Pirates",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "mix_batter": 5,
       "prep_skillet": 5,
       "batter_into_skillet": 5,
@@ -162,6 +179,8 @@ const patrols = [
   {
     "name": "Banana Ducks",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "mix_batter": 5,
       "prep_skillet": 5,
       "batter_into_skillet": 5,
@@ -176,6 +195,8 @@ const patrols = [
   {
     "name": "Fearless Foxes",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 3,
       "mix_batter": 5,
       "prep_skillet": 3,
       "batter_into_skillet": 5,
@@ -188,7 +209,7 @@ const patrols = [
     }
   }
 ];
-const fieldConfigs = [{"id":"mix_batter","label":"Mix batter","type":"number","audience":"judge","kind":"points"},{"id":"prep_skillet","label":"prep skillet","type":"number","audience":"judge","kind":"points"},{"id":"batter_into_skillet","label":"batter into skillet","type":"number","audience":"judge","kind":"points"},{"id":"pancake_resembles_fish","label":"Pancake resembles Fish","type":"number","audience":"judge","kind":"points"},{"id":"fully_cook_pancake","label":"Fully Cook Pancake","type":"number","audience":"judge","kind":"points"},{"id":"catch_eat","label":"Catch & Eat....","type":"number","audience":"judge","kind":"points"},{"id":"wash_and_clean_up","label":"Wash and Clean up","type":"number","audience":"judge","kind":"points"},{"id":"sum","label":"SUM","type":"number","audience":"judge","kind":"points"},{"id":"timed","label":"Time\nmm:ss","type":"timed","audience":"judge","kind":"points"}];
+const fieldConfigs = [{"id":"patrol_flag","label":"Patrol Flag?","audience":"judge","sortOrder":1,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"patrol_yell","label":"Patrol Yell?","audience":"judge","sortOrder":2,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"patrol_spirit","label":"Patrol Spirit","audience":"judge","sortOrder":3,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"mix_batter","label":"Mix batter","audience":"judge","sortOrder":900,"config":{},"type":"number","kind":"points","weight":1},{"id":"prep_skillet","label":"prep skillet","audience":"judge","sortOrder":900,"config":{},"type":"number","kind":"points","weight":1},{"id":"batter_into_skillet","label":"batter into skillet","audience":"judge","sortOrder":900,"config":{},"type":"number","kind":"points","weight":1},{"id":"pancake_resembles_fish","label":"Pancake resembles Fish","audience":"judge","sortOrder":900,"config":{},"type":"number","kind":"points","weight":1},{"id":"fully_cook_pancake","label":"Fully Cook Pancake","audience":"judge","sortOrder":900,"config":{},"type":"number","kind":"points","weight":1},{"id":"catch_eat","label":"Catch & Eat....","audience":"judge","sortOrder":900,"config":{},"type":"number","kind":"points","weight":1},{"id":"wash_and_clean_up","label":"Wash and Clean up","audience":"judge","sortOrder":900,"config":{},"type":"number","kind":"points","weight":1},{"id":"sum","label":"SUM","audience":"judge","sortOrder":900,"config":{},"type":"number","kind":"points","weight":1},{"id":"timed","label":"Time\nmm:ss","audience":"judge","sortOrder":900,"config":{},"type":"stopwatch","kind":"points","weight":1},{"id":"unscoutlike","label":"Un-Scout-like Behavior (Penalty)","audience":"judge","sortOrder":998,"config":{"min":0,"max":100,"defaultValue":0},"type":"number","kind":"penalty","weight":-1},{"id":"judge_notes","label":"Judge Notes / Comments","audience":"judge","sortOrder":999,"config":{"placeholder":"Optional notes on performance..."},"type":"textarea","kind":"metric","weight":0}];
 
 async function run() {
     const { page, waitTime, sleep, finish, startDemo } = await getContext({ mobile: true });
@@ -239,7 +260,7 @@ async function run() {
             if (!field) continue;
             if (field.audience === 'admin') continue; // Judges can't see/fill admin fields
 
-            if (field.type === 'timed') {
+            if (field.type === 'timed' || field.type === 'stopwatch') {
                 let mm = '00', ss = '00';
                 if (typeof val === 'number') {
                     const totalSeconds = Math.round(val * 24 * 60 * 60);

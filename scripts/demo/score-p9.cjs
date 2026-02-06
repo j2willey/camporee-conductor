@@ -5,12 +5,14 @@ const gameName = "Hook Line and Stretcher";
 const judgeInfo = {
     name: "Demo Judge 21",
     email: "demojudge21@acme.com",
-    unit: "Troop 640"
+    unit: "Troop 423"
 };
 const patrols = [
   {
     "name": "Inferno Sharks",
     "scores": {
+      "patrol_flag": 1,
+      "patrol_yell": 3,
       "patrol_sprirt": 5,
       "stretcher_runs_distance_laps_decimals_ok": 6
     }
@@ -18,6 +20,8 @@ const patrols = [
   {
     "name": "Atomic Duckies",
     "scores": {
+      "patrol_flag": 2,
+      "patrol_yell": 5,
       "patrol_sprirt": 4,
       "stretcher_runs_distance_laps_decimals_ok": 15
     }
@@ -25,6 +29,8 @@ const patrols = [
   {
     "name": "Ducks",
     "scores": {
+      "patrol_flag": 4,
+      "patrol_yell": 4,
       "patrol_sprirt": 5,
       "stretcher_runs_distance_laps_decimals_ok": 11,
       "bonus_for_scout_sea_worthy_puns_jokes": 5
@@ -33,6 +39,8 @@ const patrols = [
   {
     "name": "Krabbie Patties",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "stretcher_runs_distance_laps_decimals_ok": 7,
       "bonus_for_scout_sea_worthy_puns_jokes": 7
@@ -41,6 +49,8 @@ const patrols = [
   {
     "name": "Ice Dragons",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "stretcher_runs_distance_laps_decimals_ok": 4
     }
@@ -48,13 +58,15 @@ const patrols = [
   {
     "name": "Wolf Warriors",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "stretcher_runs_distance_laps_decimals_ok": 12,
       "bonus_for_scout_sea_worthy_puns_jokes": 7
     }
   }
 ];
-const fieldConfigs = [{"id":"patrol_sprirt","label":"Patrol Sprirt","type":"number","audience":"judge","kind":"points"},{"id":"stretcher_runs_distance_laps_decimals_ok","label":"Stretcher Runs/ Distance (laps, Decimals OK)","type":"number","audience":"judge","kind":"points"},{"id":"bonus_for_scout_sea_worthy_puns_jokes","label":"BONUS for Scout Sea worthy Puns/Jokes","type":"number","audience":"judge","kind":"points"}];
+const fieldConfigs = [{"id":"patrol_flag","label":"Patrol Flag?","audience":"judge","sortOrder":1,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"patrol_yell","label":"Patrol Yell?","audience":"judge","sortOrder":2,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"patrol_spirit","label":"Patrol Spirit","audience":"judge","sortOrder":3,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"patrol_sprirt","label":"Patrol Sprirt","audience":"judge","sortOrder":900,"config":{},"type":"number","kind":"points","weight":1},{"id":"stretcher_runs_distance_laps_decimals_ok","label":"Stretcher Runs/ Distance (laps, Decimals OK)","audience":"judge","sortOrder":900,"config":{},"type":"number","kind":"points","weight":1},{"id":"bonus_for_scout_sea_worthy_puns_jokes","label":"BONUS for Scout Sea worthy Puns/Jokes","audience":"judge","sortOrder":900,"config":{},"type":"number","kind":"points","weight":1},{"id":"unscoutlike","label":"Un-Scout-like Behavior (Penalty)","audience":"judge","sortOrder":998,"config":{"min":0,"max":100,"defaultValue":0},"type":"number","kind":"penalty","weight":-1},{"id":"judge_notes","label":"Judge Notes / Comments","audience":"judge","sortOrder":999,"config":{"placeholder":"Optional notes on performance..."},"type":"textarea","kind":"metric","weight":0}];
 
 async function run() {
     const { page, waitTime, sleep, finish, startDemo } = await getContext({ mobile: true });
@@ -105,7 +117,7 @@ async function run() {
             if (!field) continue;
             if (field.audience === 'admin') continue; // Judges can't see/fill admin fields
 
-            if (field.type === 'timed') {
+            if (field.type === 'timed' || field.type === 'stopwatch') {
                 let mm = '00', ss = '00';
                 if (typeof val === 'number') {
                     const totalSeconds = Math.round(val * 24 * 60 * 60);

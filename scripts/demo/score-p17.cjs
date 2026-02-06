@@ -5,12 +5,14 @@ const gameName = "Racing Against the Tide";
 const judgeInfo = {
     name: "Demo Judge 9",
     email: "demojudge9@acme.com",
-    unit: "District"
+    unit: "Troop 655"
 };
 const patrols = [
   {
     "name": "Skeleton Fishing",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "timed": 0.05694444444444444
     }
@@ -18,6 +20,8 @@ const patrols = [
   {
     "name": "Eaglez",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "timed": 0.05763888888888889
     }
@@ -25,6 +29,8 @@ const patrols = [
   {
     "name": "Inferno Sharks",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "timed": 0.059722222222222225
     }
@@ -32,6 +38,8 @@ const patrols = [
   {
     "name": "Ducks",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "timed": 0.05416666666666667
     }
@@ -39,6 +47,8 @@ const patrols = [
   {
     "name": "Dark Dragons",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "timed": 0.10069444444444445
     }
@@ -46,6 +56,8 @@ const patrols = [
   {
     "name": "Orcas",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "timed": 0.05694444444444444
     }
@@ -53,6 +65,8 @@ const patrols = [
   {
     "name": "Wolves",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "timed": 0.05486111111111111
     }
@@ -60,6 +74,8 @@ const patrols = [
   {
     "name": "Card Board Boxes",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "timed": 0.0625
     }
@@ -67,6 +83,8 @@ const patrols = [
   {
     "name": "Space Pirates",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "timed": ":56"
     }
@@ -74,6 +92,8 @@ const patrols = [
   {
     "name": "Lakshay's Bros",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "timed": ":50"
     }
@@ -81,6 +101,8 @@ const patrols = [
   {
     "name": "Minions",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "timed": 0.06319444444444444
     }
@@ -88,6 +110,8 @@ const patrols = [
   {
     "name": "Goofy Goobers",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "timed": 0.07013888888888889
     }
@@ -95,6 +119,8 @@ const patrols = [
   {
     "name": "Banana Ducks",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "timed": 0.04375
     }
@@ -102,6 +128,8 @@ const patrols = [
   {
     "name": "Krabbie Patties",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "timed": 0.044444444444444446
     }
@@ -109,6 +137,8 @@ const patrols = [
   {
     "name": "Ice Dragons",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "timed": 0.052083333333333336
     }
@@ -116,6 +146,8 @@ const patrols = [
   {
     "name": "Wolf Warriors",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "timed": 0.08680555555555555
     }
@@ -123,12 +155,14 @@ const patrols = [
   {
     "name": "Falcons",
     "scores": {
+      "patrol_flag": 5,
+      "patrol_yell": 5,
       "patrol_sprirt": 5,
       "timed": ":46"
     }
   }
 ];
-const fieldConfigs = [{"id":"patrol_sprirt","label":"Patrol Sprirt","type":"number","audience":"judge","kind":"points"},{"id":"timed","label":"Time\nmm:ss","type":"timed","audience":"judge","kind":"points"}];
+const fieldConfigs = [{"id":"patrol_flag","label":"Patrol Flag?","audience":"judge","sortOrder":1,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"patrol_yell","label":"Patrol Yell?","audience":"judge","sortOrder":2,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"patrol_spirit","label":"Patrol Spirit","audience":"judge","sortOrder":3,"config":{"min":0,"max":5,"defaultValue":0},"type":"number","kind":"points","weight":1},{"id":"patrol_sprirt","label":"Patrol Sprirt","audience":"judge","sortOrder":900,"config":{},"type":"number","kind":"points","weight":1},{"id":"timed","label":"Time\nmm:ss","audience":"judge","sortOrder":900,"config":{},"type":"stopwatch","kind":"points","weight":1},{"id":"unscoutlike","label":"Un-Scout-like Behavior (Penalty)","audience":"judge","sortOrder":998,"config":{"min":0,"max":100,"defaultValue":0},"type":"number","kind":"penalty","weight":-1},{"id":"judge_notes","label":"Judge Notes / Comments","audience":"judge","sortOrder":999,"config":{"placeholder":"Optional notes on performance..."},"type":"textarea","kind":"metric","weight":0}];
 
 async function run() {
     const { page, waitTime, sleep, finish, startDemo } = await getContext({ mobile: true });
@@ -179,7 +213,7 @@ async function run() {
             if (!field) continue;
             if (field.audience === 'admin') continue; // Judges can't see/fill admin fields
 
-            if (field.type === 'timed') {
+            if (field.type === 'timed' || field.type === 'stopwatch') {
                 let mm = '00', ss = '00';
                 if (typeof val === 'number') {
                     const totalSeconds = Math.round(val * 24 * 60 * 60);

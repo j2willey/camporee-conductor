@@ -3,7 +3,7 @@ const { getContext } = require('./utils.cjs');
 async function run() {
     const { page, waitTime, sleep, finish, startDemo } = await getContext();
 
-    // Data from config CSVs
+    // Data corresponding to the new v2.9 Demo Schema (converted from legacy CSVs)
     const roster = [
         { num: '13', name: 'T13', patrols: ['Skeleton Fishing', 'Spooky Shrimp'] },
         { num: '92', name: 'T92', patrols: ['Shadow Panther', 'Cold Flames', 'Jackalopes', 'Flaming Flamingoes'] },
