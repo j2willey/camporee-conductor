@@ -124,7 +124,7 @@ function loadCamporeeData() {
                         const gameDef = JSON.parse(fs.readFileSync(gamePath, 'utf8'));
 
                         const normalizedGame = normalizeGameDefinition(gameDef, item.order);
-                        // Ensure legacy 'name' property exists (Designer uses content.title)
+                        // Ensure legacy 'name' property exists (Composer uses content.title)
                         if (!gameDef.name && gameDef.content && gameDef.content.title) {
                             gameDef.name = gameDef.content.title;
                             normalizedGame.name = gameDef.content.title;

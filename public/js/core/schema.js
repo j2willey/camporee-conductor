@@ -15,8 +15,8 @@ export const FIELD_TYPES = {
 };
 
 /**
- * Normalizes a raw game definition (from JSON or Designer) into a runtime-ready object.
- * Handles the translation of Designer 'components' to Runtime 'fields'.
+ * Normalizes a raw game definition (from JSON or Composer) into a runtime-ready object.
+ * Handles the translation of Composer 'components' to Runtime 'fields'.
  *
  * @param {Object} gameDef - The raw game definition object loaded from disk/network.
  * @param {number} [playlistOrder=0] - The sort order from the playlist manifest.
@@ -27,7 +27,7 @@ export function normalizeGameDefinition(gameDef, playlistOrder = 0) {
     const game = JSON.parse(JSON.stringify(gameDef));
 
     // --- THE TRANSLATION LAYER ---
-    // Map Designer Schema (scoring.components) -> Collator Schema (fields)
+    // Map Composer Schema (scoring.components) -> Collator Schema (fields)
     if (game.scoring && game.scoring.components) {
         game.fields = game.scoring.components.map(comp => ({
             id: comp.id,

@@ -32,8 +32,8 @@ if (!fs.existsSync(STORAGE_ROOT)) {
 
 // FIX: Passed the 'title' variable required by index.ejs
 app.get('/', (req, res) => {
-    res.render('designer/index', {
-        title: 'Camporee Designer'
+    res.render('composer/index', {
+        title: 'Camporee Composer'
     });
 });
 
@@ -47,7 +47,7 @@ app.get('/api/status', (req, res) => {
     res.json({
         online: true,
         version: '1.0',
-        message: 'Camporee Designer Server is Online'
+        message: 'Camporee Composer Server is Online'
     });
 });
 
@@ -240,6 +240,6 @@ app.post('/api/camporee/:id', (req, res) => {
 
 // --- START SERVER ---
 app.listen(PORT, () => {
-    console.log(`Designer Server running at http://localhost:${PORT}`);
+    console.log(`Composer Server running at http://localhost:${PORT}`);
     console.log(`Storage Root: ${STORAGE_ROOT}`);
 });

@@ -6,8 +6,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "designer": "node designer_server.js",
-    "minify": "terser public/js/designer_app.js -o public/js/designer_app.js --compress --mangle",
+    "composer": "node composer_server.js",
+    "minify": "terser public/js/composer_app.js -o public/js/composer_app.js --compress --mangle",
     "test": "npx playwright test"
   },
   "dependencies": {

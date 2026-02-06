@@ -14,12 +14,12 @@ services:
       - ./data:/app/data
     restart: unless-stopped
 
-  # 2. THE DESIGNER (Builder) - Port 3001
-  designer:
-    container_name: coyote-collator-designer
+  # 2. THE COMPOSER (Builder) - Port 3001
+  composer:
+    container_name: coyote-collator-composer
     build:
       context: .
-      dockerfile: Dockerfile.designer # Minification build
+      dockerfile: Dockerfile.composer # Minification build
     ports:
       - "3001:3001"
     volumes:

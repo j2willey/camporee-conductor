@@ -100,7 +100,7 @@ Do not edit this during the event.
 
 It typically contains: Patrol Flag, Patrol Yell, Spirit, and Un-Scout-like Conduct.
 
-❓ FAQ for Game Designers
+❓ FAQ for Game Composers
 Q: Can I have a negative score? A: Yes. Use type: "number" with a min value (e.g., -10). Or, use a positive number field labeled "Penalty Points" and handle the subtraction in your spreadsheet later.
 
 Q: How do I delete a game? A: Just delete the .json file from the config/games/ folder and restart the server.

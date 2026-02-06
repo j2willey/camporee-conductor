@@ -1,6 +1,6 @@
 # Camporee Conductor Suite
 
-**The Complete Operating System for Offline Scout Events**
+**The Event Operating System for Offline Scout Competitions**
 
 The **Camporee Conductor Suite** (formerly Coyote Collator) is a specialized software ecosystem designed to plan, run, and score large-scale Scouting competitions in environments with **zero internet access**.
 
@@ -8,24 +8,34 @@ It replaces paper score sheets and complex Excel spreadsheets with a robust, off
 
 ---
 
-## 🏗️ The Architecture: "The Camporee Suite"
+## 🏗️ The Architecture: "The Camporee Conductor Compendium"
 
-The system is split into three distinct tools that handle the entire event lifecycle:
+The suite is composed of four distinct modules that handle the entire event lifecycle:
 
-### 1. 🎼 Camporee Composer (The Designer)
-* **Role:** The "Pre-Production" Tool.
+### 1. 🎼 Camporee Composer (The Architect)
+* **Role:** Pre-Production Design Tool.
 * **Function:** A drag-and-drop visual editor where you define the games, rules, scoring inputs, and penalties.
 * **Output:** Generates a portable `CamporeeConfig.zip` cartridge containing the entire event definition.
-* **Tech:** Runs on a separate port (3001) to keep design logic isolated from runtime.
+* **Location:** Runs on Port `3001`.
 
-### 2. 🎻 Camporee Collator (The Runtime Engine)
-* **Role:** The "Field" Tool (PWA).
-* **Function:** The offline Progressive Web App used by Judges in the field. It loads the configuration, captures scores, and queues them locally on the device.
-* **The "Mule" Strategy:** Devices connect to the server at HQ to "Load" the config, go offline to the field to "Score," and return to HQ to "Sync."
+### 2. 🦋 Camporee Collector (The Field Agent)
+* **Role:** Judge's Interface (PWA).
+* **Function:** The lightweight, offline-first Progressive Web App used by Judges in the field.
+* **Workflow:** Judges "Load" the config at HQ, walk to the woods to "Collect" scores (stored in `localStorage`), and return to HQ to "Sync."
+* **Location:** Served via the Runtime Server (Port `3000`).
 
-### 3. 🎩 Camporee Conductor (The Dashboard)
-* **Role:** The "Mission Control" Tool.
-* **Function:** The administration panel for the Event Chair. It handles Roster management (Patrols/Troops), QR Code generation for judges, and real-time leaderboard calculation.
+### 3. 🎻 Camporee Collator (The Command Center)
+* **Role:** Administration Dashboard.
+* **Function:** The central hub where scores land. The Event Director uses this to:
+    * Manage the Roster (Troops/Patrols).
+    * Monitor incoming data streams in real-time.
+    * "Collate" raw data into the Master Leaderboard.
+    * Generate Awards and Ribbons.
+* **Location:** Served via the Runtime Server (Port `3000`).
+
+### 4. 🏛️ Camporee Curator (The Librarian - to be implemented)
+* **Role:** Archives & Templates (Roadmap).
+* **Function:** A repository for preserving past event data and maintaining a library of standard Game Templates (e.g., "Standard Knot Relay") to speed up future event design.
 
 ---
 
@@ -43,31 +53,20 @@ The system is split into three distinct tools that handle the entire event lifec
     ```
 
 2.  **Access the Applications:**
-    * **The Designer (Composer):** Open `http://localhost:3001`
-    * **The Runtime (Collator/Conductor):** Open `http://localhost:3000`
+    * **The Composer (Design):** `http://localhost:3001`
+    * **The Runtime (Collect/Collate):** `http://localhost:3000`
 
 ---
 
-## 🔄 The Workflow
+## 🔄 The "Mule Strategy" Workflow
 
-### Phase 1: Design (The Composer)
-1.  Open **Camporee Composer** (`:3001`).
-2.  Create a new Camporee.
-3.  Add games (e.g., "Knot Tying", "Fire Building") and define their scoring fields (Stopwatch, Points, Penalties).
-4.  **Preview** your forms using the "Eye" icon to see exactly what Judges will see.
-5.  Click **Export Zip** to download your `CamporeeConfig.zip`.
-
-### Phase 2: Setup (The Conductor)
-1.  Open **Camporee Conductor** (`:3000/admin.html`).
-2.  Go to **System Setup**.
-3.  Upload your `CamporeeConfig.zip`.
-4.  Upload your Roster CSV (Troops and Patrols).
-
-### Phase 3: Execution (The Collator)
-1.  **Judges** connect their devices to your local network.
-2.  They visit `http://YOUR_SERVER_IP:3000`.
-3.  The app automatically downloads the configuration and roster for offline use.
-4.  Judges go to the field, score games, and return later to sync.
+1.  **Compose:** Use the **Composer** to build your event schema and export the `CamporeeConfig.zip`.
+2.  **Setup:** Upload the zip file and your Roster CSV to the **Collator** dashboard.
+3.  **Collect:**
+    * Judges scan a QR code at HQ to load the **Collector** app.
+    * They go offline to the field and score games.
+    * They return to Wi-Fi range to sync data.
+4.  **Collate:** The server aggregates scores, handles weighted logic, and produces the final Leaderboard.
 
 ---
 
@@ -75,18 +74,17 @@ The system is split into three distinct tools that handle the entire event lifec
 
 * **Infrastructure:** Docker Compose (Node:20-Alpine)
 * **Frontend:** Vanilla JS (ES Modules) with a **Shared Core Architecture**.
-    * *Note:* The Logic (`schema.js`) and UI (`ui.js`) are shared between the Designer and Runtime to ensure "What You Design Is What You Get."
 * **Backend:** Node.js (Express)
 * **Database:** SQLite (via `better-sqlite3`) using a JSON-column strategy for flexible schema storage.
 * **Offline Storage:** `localStorage` + Service Workers.
 
 ## 📂 Project Structure
 
-* `public/js/core/`: **Shared Library.** Contains the Schema definitions and UI rendering logic used by both apps.
-* `public/js/designer/`: Logic specific to the Composer tool.
-* `server.js`: The Runtime server (Collator/Conductor).
-* `designer_server.js`: The Design server (Composer).
-* `data/`: Persistent storage for the SQLite database and uploaded Camporee files.
+* `camporee/`: Default storage for event configurations and game definitions.
+* `public/js/core/`: **Shared Library.** Contains schema definitions and UI rendering logic used by both Composer and Collector.
+* `composer_server.js`: The Design server.
+* `server.js`: The Runtime server (hosting Collector & Collator).
+* `scripts/`: Automation utilities and Playwright tests.
 
 ---
 

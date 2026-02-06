@@ -11,7 +11,7 @@ RUN npm install
 COPY . .
 
 # 3. Run the minification script
-# This creates the optimized 'designer_app.js' inside this temporary container
+# This creates the optimized 'composer_app.js' inside this temporary container
 RUN npm run minify
 
 # --- STAGE 2: PRODUCTION ---
@@ -26,8 +26,8 @@ RUN npm install --production
 # 2. Copy the code (including the minified JS) from the builder stage
 COPY --from=builder /app .
 
-# 3. Expose the Designer Port
+# 3. Expose the Composer Port
 EXPOSE 3001
 
-# 4. Start the DESIGNER script (not the default start script)
-CMD ["npm", "run", "designer"]
+# 4. Start the COMPOSER script (not the default start script)
+CMD ["npm", "run", "composer"]

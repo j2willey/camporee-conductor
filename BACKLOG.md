@@ -6,12 +6,12 @@
     * Rename the `Coyote-Collator` root directory to `Camporee-Conductor`.
 * [ ] **CSS Unification:**
     * Migrate `judge.css` and `admin.css` to fully utilize the variables defined in `conductor.css`.
-    * Create a shared "Component Library" for buttons and cards to ensure the Designer looks exactly like the Runtime.
+    * Create a shared "Component Library" for buttons and cards to ensure the Composer looks exactly like the Runtime.
 * [ ] **Playwright Test Updates:**
     * Update `tests/basic.spec.js` selectors to match new "Camporee" IDs and text.
-    * Add new test cases for the "Designer -> Export -> Runtime -> Import" workflow.
+    * Add new test cases for the "Composer -> Export -> Runtime -> Import" workflow.
 
-## 🚀 Camporee Composer (Designer) Enhancements
+## 🚀 Camporee Composer (Composer) Enhancements
 * [ ] **"Test Drive" Mode:**
     * Expand the **Preview Modal** to allow actual interaction (clicking "Start" on stopwatches, calculating scores) to verify game logic without exporting.
 * [ ] **Template Library:**
@@ -36,7 +36,7 @@
 * [ ] **GitHub Actions:**
     * Automate the Docker Build and Release creation on tag push.
 * [ ] **Single Container Deployment:**
-    * Investigate merging `server.js` and `designer_server.js` into a single Express app (routed via `/design` and `/runtime`) to simplify Docker Compose.
+    * Investigate merging `server.js` and `composer_server.js` into a single Express app (routed via `/design` and `/runtime`) to simplify Docker Compose.
 
 ## 📝 Documentation
 * [ ] **User Guide:** Create a PDF or Wiki for non-technical "Event Chairs" on how to design an event.

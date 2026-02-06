@@ -1,12 +1,12 @@
 /**
- * Camporee Designer Logic (v16 - Hybrid Mode - Readable)
+ * Camporee Composer Logic (v16 - Hybrid Mode - Readable)
  * Features: Auto-Detect Server, Split Tabs, Drag/Drop, Atomic Presets.
  */
 
 import { normalizeGameDefinition } from './core/schema.js';
 import { generateFieldHTML } from './core/ui.js';
 
-const designer = {
+const composer = {
     // 1. THE STATE
     serverMode: false, // Feature Flag: True if backend is detected
 
@@ -35,7 +35,7 @@ const designer = {
 
     // 2. INITIALIZATION
     init: async function() {
-        console.log("Designer Initialized");
+        console.log("Composer Initialized");
 
         // 1. Check if we are online/server-connected
         await this.checkServerStatus();
@@ -123,17 +123,17 @@ const designer = {
             div.id = 'server-controls';
             div.className = "btn-group ms-2";
             div.innerHTML = `
-                <button class="btn btn-outline-light" onclick="designer.initiateServerSave()" title="Save to Server">
+                <button class="btn btn-outline-light" onclick="composer.initiateServerSave()" title="Save to Server">
                     <i class="fas fa-cloud-upload-alt"></i> Save
                 </button>
-                <button class="btn btn-outline-light" onclick="designer.openServerLoadModal()" title="Load from Server">
+                <button class="btn btn-outline-light" onclick="composer.openServerLoadModal()" title="Load from Server">
                     <i class="fas fa-cloud-download-alt"></i> Load
                 </button>
                 <button class="btn btn-outline-light dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"></button>
                 <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="#" onclick="designer.duplicateCamporee()"><i class="fas fa-copy"></i> Duplicate (Save As New)</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="composer.duplicateCamporee()"><i class="fas fa-copy"></i> Duplicate (Save As New)</a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="#" onclick="designer.newCamporee()"><i class="fas fa-file"></i> New Empty Camporee</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="composer.newCamporee()"><i class="fas fa-file"></i> New Empty Camporee</a></li>
                 </ul>
             `;
             headerBtnGroup.appendChild(div);
@@ -148,7 +148,7 @@ const designer = {
             const listEl = document.getElementById('serverLoadList');
             if (list.length > 0) {
                 listEl.innerHTML = list.map(c => `
-                    <a href="#" class="list-group-item list-group-item-action" onclick="designer.loadFromServer('${c.id}')">
+                    <a href="#" class="list-group-item list-group-item-action" onclick="composer.loadFromServer('${c.id}')">
                         <div class="d-flex w-100 justify-content-between">
                             <h5 class="mb-1">${c.title || 'Untitled'}</h5>
                             <small>${c.year}</small>
@@ -281,7 +281,7 @@ const designer = {
             libraryPane.innerHTML = `
                 <div id="patrolList" class="list-group p-3"></div>
                 <div class="p-3">
-                    <button class="btn btn-primary w-100" onclick="designer.addGame('patrol')">
+                    <button class="btn btn-primary w-100" onclick="composer.addGame('patrol')">
                         <i class="fas fa-plus-circle"></i> Add Patrol Game
                     </button>
                 </div>`;
@@ -305,7 +305,7 @@ const designer = {
                 div.innerHTML = `
                     <div id="troopList" class="list-group p-3"></div>
                     <div class="p-3">
-                        <button class="btn btn-success w-100" onclick="designer.addGame('troop')">
+                        <button class="btn btn-success w-100" onclick="composer.addGame('troop')">
                             <i class="fas fa-calendar-plus"></i> Add Troop Event
                         </button>
                     </div>`;
@@ -342,7 +342,7 @@ const designer = {
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="button" class="btn btn-primary" onclick="designer.confirmInsertPreset()">Insert</button>
+                            <button type="button" class="btn btn-primary" onclick="composer.confirmInsertPreset()">Insert</button>
                         </div>
                     </div>
                 </div>
@@ -358,7 +358,7 @@ const designer = {
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="button" class="btn btn-success" onclick="designer.confirmGameImport()">Import Selected</button>
+                            <button type="button" class="btn btn-success" onclick="composer.confirmGameImport()">Import Selected</button>
                         </div>
                     </div>
                 </div>
@@ -396,7 +396,7 @@ const designer = {
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="button" class="btn btn-danger" onclick="designer.executeSave()">Yes, Overwrite</button>
+                            <button type="button" class="btn btn-danger" onclick="composer.executeSave()">Yes, Overwrite</button>
                         </div>
                     </div>
                 </div>
@@ -602,16 +602,16 @@ const designer = {
                 </div>
                 <div class="d-flex align-items-center gap-1">
                     <i class="fas fa-circle ${statusClass} me-2" style="font-size: 0.5rem;"></i>
-                    <button class="btn btn-sm btn-outline-secondary border-0" onclick="event.stopPropagation(); designer.exportSingleGame('${game.id}')">
+                    <button class="btn btn-sm btn-outline-secondary border-0" onclick="event.stopPropagation(); composer.exportSingleGame('${game.id}')">
                         <i class="fas fa-file-download"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-secondary border-0" onclick="event.stopPropagation(); designer.duplicateGame('${game.id}')">
+                    <button class="btn btn-sm btn-outline-secondary border-0" onclick="event.stopPropagation(); composer.duplicateGame('${game.id}')">
                         <i class="fas fa-copy"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-primary border-0" onclick="event.stopPropagation(); designer.renderPreview('${game.id}')" title="Preview Form">
+                    <button class="btn btn-sm btn-outline-primary border-0" onclick="event.stopPropagation(); composer.renderPreview('${game.id}')" title="Preview Form">
                         <i class="fas fa-eye"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-danger border-0" onclick="event.stopPropagation(); designer.deleteGame('${game.id}')">
+                    <button class="btn btn-sm btn-outline-danger border-0" onclick="event.stopPropagation(); composer.deleteGame('${game.id}')">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>`;
@@ -677,7 +677,7 @@ const designer = {
                             <option value="points_desc">Highest Points</option>
                             <option value="timed_asc">Lowest Time</option>
                         </select>
-                        <button class="btn btn-sm btn-outline-secondary" onclick="designer.renderPreview('${gameId}')" title="Preview Form">
+                        <button class="btn btn-sm btn-outline-secondary" onclick="composer.renderPreview('${gameId}')" title="Preview Form">
                             <i class="fas fa-eye"></i>
                         </button>
                     </div>
@@ -687,10 +687,10 @@ const designer = {
 
                     <div class="mt-4 text-center">
                          <div class="btn-group shadow-sm">
-                            <button class="btn btn-primary" onclick="designer.addGenericField('${gameId}', 'game')">
+                            <button class="btn btn-primary" onclick="composer.addGenericField('${gameId}', 'game')">
                                 <i class="fas fa-plus-circle"></i> Add Field
                             </button>
-                            <button class="btn btn-outline-primary" onclick="designer.openPresetModal('${gameId}')">
+                            <button class="btn btn-outline-primary" onclick="composer.openPresetModal('${gameId}')">
                                 <i class="fas fa-magic"></i> Add Preset
                             </button>
                          </div>
@@ -750,7 +750,7 @@ const designer = {
                 <div class="card-body bg-light">
                     <div id="preset-editor-list" class="d-flex flex-column gap-3"></div>
                     <div class="mt-4 text-center">
-                        <button class="btn btn-primary" onclick="designer.addGenericField('global', 'preset_manager')">
+                        <button class="btn btn-primary" onclick="composer.addGenericField('global', 'preset_manager')">
                             <i class="fas fa-plus-circle"></i> Add Field
                         </button>
                     </div>
@@ -795,24 +795,24 @@ const designer = {
                 <div class="flex-grow-1 me-4">
                   <label class="form-label small text-muted fw-bold mb-1">Field Name (Label)</label>
                   <input type="text" class="form-control form-control-sm fw-bold mb-2" value="${comp.label || ''}"
-                        oninput="designer.updateComponent('${contextId}', ${index}, 'label', this.value, '${contextType}')">
+                        oninput="composer.updateComponent('${contextId}', ${index}, 'label', this.value, '${contextType}')">
 
                   <label class="form-label small text-muted fw-bold mb-1">Description (for Judge)</label>
                   <input type="text" class="form-control form-control-sm text-muted" value="${comp.config?.placeholder || ''}"
-                        oninput="designer.updateConfig('${contextId}', ${index}, 'placeholder', this.value, '${contextType}')">
+                        oninput="composer.updateConfig('${contextId}', ${index}, 'placeholder', this.value, '${contextType}')">
                 </div>
 
                 <div class="d-flex flex-column gap-2 me-4" style="width: 340px;">
                   <div class="row g-2">
                     <div class="col-6">
                         <label class="form-label small text-muted fw-bold mb-1">Input Type</label>
-                        <select class="form-select form-select-sm" onchange="designer.updateComponent('${contextId}', ${index}, 'type', this.value, '${contextType}')">
+                        <select class="form-select form-select-sm" onchange="composer.updateComponent('${contextId}', ${index}, 'type', this.value, '${contextType}')">
                             ${['number','stopwatch','text','textarea','checkbox'].map(t => `<option value="${t}" ${comp.type===t?'selected':''}>${t}</option>`).join('')}
                         </select>
                     </div>
                     <div class="col-6">
                         <label class="form-label small text-muted fw-bold mb-1">Scoring Purpose</label>
-                        <select class="form-select form-select-sm" onchange="designer.handleKindChange('${contextId}', ${index}, this.value, '${contextType}')">
+                        <select class="form-select form-select-sm" onchange="composer.handleKindChange('${contextId}', ${index}, this.value, '${contextType}')">
                             ${['points','penalty','metric','info'].map(k => `<option value="${k}" ${comp.kind===k?'selected':''}>${k}</option>`).join('')}
                         </select>
                     </div>
@@ -823,15 +823,15 @@ const designer = {
                       <div class="input-group input-group-sm">
                         <span class="input-group-text text-muted">Min</span>
                         <input type="number" class="form-control" value="${comp.config?.min || ''}"
-                            onchange="designer.updateConfig('${contextId}', ${index}, 'min', this.value, '${contextType}')">
+                            onchange="composer.updateConfig('${contextId}', ${index}, 'min', this.value, '${contextType}')">
 
                         <span class="input-group-text text-muted">Max</span>
                         <input type="number" class="form-control" value="${comp.config?.max || ''}"
-                            onchange="designer.updateConfig('${contextId}', ${index}, 'max', this.value, '${contextType}')">
+                            onchange="composer.updateConfig('${contextId}', ${index}, 'max', this.value, '${contextType}')">
 
                         <span class="input-group-text fw-bold">Wgt</span>
                         <input type="number" class="form-control fw-bold" value="${comp.weight !== undefined ? comp.weight : 0}"
-                            onchange="designer.updateComponent('${contextId}', ${index}, 'weight', parseFloat(this.value), '${contextType}')">
+                            onchange="composer.updateComponent('${contextId}', ${index}, 'weight', parseFloat(this.value), '${contextType}')">
                       </div>
                   </div>
                 </div>
@@ -839,15 +839,15 @@ const designer = {
                 <div class="d-flex flex-column align-items-end gap-3 mt-4" style="min-width: 110px;">
                   <div class="form-check form-switch text-end">
                     <input class="form-check-input float-end ms-2" type="checkbox" id="visSwitch${index}" ${comp.audience === 'admin' ? 'checked' : ''}
-                        onchange="designer.updateComponent('${contextId}', ${index}, 'audience', this.checked ? 'admin' : 'judge', '${contextType}')">
+                        onchange="composer.updateComponent('${contextId}', ${index}, 'audience', this.checked ? 'admin' : 'judge', '${contextType}')">
                     <label class="form-check-label small fw-bold text-muted d-block me-4">Official Only</label>
                   </div>
 
                   <div class="btn-group btn-group-sm">
-                    <button class="btn btn-outline-secondary" onclick="designer.duplicateComponent('${contextId}', ${index}, '${contextType}')">
+                    <button class="btn btn-outline-secondary" onclick="composer.duplicateComponent('${contextId}', ${index}, '${contextType}')">
                         <i class="fas fa-copy"></i>
                     </button>
-                    <button class="btn btn-outline-danger" onclick="designer.removeComponent('${contextId}', ${index}, '${contextType}')">
+                    <button class="btn btn-outline-danger" onclick="composer.removeComponent('${contextId}', ${index}, '${contextType}')">
                         <i class="fas fa-trash"></i>
                     </button>
                   </div>
@@ -1186,5 +1186,5 @@ const designer = {
     }
 };
 
-window.designer = designer;
-window.onload = function() { designer.init(); };
+window.composer = composer;
+window.onload = function() { composer.init(); };

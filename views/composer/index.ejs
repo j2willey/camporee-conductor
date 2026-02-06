@@ -9,9 +9,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <style>
-        /* Designer Specific Styles */
+        /* Composer Specific Styles */
         body { background-color: #f4f6f9; }
-        .designer-container { margin-top: 20px; }
+        .composer-container { margin-top: 20px; }
         .editor-panel { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .nav-tabs .nav-link.active { font-weight: bold; border-top: 3px solid #0d6efd; }
     </style>
@@ -21,25 +21,25 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
             <a class="navbar-brand" href="#">
-                <i class="fas fa-campground"></i> Camporee Designer
+                <i class="fas fa-campground"></i> Camporee Composer
             </a>
             <div class="d-flex">
-                <button class="btn btn-outline-light btn-sm me-2" onclick="designer.newCamporee()">
+                <button class="btn btn-outline-light btn-sm me-2" onclick="composer.newCamporee()">
                     <i class="fas fa-file"></i> New
                 </button>
                 <label class="btn btn-outline-warning btn-sm me-2 mb-0">
                     <i class="fas fa-folder-open"></i> Import Zip
                     <input type="file" id="fileInput" accept=".zip" hidden>
                 </label>
-                <button class="btn btn-success btn-sm" onclick="designer.exportCamporee()">
+                <button class="btn btn-success btn-sm" onclick="composer.exportCamporee()">
                     <i class="fas fa-save"></i> Export Zip
                 </button>
             </div>
         </div>
     </nav>
 
-    <div class="container designer-container">
-        <ul class="nav nav-tabs" id="designerTabs" role="tablist">
+    <div class="container composer-container">
+        <ul class="nav nav-tabs" id="composerTabs" role="tablist">
             <li class="nav-item">
                 <button class="nav-link active" id="meta-tab" data-bs-toggle="tab" data-bs-target="#meta-pane" type="button">1. Camporee Info</button>
             </li>
@@ -73,7 +73,7 @@
             <div class="tab-pane fade" id="games-pane">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h4>Game Library</h4>
-                    <button class="btn btn-primary btn-sm" onclick="designer.addGame()"><i class="fas fa-plus"></i> Add Game</button>
+                    <button class="btn btn-primary btn-sm" onclick="composer.addGame()"><i class="fas fa-plus"></i> Add Game</button>
                 </div>
                 <div class="list-group" id="gameList">
                     <div class="text-center text-muted p-4">No games loaded. Click "Add Game" or Import a Zip.</div>
@@ -107,6 +107,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
-    <script type="module" src="/js/designer_app.js?v=2"></script>
+    <script type="module" src="/js/composer_app.js?v=2"></script>
 </body>
 </html>
