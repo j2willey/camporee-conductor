@@ -201,7 +201,7 @@ app.get('/setup', (req, res) => {
             <head><title>Setup</title><link rel="stylesheet" href="/css/bootstrap.min.css"></head>
             <body class="bg-dark text-light d-flex align-items-center justify-content-center vh-100">
                 <div class="card bg-secondary text-white p-5 text-center" style="max-width: 500px;">
-                    <h1>Coyote Collator</h1>
+                    <h1>Camporee Collator</h1>
                     <p class="lead">System Ready. Load Cartridge.</p>
                     <form action="/api/setup/upload" method="post" enctype="multipart/form-data">
                         <input class="form-control mb-3" type="file" name="configZip" accept=".zip" required>

@@ -1,6 +1,6 @@
 # Game Configuration Schema
 
-This document describes the structure of the JSON configuration files used to define games and scoring criteria in the Coyote Collator application.
+This document describes the structure of the JSON configuration files used to define games and scoring criteria in the Camporee Collator application.
 
 ## Directory Structure
 

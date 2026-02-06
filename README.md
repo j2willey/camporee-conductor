@@ -1,8 +1,8 @@
-# Coyote Collator
+# Camporee Collator
 
 **A Local-First Scoring System for Scout Camporees**
 
-Coyote Collator is a Progressive Web App (PWA) designed to digitize scoring for large-scale scouting competitions in remote environments with **zero internet access**.
+Camporee Collator is a Progressive Web App (PWA) designed to digitize scoring for large-scale scouting competitions in remote environments with **zero internet access**.
 
 ## 🏗 Architecture: "The Mule Strategy"
 

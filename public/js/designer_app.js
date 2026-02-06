@@ -1,5 +1,5 @@
 /**
- * Coyote Camporee Designer Logic (v16 - Hybrid Mode - Readable)
+ * Camporee Designer Logic (v16 - Hybrid Mode - Readable)
  * Features: Auto-Detect Server, Split Tabs, Drag/Drop, Atomic Presets.
  */
 

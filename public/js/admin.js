@@ -92,7 +92,7 @@ function updateDashboardHeader() {
     const brand = document.querySelector('header h1'); // or element with class .navbar-brand
     if (brand) {
         // Set the visible title
-        brand.innerText = meta.title || 'Coyote Collator';
+        brand.innerText = meta.title || 'Camporee Collator';
 
         // Set the debug UUID tooltip
         if (meta.camporeeId) {
@@ -102,7 +102,7 @@ function updateDashboardHeader() {
     }
 
     // 2. Update Document Title (Browser Tab)
-    document.title = meta.title ? `${meta.title} - Admin` : 'Coyote Collator';
+    document.title = meta.title ? `${meta.title} - Admin` : 'Camporee Collator';
 }
 
 function setupNavigation() {
@@ -520,7 +520,7 @@ function exportAwardsCSV() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `Coyote_Awards_${currentViewMode}_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute("download", `Camporee_Awards_${currentViewMode}_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

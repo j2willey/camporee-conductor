@@ -348,7 +348,7 @@ function navigate(viewName) {
 
     // Reset Header on Home
     if (viewName === 'home') {
-        document.getElementById('header-title').textContent = 'Coyote Collator';
+        document.getElementById('header-title').textContent = 'Camporee Collator';
 
         const syncLine = document.getElementById('header-sync-line');
         if(syncLine) syncLine.style.display = 'block';

@@ -19,11 +19,11 @@ async function handleSetupIfNeeded(page) {
 test('has title', async ({ page }) => {
   await page.goto('/admin.html');
   await handleSetupIfNeeded(page);
-  await expect(page).toHaveTitle(/Coyote Collator/);
+  await expect(page).toHaveTitle(/Camporee Collator/);
 });
 
 test('admin dashboard loads', async ({ page }) => {
   await page.goto('/admin.html');
   await handleSetupIfNeeded(page);
-  await expect(page.locator('h1')).toContainText('Coyote Admin');
+  await expect(page.locator('h1')).toContainText('Camporee Conductor');
 });
