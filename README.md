@@ -1,98 +1,95 @@
-# Camporee Collator
+# Camporee Conductor Suite
 
-**A Local-First Scoring System for Scout Camporees**
+**The Complete Operating System for Offline Scout Events**
 
-Camporee Collator is a Progressive Web App (PWA) designed to digitize scoring for large-scale scouting competitions in remote environments with **zero internet access**.
+The **Camporee Conductor Suite** (formerly Coyote Collator) is a specialized software ecosystem designed to plan, run, and score large-scale Scouting competitions in environments with **zero internet access**.
 
-## 🏗 Architecture: "The Mule Strategy"
+It replaces paper score sheets and complex Excel spreadsheets with a robust, offline-first digital workflow.
 
-This application uses a "Load, Go, Sync" workflow to handle remote data collection:
+---
 
-1.  **The Mule (Server):** A laptop running a local Docker container acts as the central server. It broadcasts a local WiFi network (no internet).
-2.  **The Load (Online):** Judges connect to the WiFi at HQ. The PWA downloads the Roster and Game Configuration (`games.json`) to the device's `localStorage`.
-3.  **The Field (Offline):** Judges disconnect and walk to their stations. Scores are saved locally to the device.
-4.  **The Sync (Re-connect):** When judges return to HQ range, the app detects the connection and flushes stored scores to the SQLite database.
+## 🏗️ The Architecture: "The Camporee Suite"
 
-## 🛠 Tech Stack
+The system is split into three distinct tools that handle the entire event lifecycle:
 
-* **Infrastructure:** Docker & Docker Compose (Node:20-Alpine)
-* **Backend:** Node.js (Express) + `better-sqlite3`
-* **Database:** SQLite (using a JSON column strategy for flexible scoring schemas)
-* **Frontend:** Vanilla JS PWA (No frameworks, local caching via Service Worker)
+### 1. 🎼 Camporee Composer (The Designer)
+* **Role:** The "Pre-Production" Tool.
+* **Function:** A drag-and-drop visual editor where you define the games, rules, scoring inputs, and penalties.
+* **Output:** Generates a portable `CamporeeConfig.zip` cartridge containing the entire event definition.
+* **Tech:** Runs on a separate port (3001) to keep design logic isolated from runtime.
+
+### 2. 🎻 Camporee Collator (The Runtime Engine)
+* **Role:** The "Field" Tool (PWA).
+* **Function:** The offline Progressive Web App used by Judges in the field. It loads the configuration, captures scores, and queues them locally on the device.
+* **The "Mule" Strategy:** Devices connect to the server at HQ to "Load" the config, go offline to the field to "Score," and return to HQ to "Sync."
+
+### 3. 🎩 Camporee Conductor (The Dashboard)
+* **Role:** The "Mission Control" Tool.
+* **Function:** The administration panel for the Event Chair. It handles Roster management (Patrols/Troops), QR Code generation for judges, and real-time leaderboard calculation.
+
+---
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-* Docker Desktop
-* VS Code
+* **Docker Desktop** (Required)
 * (Windows Users) Ensure you are running in **WSL2** mode.
 
-### Installation
+### Installation & Launch
 
-1.  **Start the System:**
+1.  **Start the Suite:**
     ```bash
-    docker-compose up --build -d
+    docker compose up --build -d
     ```
-2.  **Access the App:**
-    Open `http://localhost:3000` in your browser.
-3.  **Verify Data Persistence:**
-    Ensure the `./data` folder is created on your host machine.
+
+2.  **Access the Applications:**
+    * **The Designer (Composer):** Open `http://localhost:3001`
+    * **The Runtime (Collator/Conductor):** Open `http://localhost:3000`
+
+---
+
+## 🔄 The Workflow
+
+### Phase 1: Design (The Composer)
+1.  Open **Camporee Composer** (`:3001`).
+2.  Create a new Camporee.
+3.  Add games (e.g., "Knot Tying", "Fire Building") and define their scoring fields (Stopwatch, Points, Penalties).
+4.  **Preview** your forms using the "Eye" icon to see exactly what Judges will see.
+5.  Click **Export Zip** to download your `CamporeeConfig.zip`.
+
+### Phase 2: Setup (The Conductor)
+1.  Open **Camporee Conductor** (`:3000/admin.html`).
+2.  Go to **System Setup**.
+3.  Upload your `CamporeeConfig.zip`.
+4.  Upload your Roster CSV (Troops and Patrols).
+
+### Phase 3: Execution (The Collator)
+1.  **Judges** connect their devices to your local network.
+2.  They visit `http://YOUR_SERVER_IP:3000`.
+3.  The app automatically downloads the configuration and roster for offline use.
+4.  Judges go to the field, score games, and return later to sync.
+
+---
+
+## 🛠️ Tech Stack
+
+* **Infrastructure:** Docker Compose (Node:20-Alpine)
+* **Frontend:** Vanilla JS (ES Modules) with a **Shared Core Architecture**.
+    * *Note:* The Logic (`schema.js`) and UI (`ui.js`) are shared between the Designer and Runtime to ensure "What You Design Is What You Get."
+* **Backend:** Node.js (Express)
+* **Database:** SQLite (via `better-sqlite3`) using a JSON-column strategy for flexible schema storage.
+* **Offline Storage:** `localStorage` + Service Workers.
 
 ## 📂 Project Structure
 
-* `server.js`: Node.js Express server with SQLite backend. The API handling sync and CSV export.
-* `public/`: Frontend PWA assets (HTML, CSS, JS).
-* `config/games/`: JSON configuration files for each game station.
-* `scripts/`: Utilities for importing Rosters and seeding data.
-* `scripts/demo/`: Playwright automation scripts for walkthroughs and testing.
-* `docker-compose.yml`: Maps port 3000 and mounts the `./data` volume.
-* `data/`: Persistent storage for SQLite database (mounted by Docker).
+* `public/js/core/`: **Shared Library.** Contains the Schema definitions and UI rendering logic used by both apps.
+* `public/js/designer/`: Logic specific to the Composer tool.
+* `server.js`: The Runtime server (Collator/Conductor).
+* `designer_server.js`: The Design server (Composer).
+* `data/`: Persistent storage for the SQLite database and uploaded Camporee files.
 
-## 🎭 Demo & Walkthrough Automation
+---
 
-The project includes Playwright-based scripts to automate data entry and system demonstrations at "Human Speed".
-
-### Prerequisites
-* Node.js installed locally.
-* Install dependencies: `npm install`
-* Install Playwright browsers: `npx playwright install chromium`
-
-### Running the Walkthroughs
-
-1.  **Seed the Roster:**
-    Automatically register all Troops and Patrols defined in your config.
-    ```bash
-    # Headless (Fast)
-    node scripts/demo/seed-roster.cjs
-
-    # Interactive (Human Speed)
-    node scripts/demo/seed-roster.cjs --interactive --wait=2
-    ```
-
-2.  **Simulate Scoring:**
-    Run scoring scripts for specific games (e.g., `p1`, `p2`).
-    ```bash
-    node scripts/demo/score-p1.cjs --interactive --wait=1
-    ```
-
-### Interaction Controls (Interactive Mode)
-*   **Skip Wait:** Press `Space` or `Enter` inside the browser window to skip the current delay and perform the next action immediately.
-*   **Finish:** When the demo is complete, press `Space` or `Enter` to close the browser.
-
-## 📝 License
-
-
-## Usage Flow
-
-1.  **Online (WiFi):** Open the app. It will automatically download the `games.json` config and the Roster (`entities`).
-2.  **Offline (Field):** Go to a game station. Select the station and the Team (Patrol/Troop). Fill out the form.
-3.  **Submit:** Scores are saved to the browser's storage.
-4.  **Sync:** Return to WiFi range. Click "Sync Scores Now" to upload all offline data to the server.
-
-## Admin
-
-*   **Export Data:** Go to `http://localhost:3000/api/export` to download a CSV of all scores.
-
+## 📜 License
 
 MIT License - Free for use by any Scouting unit.
-
