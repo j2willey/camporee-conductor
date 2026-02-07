@@ -197,7 +197,41 @@ function selectStation(id) {
     }
 }
 
-// --- Standard Entity & Form Logic (Preserved) ---
+// --- HELPER: Smart Name Formatting ---
+function formatEntityLabel(e) {
+    if (!e) return '';
+    // Normalize
+    const tNum = String(e.troop_number || '').trim();
+    const name = String(e.name || '').trim();
+    const type = e.type || 'patrol';
+
+    // Regex to detect redundant names (e.g. "13", "T13", "Tr 13", "Troop 13")
+    const isRedundant = new RegExp(`^(t|tr|troop)?\\s*${tNum}$`, 'i').test(name);
+
+    if (type === 'troop') {
+        // Troop Mode: "Troop 13" or "Troop 13 - The Avengers"
+        const base = `Troop ${tNum}`;
+        if (isRedundant || !name) return base;
+        return `${base} - ${name}`;
+    } else {
+        // Patrol Mode: "T101" or "T101 Flaming Arrows"
+        const base = `T${tNum}`;
+        if (isRedundant || !name) return base;
+        return `${base} ${name}`;
+    }
+}
+
+function formatGameTitle(game) {
+    if (!game) return '';
+    if (game.name.match(/^(Game|Exhibition|p\d)/i)) return game.name;
+    const match = game.id.match(/(\d+)/);
+    const num = match ? match[1] : '';
+    if (num) return `Game ${num}. ${game.name}`;
+    return game.name;
+}
+
+// --- Standard Entity & Form Logic ---
+
 function renderStationList() {
     if (!state.config || !state.config.stations) {
         els.stationList.innerHTML = `<div class="p-4 text-center text-muted">Loading games...</div>`;
@@ -213,15 +247,6 @@ function renderStationList() {
             <div class="fw-bold">${formatGameTitle(s)}</div>
             <small class="text-muted text-uppercase" style="font-size:0.75rem;">${s.type || 'General'}</small>
         </button>`).join('');
-}
-
-function formatGameTitle(game) {
-    if (!game) return '';
-    if (game.name.match(/^(Game|Exhibition|p\d)/i)) return game.name;
-    const match = game.id.match(/(\d+)/);
-    const num = match ? match[1] : '';
-    if (num) return `Game ${num}. ${game.name}`;
-    return game.name;
 }
 
 function renderEntityList(filter = '') {
@@ -250,7 +275,8 @@ function renderEntityList(filter = '') {
         const isDone = scoredIds.has(e.id);
         const draftKey = `${state.currentStation.id}_${e.id}`;
         const hasDraft = !!drafts[draftKey];
-        const displayLabel = `Tr ${e.troop_number} | #${e.id} | ${e.name}`;
+        const displayLabel = formatEntityLabel(e); // USE FORMATTER
+
         return `
             <div class="list-group-item list-group-item-action p-3 d-flex justify-content-between align-items-center"
                 onclick="app.selectEntity('${e.id}')"
@@ -296,7 +322,7 @@ function renderForm(existingScore = null) {
         btnSubmit.classList.add('btn-secondary');
     }
 
-    document.getElementById('header-subtitle').textContent = `${e.troop_number} - ${e.name}`;
+    document.getElementById('header-subtitle').textContent = formatEntityLabel(e); // USE FORMATTER
     document.getElementById('header-subtitle').style.display = 'block';
 
     els.scoreForm.innerHTML = '';
@@ -374,7 +400,7 @@ function submitScore(e) {
     if(state.isOnline) syncManager.sync().then(updateSyncCounts);
 }
 
-// --- STOPWATCH LOGIC (Preserved) ---
+// --- STOPWATCH LOGIC ---
 let activeTimerId = null;
 let activeTimerInterval = null;
 let activeTimerStartedAt = 0;
@@ -496,7 +522,7 @@ function renderBracketLobby() {
     els.lobbyList.innerHTML = entities.map(e => `
         <label class="list-group-item d-flex gap-3 align-items-center">
             <input class="form-check-input flex-shrink-0" type="checkbox" value="${e.id}" style="transform: scale(1.3);">
-            <div><strong>Tr ${e.troop_number}</strong> - ${e.name}<div class="small text-muted">#${e.id}</div></div>
+            <div><strong>${formatEntityLabel(e)}</strong><div class="small text-muted">#${e.id}</div></div>
         </label>`).join('');
 }
 
@@ -517,37 +543,38 @@ function bracketStartEvent() {
     navigate('bracketRound');
 }
 
-// 2. ROUND MANAGER (Refined Layout + Bye Support)
+// 2. ROUND MANAGER
 function renderBracketRound() {
     const gameId = state.currentStation.id;
     const round = state.bracketData[gameId].rounds[state.currentRoundIdx];
     document.getElementById('bracket-round-title').innerText = round.name;
     document.getElementById('bracket-pool-count').innerText = round.pool.length;
 
-    // Pool List with Bye Button
+    // Pool List
     els.roundPool.innerHTML = round.pool.length ? round.pool.map(eid => {
         const e = state.entities.find(x => x.id === eid);
-        // Added w-auto to button to prevent stretching
+        const label = formatEntityLabel(e); // USE FORMATTER
         return `
         <li class="list-group-item d-flex justify-content-between align-items-center p-2">
             <div class="d-flex align-items-center gap-2 overflow-hidden">
                 <input class="form-check-input form-check-pool flex-shrink-0" type="checkbox" value="${eid}" style="transform: scale(1.1);">
-                <div class="text-truncate">Tr ${e?.troop_number} - ${e?.name}</div>
+                <div class="text-truncate">${label}</div>
             </div>
             <button class="btn btn-sm btn-outline-secondary py-0 px-2 ms-2" onclick="app.bracketGrantBye('${eid}')" style="width: auto; font-size: 0.75rem;">Bye</button>
         </li>`;
     }).join('') : '<div class="p-3 text-muted text-center">Pool Empty</div>';
 
-    // Heats List with Quick Advance
+    // Heats List
     els.heatList.innerHTML = round.heats.map((heat, idx) => {
         const teamListHtml = heat.teams.map(eid => {
             const e = state.entities.find(x => x.id === eid);
+            const label = formatEntityLabel(e); // USE FORMATTER
             const res = heat.results[eid] || {};
             const advIcon = res.advance ? '⏩' : '⏹️';
             const advClass = res.advance ? 'active' : '';
             return `
                 <div class="d-flex justify-content-between align-items-center py-1 border-bottom">
-                    <span>Tr ${e?.troop_number}</span>
+                    <span>${label}</span>
                     <span class="advance-star ${advClass}" onclick="app.bracketToggleAdvance(${idx}, '${eid}', event)" title="Toggle Advance" style="font-size: 1.2rem;">${advIcon}</span>
                 </div>`;
         }).join('');
@@ -569,36 +596,28 @@ function renderBracketRound() {
 
 function bracketGrantBye(eid) {
     if(!confirm("Grant a 'Bye' to this team? They will advance to the next round automatically.")) return;
-
     const gameId = state.currentStation.id;
     const round = state.bracketData[gameId].rounds[state.currentRoundIdx];
-
-    // Remove from pool
     round.pool = round.pool.filter(id => id !== eid);
-
-    // Create instant 'Bye' Heat
     const heatNum = round.heats.length + 1;
     round.heats.push({
         id: Date.now(),
         name: `Bye (Heat ${heatNum})`,
         teams: [eid],
         complete: true,
-        results: { [eid]: { advance: true } } // Auto-winner
+        results: { [eid]: { advance: true } }
     });
-
     saveBracketState();
     renderBracketRound();
 }
 
 function bracketToggleAdvance(heatIdx, eid, event) {
-    event.stopPropagation(); // Don't open the heat
+    event.stopPropagation();
     const gameId = state.currentStation.id;
     const round = state.bracketData[gameId].rounds[state.currentRoundIdx];
     const heat = round.heats[heatIdx];
-
     if(!heat.results[eid]) heat.results[eid] = {};
-    heat.results[eid].advance = !heat.results[eid].advance; // Toggle
-
+    heat.results[eid].advance = !heat.results[eid].advance;
     saveBracketState();
     renderBracketRound();
 }
@@ -626,12 +645,13 @@ function bracketOpenHeat(heatIdx) {
 
     els.heatContainer.innerHTML = heat.teams.map(eid => {
         const e = state.entities.find(x => x.id === eid);
+        const label = formatEntityLabel(e); // USE FORMATTER
         const result = heat.results[eid] || {};
         const fieldsHtml = fields.map(f => generateFieldHTML(f, result[f.id])).join('');
         return `
         <div class="card mb-3 border-dark entity-score-card" data-id="${eid}">
             <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-                <strong>Tr ${e?.troop_number} - ${e?.name}</strong>
+                <strong>${label}</strong>
                 <div class="form-check form-switch"><input class="form-check-input advance-toggle" type="checkbox" id="adv_${eid}" ${result.advance?'checked':''}><label class="form-check-label text-white" for="adv_${eid}">Advance</label></div>
             </div>
             <div class="card-body">${fieldsHtml}</div>
@@ -685,8 +705,6 @@ function bracketSaveHeat() {
     saveBracketState();
     updateSyncCounts();
     if (state.isOnline) syncManager.sync();
-
-    // FIX: Force re-render before showing the round list again
     renderBracketRound();
     alert("Heat Saved.");
     navigate('bracketRound');
