@@ -543,55 +543,84 @@ function bracketStartEvent() {
     navigate('bracketRound');
 }
 
-// 2. ROUND MANAGER
+// 2. ROUND MANAGER (Unified View)
 function renderBracketRound() {
     const gameId = state.currentStation.id;
     const round = state.bracketData[gameId].rounds[state.currentRoundIdx];
+
     document.getElementById('bracket-round-title').innerText = round.name;
     document.getElementById('bracket-pool-count').innerText = round.pool.length;
 
-    // Pool List
-    els.roundPool.innerHTML = round.pool.length ? round.pool.map(eid => {
-        const e = state.entities.find(x => x.id === eid);
-        const label = formatEntityLabel(e); // USE FORMATTER
-        return `
-        <li class="list-group-item d-flex justify-content-between align-items-center p-2">
-            <div class="d-flex align-items-center gap-2 overflow-hidden">
-                <input class="form-check-input form-check-pool flex-shrink-0" type="checkbox" value="${eid}" style="transform: scale(1.1);">
-                <div class="text-truncate">${label}</div>
-            </div>
-            <button class="btn btn-sm btn-outline-secondary py-0 px-2 ms-2" onclick="app.bracketGrantBye('${eid}')" style="width: auto; font-size: 0.75rem;">Bye</button>
-        </li>`;
-    }).join('') : '<div class="p-3 text-muted text-center">Pool Empty</div>';
+    const container = document.getElementById('bracket-unified-list');
+    let html = '';
 
-    // Heats List
-    els.heatList.innerHTML = round.heats.map((heat, idx) => {
-        const teamListHtml = heat.teams.map(eid => {
+    // SECTION A: The Pool
+    if (round.pool.length > 0) {
+        html += `<h6 class="text-uppercase text-muted fw-bold small mt-2 mb-2 ps-1">Holding Pool</h6>`;
+        html += '<div class="list-group mb-4 shadow-sm">';
+        html += round.pool.map(eid => {
             const e = state.entities.find(x => x.id === eid);
-            const label = formatEntityLabel(e); // USE FORMATTER
-            const res = heat.results[eid] || {};
-            const advIcon = res.advance ? '⏩' : '⏹️';
-            const advClass = res.advance ? 'active' : '';
+            const label = formatEntityLabel(e);
             return `
-                <div class="d-flex justify-content-between align-items-center py-1 border-bottom">
-                    <span>${label}</span>
-                    <span class="advance-star ${advClass}" onclick="app.bracketToggleAdvance(${idx}, '${eid}', event)" title="Toggle Advance" style="font-size: 1.2rem;">${advIcon}</span>
-                </div>`;
-        }).join('');
-
-        return `
-        <div class="card shadow-sm" onclick="app.bracketOpenHeat(${idx})">
-            <div class="card-body">
-                <div class="d-flex justify-content-between border-bottom pb-2 mb-2 bg-light p-2 rounded">
-                    <span class="small text-muted">${heat.teams.length} Teams</span>
-                    <div class="fw-bold">${heat.name} ${heat.complete ? '<span class="badge bg-success ms-2">Scored</span>' : '<span class="badge bg-secondary ms-2">Pending</span>'}</div>
+            <label class="list-group-item d-flex justify-content-between align-items-center p-3">
+                <div class="d-flex align-items-center gap-3 overflow-hidden">
+                    <input class="form-check-input form-check-pool flex-shrink-0" type="checkbox" value="${eid}" style="transform: scale(1.3);">
+                    <div class="fw-bold text-truncate">${label}</div>
                 </div>
-                <div class="heat-card-teams">
+                <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="event.preventDefault(); app.bracketGrantBye('${eid}')" style="width: auto; font-size: 0.8rem;">Bye</button>
+            </label>`;
+        }).join('');
+        html += '</div>';
+    } else {
+        html += `<div class="alert alert-light text-center text-muted border border-dashed mb-4">All teams assigned to heats.</div>`;
+    }
+
+    // SECTION B: The Heats
+    if (round.heats.length > 0) {
+        html += `<h6 class="text-uppercase text-muted fw-bold small mb-2 ps-1 border-top pt-3">Active Heats</h6>`;
+
+        // Sort: Pending Heats first, then Completed
+        const sortedHeats = [...round.heats].sort((a,b) => (a.complete === b.complete) ? 0 : a.complete ? 1 : -1);
+
+        html += sortedHeats.map((heat) => {
+            // Find original index for click handler (since we sorted the display array)
+            const originalIdx = round.heats.findIndex(h => h.id === heat.id);
+
+            const teamListHtml = heat.teams.map(eid => {
+                const e = state.entities.find(x => x.id === eid);
+                const label = formatEntityLabel(e);
+                const res = heat.results[eid] || {};
+                const advIcon = res.advance ? '⏩' : '⏹️';
+                const advClass = res.advance ? 'active' : '';
+                const rowClass = res.advance ? 'bg-success-subtle' : ''; // Highlight advancing rows
+
+                return `
+                    <div class="d-flex justify-content-between align-items-center py-2 px-2 border-bottom ${rowClass}">
+                        <span>${label}</span>
+                        <span class="advance-star ${advClass}" onclick="app.bracketToggleAdvance(${originalIdx}, '${eid}', event)" title="Toggle Advance" style="font-size: 1.4rem;">${advIcon}</span>
+                    </div>`;
+            }).join('');
+
+            const statusBadge = heat.complete
+                ? '<span class="badge bg-success">Scored</span>'
+                : '<span class="badge bg-warning text-dark">Pending</span>';
+
+            const borderClass = heat.complete ? 'border-success' : 'border-warning';
+
+            return `
+            <div class="card shadow-sm mb-3 border-start border-4 ${borderClass}" onclick="app.bracketOpenHeat(${originalIdx})">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center py-2">
+                    <span class="fw-bold">${heat.name}</span>
+                    ${statusBadge}
+                </div>
+                <div class="card-body p-0">
                     ${teamListHtml}
                 </div>
-            </div>
-        </div>`;
-    }).join('');
+            </div>`;
+        }).join('');
+    }
+
+    container.innerHTML = html;
 }
 
 function bracketGrantBye(eid) {
@@ -634,6 +663,13 @@ function bracketCreateHeat() {
     renderBracketRound();
 }
 
+// Add this helper for the Heat View (Toggles UI only, save happens later)
+function toggleHeatAdvance(el) {
+    el.classList.toggle('active');
+    // Swap icon based on state
+    el.innerText = el.classList.contains('active') ? '⏩' : '⏹️';
+}
+
 function bracketOpenHeat(heatIdx) {
     const gameId = state.currentStation.id;
     const round = state.bracketData[gameId].rounds[state.currentRoundIdx];
@@ -643,20 +679,48 @@ function bracketOpenHeat(heatIdx) {
 
     const fields = [...(state.currentStation.fields||[]), ...(state.config.common_scoring||[])].filter(f => f.audience === 'judge');
 
+    const headerLabel = fields.length === 1 ? fields[0].label : "Results";
+    document.getElementById('heat-header-score').innerText = headerLabel;
+
     els.heatContainer.innerHTML = heat.teams.map(eid => {
         const e = state.entities.find(x => x.id === eid);
-        const label = formatEntityLabel(e); // USE FORMATTER
+        const label = formatEntityLabel(e);
         const result = heat.results[eid] || {};
-        const fieldsHtml = fields.map(f => generateFieldHTML(f, result[f.id])).join('');
+
+        // Icon Logic: Match the Round View style
+        const advIcon = result.advance ? '⏩' : '⏹️';
+        const advClass = result.advance ? 'active' : '';
+
+        const inputsHtml = fields.map(f => {
+            const val = result[f.id] || '';
+
+            if (f.type === 'timed' || f.type === 'stopwatch') {
+                 let [mm, ss] = (val && val.includes(':')) ? val.split(':') : ['',''];
+                 return `
+                 <div class="input-group input-group-sm mb-1 justify-content-center">
+                    <input type="number" class="form-control text-center px-0 heat-input-mm" data-fid="${f.id}" value="${mm}" placeholder="MM" style="max-width: 45px;">
+                    <span class="input-group-text px-1">:</span>
+                    <input type="number" class="form-control text-center px-0 heat-input-ss" data-fid="${f.id}" value="${ss}" placeholder="SS" style="max-width: 45px;">
+                 </div>`;
+            } else if (f.type === 'boolean') {
+                 const checked = val === true ? 'checked' : '';
+                 return `<div class="d-flex justify-content-center mb-1"><input type="checkbox" class="form-check-input heat-input-bool" data-fid="${f.id}" ${checked}></div>`;
+            } else {
+                const type = f.type === 'number' ? 'number' : 'text';
+                return `<input type="${type}" class="form-control form-control-sm text-center mb-1 heat-input" data-fid="${f.id}" value="${val}" placeholder="${f.placeholder||''}" style="max-width: 100%;">`;
+            }
+        }).join('');
+
         return `
-        <div class="card mb-3 border-dark entity-score-card" data-id="${eid}">
-            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-                <strong>${label}</strong>
-                <div class="form-check form-switch"><input class="form-check-input advance-toggle" type="checkbox" id="adv_${eid}" ${result.advance?'checked':''}><label class="form-check-label text-white" for="adv_${eid}">Advance</label></div>
+        <div class="d-flex align-items-center border-bottom py-3 entity-score-row" data-id="${eid}">
+            <div style="width: 45%;" class="ps-3 fw-bold text-truncate" title="${label}">${label}</div>
+            <div style="width: 35%;" class="px-1">${inputsHtml}</div>
+            <div style="width: 20%;" class="text-center">
+                <span class="advance-star ${advClass}" onclick="app.toggleHeatAdvance(this)" style="cursor: pointer; font-size: 1.5rem;">${advIcon}</span>
             </div>
-            <div class="card-body">${fieldsHtml}</div>
         </div>`;
     }).join('');
+
     navigate('bracketHeat');
 }
 
@@ -666,27 +730,31 @@ function bracketSaveHeat() {
     const heat = round.heats.find(h => h.id === state.currentHeatId);
     if (!heat) return;
 
-    document.querySelectorAll('.entity-score-card').forEach(card => {
-        const eid = card.dataset.id;
+    document.querySelectorAll('.entity-score-row').forEach(row => {
+        const eid = row.dataset.id;
         const payload = {};
         const fields = [...(state.currentStation.fields||[]), ...(state.config.common_scoring||[])];
 
         fields.forEach(f => {
              if (f.type === 'timed' || f.type === 'stopwatch') {
-                 const mm = card.querySelector(`#f_${f.id}_mm`)?.value || '00';
-                 const ss = card.querySelector(`#f_${f.id}_ss`)?.value || '00';
+                 const mm = row.querySelector(`.heat-input-mm[data-fid="${f.id}"]`)?.value || '00';
+                 const ss = row.querySelector(`.heat-input-ss[data-fid="${f.id}"]`)?.value || '00';
                  payload[f.id] = `${mm.padStart(2,'0')}:${ss.padStart(2,'0')}`;
+             } else if (f.type === 'boolean') {
+                 const el = row.querySelector(`.heat-input-bool[data-fid="${f.id}"]`);
+                 payload[f.id] = el ? el.checked : false;
              } else {
-                 const el = card.querySelector(`#f_${f.id}`);
-                 if (f.type === 'boolean') payload[f.id] = el?.checked;
-                 else if (el) payload[f.id] = el.value;
+                 const el = row.querySelector(`.heat-input[data-fid="${f.id}"]`);
+                 if(el) payload[f.id] = el.value;
              }
         });
 
-        const shouldAdvance = card.querySelector('.advance-toggle').checked;
+        // Updated Logic: Check for 'active' class on the span instead of checkbox
+        const shouldAdvance = row.querySelector('.advance-star').classList.contains('active');
         heat.results[eid] = { ...payload, advance: shouldAdvance };
 
         if (!heat.results[eid].uuid) heat.results[eid].uuid = crypto.randomUUID();
+
         const serverPayload = { ...payload, heat: heat.name, round: round.name };
         const packet = {
             uuid: heat.results[eid].uuid,
@@ -705,10 +773,22 @@ function bracketSaveHeat() {
     saveBracketState();
     updateSyncCounts();
     if (state.isOnline) syncManager.sync();
+
     renderBracketRound();
     alert("Heat Saved.");
     navigate('bracketRound');
 }
+
+// Don't forget to export the new helper!
+window.app = {
+    init, navigate, handleBack, refreshData, selectStation, selectEntity,
+    submitScore, setMode, promptNewEntity, toggleJudgeModal, saveJudgeInfo,
+    saveDraft, combineTime,
+    // Bracket Exports
+    bracketSelectAll, bracketStartEvent, bracketCreateHeat, bracketOpenHeat,
+    bracketSaveHeat, bracketAdvanceRound, bracketRenameRound, bracketToggleAdvance,
+    bracketGrantBye, toggleHeatAdvance
+};
 
 function bracketAdvanceRound() {
     if (!confirm("Create new Round from teams marked 'Advance'?")) return;
@@ -813,10 +893,6 @@ function showEntitySelect() { navigate('entity'); }
 function updateSyncCounts() { updateOnlineStatus(); }
 async function handleSync() { if(state.isOnline) await syncManager.sync(); updateSyncCounts(); }
 
-window.app = { init, navigate, handleBack, refreshData, selectStation, selectEntity, submitScore, setMode, promptNewEntity, toggleJudgeModal, saveJudgeInfo, saveDraft, combineTime,
-// Bracket Exports
-bracketSelectAll, bracketStartEvent, bracketCreateHeat, bracketOpenHeat, bracketSaveHeat, bracketAdvanceRound, bracketRenameRound, bracketToggleAdvance, bracketGrantBye
-};
 
 if (!window.startStopwatch) {
     window.startStopwatch = startStopwatch;
