@@ -12,6 +12,20 @@
             padding: 8px 15px;
             font-size: 0.95rem;
         }
+        .heat-card-teams {
+            font-size: 0.9rem;
+        }
+        .advance-star {
+            cursor: pointer;
+            filter: grayscale(100%);
+            opacity: 0.3;
+            transition: all 0.2s;
+        }
+        .advance-star.active {
+            filter: grayscale(0%);
+            opacity: 1;
+            transform: scale(1.2);
+        }
     </style>
 </head>
 <body>
@@ -37,47 +51,31 @@
         </div>
     </header>
 
-    <!-- Global Stopwatch Dock -->
     <div id="stopwatch-dock" class="stopwatch-dock container-fluid px-0">
         <div class="row g-0 h-100 align-items-center">
-             <!-- Controls (Left / Label Col) -->
              <div class="col-8 d-flex justify-content-end align-items-center pe-3 gap-2">
                  <button id="dock-btn-reset" class="btn btn-secondary mb-0 fw-bold p-0 d-flex align-items-center justify-content-center" style="width: 80px; height: 48px;">RESET</button>
                  <button id="dock-btn-pause" class="btn btn-warning mb-0 fw-bold p-0 d-flex align-items-center justify-content-center" style="width: 80px; height: 48px;">PAUSE</button>
                  <button id="dock-btn-stop" class="btn btn-danger mb-0 fw-bold p-0 d-flex align-items-center justify-content-center" style="width: 80px; height: 48px;">STOP</button>
              </div>
-             <!-- Display (Right / Input Col) -->
              <div class="col-4 d-flex justify-content-center align-items-center" style="background: rgba(255,255,255,0.1); height: 100%;">
                  <span id="dock-display" class="font-monospace fw-bold text-white" style="font-size: 2rem;">00:00</span>
              </div>
         </div>
     </div>
 
-    <!-- Judge Info Modal Overlay -->
     <div id="judge-modal" class="judge-modal hidden">
         <div class="card w-100" style="max-width: 400px; padding: 2rem;">
             <h2 class="text-center mb-4">Judge Profile</h2>
             <p class="small text-muted mb-4 text-center">Your info is attached to every score you submit.</p>
-
-            <div class="mb-3">
-                <label class="form-label">Full Name</label>
-                <input type="text" id="judge-name" placeholder="e.g. Bill Scout" class="form-control">
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Email Address</label>
-                <input type="email" id="judge-email" placeholder="Required for ID" class="form-control">
-            </div>
-            <div class="mb-4">
-                <label class="form-label">Unit/Troop</label>
-                <input type="text" id="judge-unit" placeholder="e.g. Troop 101" class="form-control">
-            </div>
-
+            <div class="mb-3"><label class="form-label">Full Name</label><input type="text" id="judge-name" placeholder="e.g. Bill Scout" class="form-control"></div>
+            <div class="mb-3"><label class="form-label">Email Address</label><input type="email" id="judge-email" placeholder="Required for ID" class="form-control"></div>
+            <div class="mb-4"><label class="form-label">Unit/Troop</label><input type="text" id="judge-unit" placeholder="e.g. Troop 101" class="form-control"></div>
             <button class="btn btn-secondary w-100" onclick="app.saveJudgeInfo()">Save & Close</button>
         </div>
     </div>
 
     <main>
-        <!-- View: Home / Sync -->
         <div id="view-home">
              <div class="card mb-3">
                 <div class="d-flex justify-content-between align-items-center">
@@ -85,42 +83,77 @@
                 </div>
                 <small id="last-updated" style="display:block; margin-top:0.25rem; color:#666;"></small>
              </div>
-
              <h3>Select Station</h3>
              <div id="station-list">
-                 <!-- Populated by JS -->
                  <div class="card">Loading Games...</div>
              </div>
         </div>
 
-        <!-- View: Entity Selection -->
         <div id="view-entity" class="hidden">
             <h2 id="entity-header">Select Team</h2>
-
             <input type="text" id="entity-search" placeholder="Search by number or name..." style="margin-bottom: 1rem;">
-
-            <div id="entity-list">
-                <!-- Populated by JS -->
-            </div>
+            <div id="entity-list"></div>
         </div>
 
-        <!-- View: Scoring Form -->
         <div id="view-scoring" class="hidden">
             <h2 id="scoring-title">Station Name</h2>
             <h3 id="scoring-team">Team Name</h3>
-
-            <form id="score-form">
-                <!-- Dynamically generated -->
-            </form>
-
+            <form id="score-form"></form>
             <button id="btn-submit" class="btn btn-large btn-secondary">Submit Score</button>
+        </div>
+
+        <div id="view-bracket-lobby" class="hidden">
+            <h2 id="bracket-lobby-title">Competition Lobby</h2>
+            <p class="text-muted small">Select teams to check-in for this event.</p>
+            <div class="d-flex gap-2 mb-3">
+                <button class="btn btn-outline-primary flex-grow-1" onclick="app.bracketSelectAll(true)">Select All</button>
+                <button class="btn btn-outline-secondary flex-grow-1" onclick="app.bracketSelectAll(false)">Clear</button>
+            </div>
+            <div id="bracket-lobby-list" class="list-group mb-3"></div>
+            <button class="btn btn-success w-100 py-3 fw-bold" onclick="app.bracketStartEvent()">START COMPETITION</button>
+        </div>
+
+        <div id="view-bracket-round" class="hidden">
+            <div class="d-flex align-items-center mb-2">
+                <h2 id="bracket-round-title" class="mb-0 me-2">Round 1</h2>
+                <span onclick="app.bracketRenameRound()" style="cursor: pointer; font-size: 1.2rem;" title="Rename Round">✏️</span>
+            </div>
+
+            <div class="card mb-4 border-primary">
+                <div class="card-header bg-light d-flex align-items-center py-2">
+                    <span class="fw-bold text-primary flex-grow-1">Select for Heat <span class="badge bg-primary rounded-pill ms-1" id="bracket-pool-count">0</span></span>
+
+                    <button class="btn btn-primary btn-sm py-0 w-auto shadow-none" onclick="app.bracketCreateHeat()">New Heat</button>
+                </div>
+                <div class="card-body p-0" style="max-height: 200px; overflow-y: auto;">
+                    <div id="bracket-round-pool" class="list-group list-group-flush"></div>
+                </div>
+            </div>
+
+            <h4 class="mb-2">Active Heats</h4>
+            <div id="bracket-heat-list" class="d-flex flex-column gap-3 mb-4"></div>
+
+            <div class="border-top pt-3">
+                <button class="btn btn-success w-100 py-2 fw-bold" onclick="app.bracketAdvanceRound()">FINALIZE & ADVANCE ROUND >></button>
+            </div>
+        </div>
+
+
+        <div id="view-bracket-heat" class="hidden">
+            <h2 id="heat-title">Heat 1</h2>
+            <p class="text-muted small">Enter results for this heat.</p>
+            <div id="heat-scoring-container"></div>
+
+            <div class="d-flex gap-2 mt-3">
+                <button class="btn btn-outline-secondary flex-grow-1 py-3 fw-bold" onclick="app.navigate('bracketRound')">Cancel</button>
+                <button class="btn btn-warning flex-grow-1 py-3 fw-bold" onclick="app.bracketSaveHeat()">SAVE HEAT</button>
+            </div>
         </div>
 
     </main>
 
     <script type="module" src="js/app.js"></script>
     <script>
-        // Register Service Worker
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/service-worker.js')
                 .then(reg => console.log('SW Registered'))

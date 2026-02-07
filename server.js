@@ -21,15 +21,18 @@ const UPLOAD_TEMP = path.join(__dirname, 'temp_uploads');
 
 // Ensure all directories exist
 [DATA_DIR, ACTIVE_DIR, ARCHIVE_DIR, UPLOAD_TEMP].forEach(dir => {
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+    }
 });
 
 // Setup Upload handling
 const upload = multer({ dest: UPLOAD_TEMP });
 
-// --- DATABASE SETUP (Preserved) ---
+// --- DATABASE SETUP ---
 const db = new Database(path.join(DATA_DIR, 'camporee.db'));
 
+// Initialize Tables
 db.exec(`
   CREATE TABLE IF NOT EXISTS entities (
     id TEXT PRIMARY KEY,
@@ -39,12 +42,14 @@ db.exec(`
     parent_id TEXT,
     manual_rank TEXT
   );
+
   CREATE TABLE IF NOT EXISTS judges (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
     unit TEXT
   );
+
   CREATE TABLE IF NOT EXISTS scores (
     uuid TEXT PRIMARY KEY,
     game_id TEXT NOT NULL,
@@ -55,39 +60,54 @@ db.exec(`
     FOREIGN KEY(entity_id) REFERENCES entities(id),
     FOREIGN KEY(judge_id) REFERENCES judges(id)
   );
-  CREATE UNIQUE INDEX IF NOT EXISTS idx_game_entity ON scores (game_id, entity_id);
+
   CREATE TABLE IF NOT EXISTS game_status (
     game_id TEXT PRIMARY KEY,
     status TEXT
   );
 `);
 
-// Migrations
-try { db.exec("ALTER TABLE entities ADD COLUMN parent_id TEXT"); } catch (e) {}
-try { db.exec("ALTER TABLE entities ADD COLUMN manual_rank TEXT"); } catch (e) {}
+// --- MIGRATIONS ---
+try {
+    db.exec("ALTER TABLE entities ADD COLUMN parent_id TEXT");
+} catch (e) {
+    // Column likely exists, ignore
+}
 
-// --- HELPER FUNCTIONS (New Logic) ---
+try {
+    db.exec("ALTER TABLE entities ADD COLUMN manual_rank TEXT");
+} catch (e) {
+    // Column likely exists, ignore
+}
+
+// [Bracket Update] We drop the DB constraint so we can manage duplicates in Code
+try {
+    db.exec("DROP INDEX IF EXISTS idx_game_entity");
+} catch (e) {
+    console.log("Index already removed");
+}
+
+// --- HELPER FUNCTIONS ---
 
 function getActiveMeta() {
     const metaPath = path.join(ACTIVE_DIR, 'camporee.json');
     if (!fs.existsSync(metaPath)) return null;
     try {
         return JSON.parse(fs.readFileSync(metaPath, 'utf8')).meta;
-    } catch (e) { return null; }
+    } catch (e) {
+        return null;
+    }
 }
 
 function archiveDatabase() {
-    // Only archive if we actually have a database file
     const dbFile = path.join(DATA_DIR, 'camporee.db');
     if (fs.existsSync(dbFile)) {
-        // We close the DB connection briefly to rename the file (safe on SQLite)
-        // actually better-sqlite3 holds a lock. Ideally we'd copy it, or trust the file system.
-        // For simple deployment, copying is safer while running.
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const backupName = `camporee_backup_${timestamp}.db`;
+
         fs.copyFileSync(dbFile, path.join(ARCHIVE_DIR, backupName));
 
-        // Nuke the tables to "reset" (cleaner than deleting the file while open)
+        // Clear active tables to "reset" the event
         db.exec("DELETE FROM scores; DELETE FROM judges; DELETE FROM game_status;");
         console.log(`[System] Archived DB to ${backupName} and cleared active tables.`);
     }
@@ -109,8 +129,9 @@ function installCartridge(zipPath) {
 
 function loadCamporeeData() {
     const manifestPath = path.join(ACTIVE_DIR, 'camporee.json');
-    // Return empty if not found (or let the middleware handle it)
-    if (!fs.existsSync(manifestPath)) return { metadata: {}, games: [] };
+    if (!fs.existsSync(manifestPath)) {
+        return { metadata: {}, games: [] };
+    }
 
     try {
         const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
@@ -122,27 +143,29 @@ function loadCamporeeData() {
                     const gamePath = path.join(ACTIVE_DIR, 'games', `${item.gameId}.json`);
                     if (fs.existsSync(gamePath)) {
                         const gameDef = JSON.parse(fs.readFileSync(gamePath, 'utf8'));
-
                         const normalizedGame = normalizeGameDefinition(gameDef, item.order);
-                        // Ensure legacy 'name' property exists (Composer uses content.title)
+
+                        // Ensure legacy 'name' property exists
                         if (!gameDef.name && gameDef.content && gameDef.content.title) {
                             gameDef.name = gameDef.content.title;
                             normalizedGame.name = gameDef.content.title;
                         }
 
+                        // Hydrate bracketMode so server knows logic
+                        if (gameDef.bracketMode) {
+                            normalizedGame.bracketMode = true;
+                        }
                         games.push(normalizedGame);
                     }
                 }
             });
         }
 
-        // Sort by playlist order
         games.sort((a, b) => a.sortOrder - b.sortOrder);
-
         return {
             metadata: manifest.meta,
             games: games,
-            common_scoring: [] // Can be populated from presets.json if needed later
+            common_scoring: []
         };
 
     } catch (err) {
@@ -152,37 +175,40 @@ function loadCamporeeData() {
 }
 
 function getNextEntityId(type) {
-    if (type === 'patrol') {
-        const row = db.prepare("SELECT id FROM entities WHERE type='patrol' AND id LIKE 'p%' ORDER BY id DESC LIMIT 1").get();
-        let nextNum = 4300;
-        if (row && row.id) {
-            const currentNum = parseInt(row.id.substring(1));
-            if (!isNaN(currentNum)) nextNum = currentNum + 1;
-        }
-        return `p${nextNum}`;
-    } else {
-        const row = db.prepare("SELECT id FROM entities WHERE type='troop' AND id LIKE 't%' ORDER BY id DESC LIMIT 1").get();
-        let nextNum = 1000;
-        if (row && row.id) {
-            const currentNum = parseInt(row.id.substring(1));
-            if (!isNaN(currentNum)) nextNum = currentNum + 1;
-        }
-        return `t${nextNum}`;
+    const prefix = type === 'patrol' ? 'p' : 't';
+    const query = `
+        SELECT id FROM entities
+        WHERE type=? AND id LIKE '${prefix}%'
+        ORDER BY id DESC LIMIT 1
+    `;
+    const row = db.prepare(query).get(type);
+
+    let nextNum = type === 'patrol' ? 4300 : 1000;
+    if (row && row.id) {
+        const currentNum = parseInt(row.id.substring(1));
+        if (!isNaN(currentNum)) nextNum = currentNum + 1;
     }
+    return `${prefix}${nextNum}`;
 }
 
 // --- MIDDLEWARE ---
 app.use(express.json());
-// Allow static files to be served (CSS/JS needed for setup page)
-// Important: { index: false } prevents judge.html from hijacking the setup flow
 app.use(express.static('public', { index: false }));
 
-// Guard: Force setup if no camporee is loaded
+// Middleware: Force setup if no camporee is loaded
 const requireConfig = (req, res, next) => {
-    const bypassRoutes = ['/setup', '/api/setup/upload', '/api/setup/confirm', '/setup/conflict'];
+    const bypassRoutes = [
+        '/setup',
+        '/api/setup/upload',
+        '/api/setup/confirm',
+        '/setup/conflict'
+    ];
 
-    // Allow static resources (css, js, images) and bypass routes
-    if (bypassRoutes.includes(req.path) || req.path.startsWith('/css/') || req.path.startsWith('/js/') || req.path.startsWith('/img/')) {
+    // Allow static resources and bypass routes
+    if (bypassRoutes.includes(req.path) ||
+        req.path.startsWith('/css/') ||
+        req.path.startsWith('/js/') ||
+        req.path.startsWith('/img/')) {
         return next();
     }
 
@@ -193,7 +219,7 @@ const requireConfig = (req, res, next) => {
 };
 app.use(requireConfig);
 
-// --- SETUP ROUTES (New) ---
+// --- ROUTES ---
 
 app.get('/setup', (req, res) => {
     res.send(`
@@ -215,10 +241,11 @@ app.get('/setup', (req, res) => {
 
 app.post('/api/setup/upload', upload.single('configZip'), (req, res) => {
     if (!req.file) return res.redirect('/setup');
+
     const zipPath = req.file.path;
     const zip = new AdmZip(zipPath);
-
     let newMeta = null;
+
     try {
         const metaEntry = zip.getEntry("camporee.json");
         if (!metaEntry) throw new Error("Invalid Zip");
@@ -272,6 +299,7 @@ app.get('/setup/conflict', (req, res) => {
 app.post('/api/setup/confirm', express.urlencoded({ extended: true }), (req, res) => {
     const action = req.body.action;
     const pendingPath = path.join(UPLOAD_TEMP, 'pending_update.zip');
+
     if (!fs.existsSync(pendingPath)) return res.redirect('/setup');
 
     if (action === 'update_wipe') archiveDatabase();
@@ -280,38 +308,34 @@ app.post('/api/setup/confirm', express.urlencoded({ extended: true }), (req, res
     res.redirect('/admin.html');
 });
 
-// --- CORE ROUTES (Preserved Traffic Cop) ---
+// --- CORE ROUTES ---
 
 app.get('/', (req, res) => {
     const ua = req.headers['user-agent'] ? req.headers['user-agent'].toLowerCase() : '';
     const isMobile = /mobile|android|iphone|ipad|ipod|blackberry|iemobile|kindle|silk-accelerated|(hpw|web)os|opera m(obi|ini)/i.test(ua);
+
     if (isMobile) {
-        console.log(`[Router] Mobile Device detected (${req.ip}). Sending to Judge View.`);
         res.redirect('/judge.html');
     } else {
-        console.log(`[Router] Desktop Device detected (${req.ip}). Sending to Admin Dashboard.`);
         res.redirect('/admin.html');
     }
 });
 
-// --- API ROUTES ---
-
-// 1. GET /games.json (REPLACED with Cartridge Loader)
+// 1. GET /games.json
 app.get('/games.json', (req, res) => {
-  const data = loadCamporeeData();
-  res.json(data);
+    const data = loadCamporeeData();
+    res.json(data);
 });
 
-// 2. GET /api/entities (Preserved)
+// 2. GET /api/entities
 app.get('/api/entities', (req, res) => {
-  try {
-    const stmt = db.prepare('SELECT * FROM entities ORDER BY troop_number ASC, name ASC');
-    const rows = stmt.all();
-    res.json(rows);
-  } catch (err) {
-    console.error('Error fetching entities:', err);
-    res.status(500).json({ error: 'Database error' });
-  }
+    try {
+        const stmt = db.prepare('SELECT * FROM entities ORDER BY troop_number ASC, name ASC');
+        res.json(stmt.all());
+    } catch (err) {
+        console.error('Error fetching entities:', err);
+        res.status(500).json({ error: 'Database error' });
+    }
 });
 
 app.put('/api/entities/:id', (req, res) => {
@@ -321,96 +345,180 @@ app.put('/api/entities/:id', (req, res) => {
         const stmt = db.prepare('UPDATE entities SET manual_rank = ? WHERE id = ?');
         stmt.run(manual_rank, id);
         res.json({ status: 'success' });
-    } catch (err) { res.status(500).json({ error: 'Database error' }); }
+    } catch (err) {
+        res.status(500).json({ error: 'Database error' });
+    }
 });
 
-// 3. POST /api/score (Preserved)
+// 3. POST /api/score (SMART UPSERT)
 app.post('/api/score', (req, res) => {
-  const { uuid, game_id, entity_id, score_payload, timestamp, judge_name, judge_email, judge_unit } = req.body;
-  if (!uuid || !game_id || !entity_id || !score_payload) {
-    return res.status(400).json({ error: 'Missing required fields' });
-  }
-  try {
-    const transaction = db.transaction(() => {
-        let judgeId = null;
-        if (judge_email) {
-            const getJudge = db.prepare('SELECT id, name, unit FROM judges WHERE email = ?');
-            const existingJudge = getJudge.get(judge_email);
-            if (existingJudge) {
-                judgeId = existingJudge.id;
-                if ((judge_name && existingJudge.name !== judge_name) || (judge_unit && existingJudge.unit !== judge_unit)) {
-                    db.prepare('UPDATE judges SET name = ?, unit = ? WHERE id = ?')
-                      .run(judge_name || existingJudge.name, judge_unit || existingJudge.unit, judgeId);
+    let {
+        uuid, game_id, entity_id, score_payload,
+        timestamp, judge_name, judge_email, judge_unit
+    } = req.body;
+
+    if (!uuid || !game_id || !entity_id || !score_payload) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    try {
+        const transaction = db.transaction(() => {
+            // 1. Handle Judge Information
+            let judgeId = null;
+            if (judge_email) {
+                const getJudge = db.prepare('SELECT id, name, unit FROM judges WHERE email = ?');
+                const existingJudge = getJudge.get(judge_email);
+
+                if (existingJudge) {
+                    judgeId = existingJudge.id;
+                    // Update Judge info if it changed
+                    if ((judge_name && existingJudge.name !== judge_name) ||
+                        (judge_unit && existingJudge.unit !== judge_unit)) {
+                        db.prepare('UPDATE judges SET name = ?, unit = ? WHERE id = ?')
+                          .run(judge_name || existingJudge.name,
+                               judge_unit || existingJudge.unit,
+                               judgeId);
+                    }
+                } else if (judge_name) {
+                    const insertJudge = db.prepare('INSERT INTO judges (name, email, unit) VALUES (?, ?, ?)');
+                    const info = insertJudge.run(judge_name, judge_email, judge_unit || null);
+                    judgeId = info.lastInsertRowid;
                 }
-            } else if (judge_name) {
-                const insertJudge = db.prepare('INSERT INTO judges (name, email, unit) VALUES (?, ?, ?)');
-                const info = insertJudge.run(judge_name, judge_email, judge_unit || null);
-                judgeId = info.lastInsertRowid;
             }
-        }
-        const insert = db.prepare(`
-          INSERT INTO scores (uuid, game_id, entity_id, score_payload, timestamp, judge_id)
-          VALUES (?, ?, ?, ?, ?, ?)
-          ON CONFLICT(game_id, entity_id) DO UPDATE SET
-            score_payload = excluded.score_payload,
-            timestamp = excluded.timestamp,
-            judge_id = excluded.judge_id,
-            uuid = excluded.uuid
-        `);
-        return insert.run(uuid, game_id, entity_id, JSON.stringify(score_payload), timestamp, judgeId);
-    });
-    const result = transaction();
-    if (result.changes === 0) return res.status(200).json({ status: 'already_exists' });
-    res.status(201).json({ status: 'success' });
-  } catch (err) {
-    console.error('Insert error:', err);
-    res.status(500).json({ error: 'Database error' });
-  }
+
+            // 2. CRITICAL LOGIC: Standard vs Bracket Mode
+            // This prevents "Standard" games from accumulating duplicate scores
+            const allGames = loadCamporeeData().games;
+            const gameDef = allGames.find(g => g.id === game_id);
+            const isBracket = gameDef ? gameDef.bracketMode : false;
+
+            if (!isBracket) {
+                // STANDARD MODE: Enforce Single Row (Update existing if found)
+                const checkSql = 'SELECT uuid FROM scores WHERE game_id = ? AND entity_id = ?';
+                const existing = db.prepare(checkSql).get(game_id, entity_id);
+
+                if (existing) {
+                    // Hijack the existing UUID to force an UPDATE instead of INSERT
+                    uuid = existing.uuid;
+                    console.log(`[Smart Upsert] Standard Game: Updating existing score ${uuid} for ${entity_id}`);
+                }
+            } else {
+                console.log(`[Smart Upsert] Bracket Game: Accepting new score ${uuid} for ${entity_id}`);
+            }
+
+            // 3. Upsert Command (Using ON CONFLICT to handle updates)
+            const insert = db.prepare(`
+              INSERT INTO scores (uuid, game_id, entity_id, score_payload, timestamp, judge_id)
+              VALUES (?, ?, ?, ?, ?, ?)
+              ON CONFLICT(uuid) DO UPDATE SET
+                score_payload = excluded.score_payload,
+                timestamp = excluded.timestamp,
+                judge_id = excluded.judge_id
+            `);
+
+            return insert.run(
+                uuid,
+                game_id,
+                entity_id,
+                JSON.stringify(score_payload),
+                timestamp,
+                judgeId
+            );
+        });
+
+        transaction();
+        res.status(201).json({ status: 'success' });
+
+    } catch (err) {
+        console.error('Insert error:', err);
+        res.status(500).json({ error: 'Database error' });
+    }
 });
 
-// 4. Admin & Export Routes (Preserved)
+// --- ADMIN & EXPORT ROUTES ---
+
 app.get('/api/admin/all-data', (req, res) => {
-  try {
-    const rows = db.prepare(`
-        SELECT s.uuid, s.game_id, s.entity_id, s.timestamp, e.name as entity_name, e.troop_number, e.type as entity_type, s.score_payload
-        FROM scores s JOIN entities e ON s.entity_id = e.id
-    `).all();
-    const parsed = rows.map(r => ({ ...r, score_payload: JSON.parse(r.score_payload) }));
-    const stats = {};
-    parsed.forEach(r => { stats[r.game_id] = (stats[r.game_id] || 0) + 1; });
-    const statusMap = {};
-    const statuses = db.prepare('SELECT * FROM game_status').all();
-    for (const s of statuses) { statusMap[s.game_id] = s.status; }
-    const meta = getActiveMeta();
-    res.json({ scores: parsed, stats, game_status: statusMap, metadata: meta });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+    try {
+        const query = `
+            SELECT
+                s.uuid, s.game_id, s.entity_id, s.timestamp,
+                e.name as entity_name, e.troop_number, e.type as entity_type,
+                s.score_payload
+            FROM scores s
+            JOIN entities e ON s.entity_id = e.id
+        `;
+        const rows = db.prepare(query).all();
+
+        const parsed = rows.map(r => ({
+            ...r,
+            score_payload: JSON.parse(r.score_payload)
+        }));
+
+        const stats = {};
+        parsed.forEach(r => {
+            stats[r.game_id] = (stats[r.game_id] || 0) + 1;
+        });
+
+        const statusMap = {};
+        const statuses = db.prepare('SELECT * FROM game_status').all();
+        for (const s of statuses) {
+            statusMap[s.game_id] = s.status;
+        }
+
+        res.json({
+            scores: parsed,
+            stats,
+            game_status: statusMap,
+            metadata: getActiveMeta()
+        });
+
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 app.get('/api/admin/judges', (req, res) => {
-  try {
-    const judges = db.prepare('SELECT * FROM judges').all();
-    const scores = db.prepare('SELECT judge_id, game_id FROM scores WHERE judge_id IS NOT NULL').all();
-    const stats = {};
-    scores.forEach(s => {
-        if (!stats[s.judge_id]) stats[s.judge_id] = { count: 0, games: new Set() };
-        stats[s.judge_id].count++;
-        stats[s.judge_id].games.add(s.game_id);
-    });
-    const result = judges.map(j => {
-        const s = stats[j.id] || { count: 0, games: new Set() };
-        return { ...j, score_count: s.count, games_judged: Array.from(s.games).sort() };
-    });
-    res.json(result);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+    try {
+        const judges = db.prepare('SELECT * FROM judges').all();
+        const scores = db.prepare('SELECT judge_id, game_id FROM scores WHERE judge_id IS NOT NULL').all();
+
+        const stats = {};
+        scores.forEach(s => {
+            if (!stats[s.judge_id]) {
+                stats[s.judge_id] = { count: 0, games: new Set() };
+            }
+            stats[s.judge_id].count++;
+            stats[s.judge_id].games.add(s.game_id);
+        });
+
+        const result = judges.map(j => {
+            const s = stats[j.id] || { count: 0, games: new Set() };
+            return {
+                ...j,
+                score_count: s.count,
+                games_judged: Array.from(s.games).sort()
+            };
+        });
+
+        res.json(result);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 app.get('/api/export', (req, res) => {
     try {
-        const rows = db.prepare(`
-            SELECT s.uuid, s.game_id, s.entity_id, s.timestamp, e.name as entity_name, e.troop_number, e.type as entity_type, s.score_payload
-            FROM scores s JOIN entities e ON s.entity_id = e.id
+        const query = `
+            SELECT
+                s.uuid, s.game_id, s.entity_id, s.timestamp,
+                e.name as entity_name, e.troop_number, e.type as entity_type,
+                s.score_payload
+            FROM scores s
+            JOIN entities e ON s.entity_id = e.id
             ORDER BY s.timestamp DESC
-        `).all();
+        `;
+        const rows = db.prepare(query).all();
+
         if (rows.length === 0) return res.send("No scores to export.");
 
         const fieldSet = new Set();
@@ -419,12 +527,20 @@ app.get('/api/export', (req, res) => {
             Object.keys(payload).forEach(k => fieldSet.add(k));
             return { ...r, payload };
         });
+
         const dynamicFields = Array.from(fieldSet).sort();
         const headers = ['UUID', 'Game ID', 'Timestamp', 'Troop', 'Entity Name', 'Entity Type', ...dynamicFields];
+
         let csv = headers.join(',') + '\n';
+
         parsedRows.forEach(r => {
             const line = [
-                r.uuid, r.game_id, new Date(r.timestamp).toISOString(), r.troop_number, `"${r.entity_name}"`, r.entity_type,
+                r.uuid,
+                r.game_id,
+                new Date(r.timestamp).toISOString(),
+                r.troop_number,
+                `"${r.entity_name}"`,
+                r.entity_type,
                 ...dynamicFields.map(f => {
                     const val = r.payload[f];
                     return (val === undefined || val === null) ? '' : `"${String(val).replace(/"/g, '""')}"`;
@@ -432,19 +548,28 @@ app.get('/api/export', (req, res) => {
             ];
             csv += line.join(',') + '\n';
         });
+
         res.setHeader('Content-Type', 'text/csv');
         res.setHeader('Content-Disposition', 'attachment; filename=camporee_scores.csv');
         res.send(csv);
-    } catch (err) { res.status(500).send('Error generating export'); }
+
+    } catch (err) {
+        res.status(500).send('Error generating export');
+    }
 });
 
 app.post('/api/admin/game-status', (req, res) => {
     const { game_id, status } = req.body;
     try {
-        const stmt = db.prepare('INSERT INTO game_status (game_id, status) VALUES (?, ?) ON CONFLICT(game_id) DO UPDATE SET status=excluded.status');
-        stmt.run(game_id, status);
+        const query = `
+            INSERT INTO game_status (game_id, status) VALUES (?, ?)
+            ON CONFLICT(game_id) DO UPDATE SET status=excluded.status
+        `;
+        db.prepare(query).run(game_id, status);
         res.json({ success: true });
-    } catch(err) { res.status(500).json({ error: err.message }); }
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 app.delete('/api/admin/scores', (req, res) => {
@@ -454,8 +579,13 @@ app.delete('/api/admin/scores', (req, res) => {
             db.prepare('DELETE FROM judges').run();
             db.prepare('DELETE FROM game_status').run();
         })();
-        res.json({ success: true, message: 'Scores, judges, and game statuses deleted.' });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+        res.json({
+            success: true,
+            message: 'Scores, judges, and game statuses deleted.'
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 app.delete('/api/admin/full-reset', (req, res) => {
@@ -467,32 +597,60 @@ app.delete('/api/admin/full-reset', (req, res) => {
             db.prepare('DELETE FROM game_status').run();
         })();
         res.json({ success: true, message: 'Everything deleted.' });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 app.put('/api/scores/:uuid', (req, res) => {
     const { uuid } = req.params;
     const { score_payload } = req.body;
-    if (!score_payload) return res.status(400).json({ error: 'Missing score_payload' });
+
+    if (!score_payload) {
+        return res.status(400).json({ error: 'Missing score_payload' });
+    }
+
     try {
         const update = db.prepare('UPDATE scores SET score_payload = ? WHERE uuid = ?');
         const info = update.run(JSON.stringify(score_payload), uuid);
-        if (info.changes === 0) return res.status(404).json({ error: 'Score not found' });
+
+        if (info.changes === 0) {
+            return res.status(404).json({ error: 'Score not found' });
+        }
         res.json({ status: 'updated' });
-    } catch (err) { res.status(500).json({ error: 'Database error' }); }
+
+    } catch (err) {
+        res.status(500).json({ error: 'Database error' });
+    }
 });
 
 app.post('/api/entities', (req, res) => {
-  const { name, type, troop_number, parent_id } = req.body;
-  if (!name || !type || !troop_number) return res.status(400).json({ error: 'Missing fields' });
-  try {
-    const id = getNextEntityId(type);
-    const insert = db.prepare('INSERT INTO entities (id, name, type, troop_number, parent_id) VALUES (?, ?, ?, ?, ?)');
-    insert.run(id, name, type, troop_number, parent_id || null);
-    res.json({ id, name, type, troop_number, parent_id: parent_id || null });
-  } catch (err) { res.status(500).json({ error: 'Database error' }); }
+    const { name, type, troop_number, parent_id } = req.body;
+
+    if (!name || !type || !troop_number) {
+        return res.status(400).json({ error: 'Missing fields' });
+    }
+
+    try {
+        const id = getNextEntityId(type);
+        const insert = db.prepare(
+            'INSERT INTO entities (id, name, type, troop_number, parent_id) VALUES (?, ?, ?, ?, ?)'
+        );
+        insert.run(id, name, type, troop_number, parent_id || null);
+
+        res.json({
+            id,
+            name,
+            type,
+            troop_number,
+            parent_id: parent_id || null
+        });
+
+    } catch (err) {
+        res.status(500).json({ error: 'Database error' });
+    }
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on http://0.0.0.0:${PORT}`);
+    console.log(`Server running on http://0.0.0.0:${PORT}`);
 });
