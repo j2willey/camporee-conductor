@@ -1,6 +1,6 @@
 import { SyncManager } from './sync-manager.js';
 import { generateFieldHTML } from './core/ui.js';
-import { formatGameTitle, getEventStatus } from './core/schema.js';
+import { formatGameTitle, getEventStatus, generateUUID } from './core/schema.js';
 
 const syncManager = new SyncManager();
 
@@ -433,7 +433,7 @@ async function submitScore(e) {
     const queue = syncManager.getQueue();
     const existing = queue.find(s => s.game_id === state.currentStation.id && s.entity_id === state.currentEntity.id);
     const packet = {
-        uuid: existing ? existing.uuid : crypto.randomUUID(),
+        uuid: existing ? existing.uuid : generateUUID(),
         game_id: state.currentStation.id,
         entity_id: state.currentEntity.id,
         score_payload: payload,
@@ -960,7 +960,7 @@ function bracketGrantBye(eid) {
     let byeHeat = round.heats.find(h => h.name === "Byes");
     if (!byeHeat) {
         byeHeat = {
-            id: crypto.randomUUID(),
+            id: generateUUID(),
             name: "Byes",
             teams: [],
             results: {},
@@ -991,7 +991,7 @@ function bracketScratchTeam(eid) {
     let scratchHeat = round.heats.find(h => h.name === "Scratched");
     if (!scratchHeat) {
         scratchHeat = {
-            id: crypto.randomUUID(),
+            id: generateUUID(),
             name: "Scratched",
             teams: [],
             results: {},
@@ -1025,7 +1025,7 @@ async function bracketQuickSave(heatIdx) {
     // Generate UUIDs for results if missing
     heat.teams.forEach(eid => {
         if (!heat.results[eid]) heat.results[eid] = { advance: false };
-        if (!heat.results[eid].uuid) heat.results[eid].uuid = crypto.randomUUID();
+        if (!heat.results[eid].uuid) heat.results[eid].uuid = generateUUID();
     });
 
     saveBracketState();
@@ -1302,7 +1302,7 @@ async function bracketSaveHeat() {
             const shouldAdvance = row.querySelector('.advance-star').classList.contains('active');
             heat.results[eid] = { ...payload, advance: shouldAdvance };
 
-            if (!heat.results[eid].uuid) heat.results[eid].uuid = crypto.randomUUID();
+            if (!heat.results[eid].uuid) heat.results[eid].uuid = generateUUID();
 
             const serverPayload = { ...payload, heat: heat.name, round: round.name };
             const packet = {
@@ -1464,7 +1464,7 @@ async function bracketSubmitPodium() {
     // Submit Scores to Server
     results.forEach(r => {
         const packet = {
-            uuid: crypto.randomUUID(),
+            uuid: generateUUID(),
             game_id: s.id,
             entity_id: r.entity_id,
             score_payload: {
