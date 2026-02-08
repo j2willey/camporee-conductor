@@ -214,7 +214,9 @@ app.post('/api/camporee/:id', (req, res) => {
                 sortOrder: game.sortOrder,
                 schemaVersion: "2.9",
                 content: game.content,
-                scoring: game.scoring
+                scoring: game.scoring,
+                bracketMode: game.bracketMode || false,
+                match_label: game.match_label || ''
             };
             fs.writeFileSync(path.join(gamesDir, `${game.id}.json`), JSON.stringify(gameFile, null, 2));
         });

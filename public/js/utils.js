@@ -62,6 +62,12 @@ function setupNavigation() {
     const exportRawBtn = document.getElementById('btn-export-raw');
     const autoRefreshSwitch = document.getElementById('auto-refresh-switch');
 
+    // Inspector Buttons
+    ['meta', 'config', 'scores', 'roster'].forEach(type => {
+        const btn = document.getElementById(`btn-inspect-${type}`);
+        if(btn) btn.onclick = () => renderInspector(type);
+    });
+
     // Branding click goes back to dashboard
     const brand = document.querySelector('header h1');
     if (brand) {
@@ -253,7 +259,21 @@ function switchView(viewName, pushToHistory = true) {
 }
 
 window.switchView = switchView;
-window.utils = { switchView }; // For utils.html button handlers
+window.utils = {
+    switchView,
+    copyInspector: () => {
+        const output = document.getElementById('inspector-output');
+        if (!output) return;
+        navigator.clipboard.writeText(output.textContent).then(() => {
+            const btn = document.querySelector('[onclick="utils.copyInspector()"]');
+            if (btn) {
+                const originalText = btn.innerText;
+                btn.innerText = "✅ Copied!";
+                setTimeout(() => { btn.innerText = originalText; }, 2000);
+            }
+        });
+    }
+}; // For utils.html button handlers
 
 function getWinnersRegistry() {
     const registry = [];
@@ -699,6 +719,58 @@ function generateQRCode() {
 
 window.setQrMode = setQrMode;
 window.generateQRCode = generateQRCode;
+
+// Developer Inspector Logic
+function renderInspector(type) {
+    const output = document.getElementById('inspector-output');
+    const path = document.getElementById('inspector-path');
+    const container = document.getElementById('inspector-output-container');
+    if(!output) return;
+
+    let data = {};
+    let pathText = "/root";
+
+    switch(type) {
+        case 'meta':
+            data = appData.metadata;
+            pathText = "/metadata";
+            break;
+        case 'config':
+            data = { games: appData.games, common_scoring: appData.commonScoring };
+            pathText = "/games_config";
+            break;
+        case 'scores':
+            data = appData.scores;
+            pathText = "/scores (raw)";
+            break;
+        case 'roster':
+            data = appData.entities;
+            pathText = "/entities";
+            break;
+    }
+
+    path.textContent = pathText;
+    output.textContent = JSON.stringify(data, null, 2);
+    container.classList.remove('hidden');
+}
+
+window.renderInspector = renderInspector;
+
+// Add global listener for the inspector's Ctrl+A convenience
+document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+        const inspector = document.getElementById('inspector-output');
+        // Only override if the inspector exists and is natively focused
+        if (inspector && document.activeElement === inspector) {
+            e.preventDefault();
+            const range = document.createRange();
+            range.selectNodeContents(inspector);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
+    }
+});
 
 
 

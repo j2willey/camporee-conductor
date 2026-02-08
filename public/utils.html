@@ -92,6 +92,27 @@
                         <p class="text-muted">Delete EVERYTHING: Scores, Judges, Troops, and Patrols.</p>
                         <button id="btn-reset-db" class="btn btn-danger">☢ Reset DB</button>
                     </div>
+
+                    <div class="card p-4" style="width: 100%; max-width: 500px; border-color: #3498db;">
+                        <h4 class="text-primary">Developer Inspector</h4>
+                        <p class="text-muted">Explore live application state (JSON). This includes metadata, game definitions, and all scores.</p>
+                        <div class="btn-group mb-3">
+                            <button id="btn-inspect-meta" class="btn btn-outline-primary btn-sm">Manifest</button>
+                            <button id="btn-inspect-config" class="btn btn-outline-primary btn-sm">Games</button>
+                            <button id="btn-inspect-scores" class="btn btn-outline-primary btn-sm">Scores</button>
+                            <button id="btn-inspect-roster" class="btn btn-outline-primary btn-sm">Entities</button>
+                        </div>
+                        <div id="inspector-output-container" class="hidden">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <code id="inspector-path" class="small text-muted">/root</code>
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-outline-secondary py-0 px-2 border-0" onclick="utils.copyInspector()" title="Copy to Clipboard">📋 Copy</button>
+                                    <button class="btn btn-sm btn-link p-0 text-decoration-none ms-2" onclick="document.getElementById('inspector-output-container').classList.add('hidden')">✖ Close</button>
+                                </div>
+                            </div>
+                            <pre id="inspector-output" tabindex="0" class="bg-dark text-success p-3 rounded mb-0" style="max-height: 400px; overflow: auto; text-align: left; font-size: 0.85rem; border: 1px solid #444; outline: none; cursor: text;"></pre>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>

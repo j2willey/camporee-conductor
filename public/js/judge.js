@@ -771,6 +771,15 @@ function renderBracketRound() {
     document.getElementById('bracket-round-title').innerText = round.name;
     document.getElementById('bracket-pool-count').innerText = round.pool.length;
 
+    const label = state.currentStation.match_label || 'Match';
+    const createBtn = document.getElementById('btn-bracket-create-heat');
+    if (createBtn) createBtn.innerText = `+ New ${label}`;
+
+    const instructions = document.getElementById('bracket-create-instructions');
+    if (instructions) {
+        instructions.innerHTML = `Select teams below to create a ${label.toLowerCase()}. <span class="badge bg-secondary rounded-pill" id="bracket-pool-count">${round.pool.length}</span> remaining.`;
+    }
+
     const container = document.getElementById('bracket-unified-list');
     let html = '';
 
@@ -796,7 +805,8 @@ function renderBracketRound() {
         html += '</div>';
     } else {
         if (round.heats.length > 0) {
-            html += `<div class="alert alert-light text-center text-muted border border-dashed mb-4">All teams assigned to heats.</div>`;
+            const label = state.currentStation.match_label || 'Match';
+            html += `<div class="alert alert-light text-center text-muted border border-dashed mb-4">All teams assigned to ${label.toLowerCase()}s.</div>`;
         } else {
             if (state.bracketMode === 'consolation') html += `<div class="alert alert-light text-center text-muted border border-dashed mb-4">Waiting for teams to be eliminated from Main Event.</div>`;
             else html += `<div class="alert alert-light text-center text-muted border border-dashed mb-4">No teams in this round.</div>`;
@@ -805,7 +815,8 @@ function renderBracketRound() {
 
     // SECTION B: The Heats (Updated with Final Round Logic)
     if (round.heats.length > 0) {
-        html += `<h6 class="text-uppercase text-muted fw-bold small mb-2 ps-1 border-top pt-3">Active Heats</h6>`;
+        const label = state.currentStation.match_label || 'Match';
+        html += `<h6 class="text-uppercase text-muted fw-bold small mb-2 ps-1 border-top pt-3">Active ${label}s</h6>`;
         const sortedHeats = [...round.heats].sort((a,b) => (a.complete === b.complete) ? 0 : a.complete ? 1 : -1);
 
         html += sortedHeats.map((heat) => {
@@ -1144,7 +1155,8 @@ function bracketAdvanceRound() {
     // Prepare Warning Message (if needed)
     let warningMsg = "";
     if (pending.length > 0) {
-        warningMsg = `⚠️ NOTE: ${pending.length} teams in this round are still pending (in pool or active heats). You can advance now and come back for them later.`;
+        const label = state.currentStation.match_label || 'Match';
+        warningMsg = `⚠️ NOTE: ${pending.length} teams in this round are still pending (in pool or active ${label.toLowerCase()}s). You can advance now and come back for them later.`;
     }
 
     if (nextRoundExists) {
@@ -1173,6 +1185,7 @@ function bracketAdvanceRound() {
             alert(warningMsg); // Pauses execution until OK is clicked, then proceeds.
         }
 
+        const matchLabel = state.currentStation.match_label || 'Match';
         currentRoundList.push({
             name: `${state.bracketMode === 'consolation' ? 'Consolation ' : ''}Round ${nextRoundIdx + 1}`,
             pool: winners,
@@ -1224,7 +1237,8 @@ function bracketCreateHeat() {
     const round = roundList[state.currentRoundIdx];
     round.pool = round.pool.filter(id => !checked.includes(id));
     const heatNum = round.heats.length + 1;
-    round.heats.push({ id: Date.now(), name: `Heat ${heatNum}`, teams: checked, complete: false, results: {} });
+    const label = state.currentStation.match_label || 'Match';
+    round.heats.push({ id: Date.now(), name: `${label} ${heatNum}`, teams: checked, complete: false, results: {} });
     saveBracketState();
     renderBracketRound();
 }
@@ -1243,6 +1257,10 @@ function bracketOpenHeat(heatIdx) {
     const heat = round.heats[heatIdx];
     state.currentHeatId = heat.id;
     document.getElementById('heat-title').innerText = `${round.name} - ${heat.name}`;
+
+    const label = state.currentStation.match_label || 'Match';
+    const saveBtn = document.getElementById('btn-bracket-save-heat');
+    if (saveBtn) saveBtn.innerText = `SAVE ${label.toUpperCase()}`;
 
     const fields = [...(state.currentStation.fields||[]), ...(state.config.common_scoring||[])].filter(f => f.audience === 'judge');
 
@@ -1347,13 +1365,15 @@ async function bracketSaveHeat() {
         }
 
         renderBracketRound();
-        alert("Heat Saved.");
+        const label = state.currentStation.match_label || 'Match';
+        alert(`${label} Saved.`);
         navigate('bracketRound');
     } catch (err) {
-        console.error("Heat Save Error:", err);
+        const label = state.currentStation.match_label || 'Match';
+        console.error(`${label} Save Error:`, err);
         renderBracketRound();
         navigate('bracketRound');
-        alert("⚠️ Heat Saved Locally\n\nHowever, it failed to sync to the server:\n" + err.message);
+        alert(`⚠️ ${label} Saved Locally\n\nHowever, it failed to sync to the server:\n` + err.message);
     }
 }
 

@@ -151,10 +151,10 @@ function loadCamporeeData() {
                             normalizedGame.name = gameDef.content.title;
                         }
 
-                        // Hydrate bracketMode so server knows logic
-                        if (gameDef.bracketMode) {
-                            normalizedGame.bracketMode = true;
-                        }
+                        // Hydrate bracket configuration for the UI
+                        normalizedGame.bracketMode = !!gameDef.bracketMode;
+                        normalizedGame.match_label = gameDef.match_label || '';
+
                         games.push(normalizedGame);
                     }
                 }

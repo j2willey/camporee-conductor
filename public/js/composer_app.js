@@ -14,6 +14,7 @@ const SYSTEM_PRESETS = [
     { id: 'p_spirit', label: "Scout Spirit", type: "number", kind: "points", weight: 10, audience: "judge", config: { min: 0, max: 10, placeholder: "0-10 Points" } },
     { id: 'off_notes', label: "Judges Notes", type: "textarea", kind: "info", weight: 0, audience: "judge", config: { placeholder: "Issues, tie-breakers, etc." } },
     // Bracketology Presets
+    { id: 'bracket_result', label: "Match Result", type: "text", kind: "info", weight: 0, audience: "judge", required: true, config: { placeholder: "Place:  1, 2, 3, 4....." } },
     { id: 'final_rank', label: "Final Ranking", type: "select", kind: "info", weight: 0, audience: "admin", config: { options: ["1st Place", "2nd Place", "3rd Place", "4th Place", "Participant"] } },
     { id: 'overall_points', label: "Overall Points", type: "number", kind: "points", weight: 1, audience: "admin", config: { placeholder: "e.g., 100, 90, 80..." } }
 ];
@@ -301,7 +302,7 @@ const composer = {
     addGame: function(type = 'patrol') {
         const newId = `game_${Date.now()}`;
         const newGame = {
-            id: newId, type: type, enabled: true, bracketMode: false,
+            id: newId, type: type, enabled: true, bracketMode: false, match_label: '',
             content: { title: type === 'patrol' ? "New Game" : "New Event", story: "", instructions: "" },
             scoring: { method: "points_desc", components: [{ id: "score_1", type: "number", kind: "points", label: "Points", weight: 1, audience: "judge", sortOrder: 0 }] }
         };
@@ -405,6 +406,12 @@ const composer = {
                         <div class="col-md-8 mb-3"><label class="form-label">Title</label><input type="text" class="form-control" id="gameTitle"></div>
                         <div class="col-md-4 mb-3"><label class="form-label">ID</label><input type="text" class="form-control" id="gameId" readonly></div>
                     </div>
+                    <div class="row border-bottom mb-3 pb-3">
+                        <div class="col-12">
+                            <label class="form-label text-muted">Instructions</label>
+                            <textarea class="form-control" rows="1" id="gameInstructions" placeholder="Judge-facing instructions..."></textarea>
+                        </div>
+                    </div>
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Type</label>
@@ -416,16 +423,35 @@ const composer = {
                         </div>
                         <div class="col-md-8 mb-3"><label class="form-label">Premise</label><input type="text" class="form-control" id="gameStory"></div>
                     </div>
-                     <div class="mb-3"><label class="form-label">Instructions</label><textarea class="form-control" rows="2" id="gameInstructions"></textarea></div>
 
-                    <div class="d-flex justify-content-between border-top pt-3">
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="gameEnabled" ${game.enabled ? 'checked' : ''}>
-                            <label class="form-check-label fw-bold">Enabled</label>
+                    <div class="row border-top pt-3">
+                        <div class="col-md-3 d-flex align-items-center">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="gameEnabled" ${game.enabled ? 'checked' : ''}>
+                                <label class="form-check-label fw-bold">Enabled</label>
+                            </div>
                         </div>
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="gameBracketMode" ${game.bracketMode ? 'checked' : ''} onchange="composer.toggleBracketMode('${gameId}', this.checked)">
-                            <label class="form-check-label fw-bold text-primary">Bracket/Heat Mode</label>
+                        <div class="col-md-4 d-flex align-items-center border-start">
+                             <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="gameBracketMode" ${game.bracketMode ? 'checked' : ''} onchange="composer.toggleBracketMode('${gameId}', this.checked)">
+                                <label class="form-check-label fw-bold text-primary">Bracket Mode</label>
+                            </div>
+                        </div>
+                        <div id="matchLabelContainer" class="col-md-5 border-start ${game.bracketMode ? '' : 'd-none'}">
+                            <div class="d-flex align-items-center gap-2">
+                                <label class="form-label mb-0 small fw-bold text-muted" style="white-space:nowrap;">Match Term:</label>
+                                <input type="text" class="form-control form-control-sm" id="gameMatchLabel" list="matchLabelSuggestions" placeholder="e.g. Heat, War, Race">
+                                <datalist id="matchLabelSuggestions">
+                                    <option value="Match">
+                                    <option value="Heat">
+                                    <option value="Game">
+                                    <option value="Race">
+                                    <option value="Round">
+                                    <option value="Pull">
+                                    <option value="War">
+                                    <option value="Bout">
+                                </datalist>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -454,10 +480,10 @@ const composer = {
                 </div>
             </div>`;
 
-        ['gameTitle','gameId','gameStory','gameInstructions'].forEach(fid => {
-             const prop = fid === 'gameId' ? 'id' : (fid === 'gameTitle' ? 'title' : (fid==='gameStory'?'story':'instructions'));
+        ['gameTitle','gameId','gameStory','gameInstructions','gameMatchLabel'].forEach(fid => {
+             const prop = fid === 'gameId' ? 'id' : (fid === 'gameTitle' ? 'title' : (fid==='gameStory'?'story':(fid==='gameMatchLabel'?'match_label':'instructions')));
              const el = document.getElementById(fid);
-             if(el) { el.value = (prop === 'id' ? game.id : game.content[prop]) || ''; el.oninput = (e) => this.updateGameField(prop, e.target.value); }
+             if(el) { el.value = (prop === 'id' || prop === 'match_label' ? game[prop] : game.content[prop]) || ''; el.oninput = (e) => this.updateGameField(prop, e.target.value); }
         });
 
         const typeSelect = document.getElementById('gameType');
@@ -477,6 +503,7 @@ const composer = {
         const game = this.data.games.find(g => g.id === this.activeGameId);
         if (!game) return;
         if (field === 'id') { game.id = value; this.activeGameId = value; }
+        else if (field === 'match_label') { game.match_label = value; }
         else { game.content[field] = value; }
         if (field === 'title' || field === 'id') this.renderGameLists();
     },
@@ -486,8 +513,16 @@ const composer = {
         const game = this.data.games.find(g => g.id === gameId);
         if(!game) return;
         game.bracketMode = isEnabled;
+
+        // UI Toggle
+        const container = document.getElementById('matchLabelContainer');
+        if (container) {
+            if (isEnabled) container.classList.remove('d-none');
+            else container.classList.add('d-none');
+        }
+
         if (isEnabled) {
-            const requiredFields = ['final_rank', 'overall_points'];
+            const requiredFields = ['bracket_result', 'final_rank', 'overall_points'];
             requiredFields.forEach(pid => {
                 const exists = game.scoring.components.find(c => c.id === pid);
                 if (!exists) {
@@ -497,8 +532,14 @@ const composer = {
 
                     if (preset) {
                         const copy = JSON.parse(JSON.stringify(preset));
-                        copy.audience = 'admin';
-                        game.scoring.components.push(copy);
+                        // bracket_result remains judge-facing; others are admin/official
+                        if (pid === 'bracket_result') {
+                            copy.audience = 'judge';
+                            game.scoring.components.unshift(copy);
+                        } else {
+                            copy.audience = 'admin';
+                            game.scoring.components.push(copy);
+                        }
                     }
                 }
             });
@@ -682,7 +723,15 @@ const composer = {
         zip.file("presets.json", JSON.stringify(this.presets, null, 2));
         const gamesFolder = zip.folder("games");
         this.data.games.forEach(game => {
-            const gameFile = { id: game.id, type: game.type, sortOrder: game.sortOrder, schemaVersion: "2.9", content: game.content, scoring: game.scoring };
+            const gameFile = {
+                id: game.id,
+                type: game.type,
+                sortOrder: game.sortOrder,
+                schemaVersion: "2.9",
+                content: game.content,
+                scoring: game.scoring,
+                match_label: game.match_label || ''
+            };
             if (game.bracketMode) gameFile.bracketMode = true;
             gamesFolder.file(`${game.id}.json`, JSON.stringify(gameFile, null, 2));
         });
@@ -708,7 +757,8 @@ const composer = {
                     if(pItem && pItem.order) g.sortOrder = pItem.order * 10;
                     if(!g.scoring.components) g.scoring.components = [];
                     if(!g.type) g.type = 'patrol';
-                    if(g.bracketMode) g.bracketMode = true;
+                    g.bracketMode = !!g.bracketMode;
+                    g.match_label = g.match_label || '';
                     this.data.games.push(g);
                 });
                 if(!this.data.meta.camporeeId) this.data.meta.camporeeId = this.generateUUID();

@@ -289,7 +289,12 @@ function openGameDetail(gameId) {
 
     if (activeGameId !== gameId) {
         activeGameId = gameId;
-        detailSort = { col: 'troop_number', dir: 'asc' };
+        // Default sort: prioritize final_rank for bracket games
+        if (game.bracketMode) {
+            detailSort = { col: 'final_rank', dir: 'asc' };
+        } else {
+            detailSort = { col: 'troop_number', dir: 'asc' };
+        }
 
         // Update URL/History if we are already in detail view
         if (currentView === 'detail') {
@@ -313,8 +318,17 @@ function openGameDetail(gameId) {
         ...(appData.commonScoring || [])
     ].sort(sortOrderFn);
 
-    const scoringFields = allFields.filter(f => f.id !== 'judge_notes');
+    const scoreFields = allFields.filter(f => f.id !== 'judge_notes');
     const notesField = allFields.find(f => f.id === 'judge_notes');
+
+    // Inject Heat/Round columns for bracketed games
+    if (game.bracketMode) {
+        const label = game.match_label || 'Match';
+        scoreFields.unshift(
+            { id: 'round', label: 'Round', audience: 'judge' },
+            { id: 'heat', label: label, audience: 'judge' }
+        );
+    }
 
     // Filter, Deduplicate (for Bracket games), and Enrich
     let rawScores = appData.scores.filter(s => s.game_id === gameId);
@@ -330,8 +344,8 @@ function openGameDetail(gameId) {
             // Priority 1: Has manual_rank
             // Priority 2: Has rank
             // Priority 3: More recent timestamp
-            const sHasRank = s.score_payload.manual_rank || s.score_payload.rank;
-            const exHasRank = existing.score_payload.manual_rank || existing.score_payload.rank;
+            const sHasRank = s.score_payload.manual_rank || s.score_payload.rank || s.score_payload.final_rank;
+            const exHasRank = existing.score_payload.manual_rank || existing.score_payload.rank || existing.score_payload.final_rank;
 
             if (sHasRank && !exHasRank) {
                 deduped[s.entity_id] = s;
@@ -347,7 +361,7 @@ function openGameDetail(gameId) {
 
     const gameScores = rawScores.map(score => {
         let total = 0;
-        scoringFields.forEach(f => {
+        scoreFields.forEach(f => {
             // Only sum if kind is "points" or "penalty"
             if (f.kind === 'points' || f.kind === 'penalty') {
                 const val = parseFloat(score.score_payload[f.id]);
@@ -378,7 +392,7 @@ function openGameDetail(gameId) {
     // 2. Finalize Rank/Points
     gameScores.forEach(s => {
         // PRIORITY: Manual Admin Rank > Judge Tournament Rank > Auto-calculated Points Rank
-        let judgeRank = s.score_payload.rank;
+        let judgeRank = s.score_payload.rank || s.score_payload.final_rank;
         if (judgeRank && !isNaN(parseInt(judgeRank))) {
             judgeRank = getOrdinalSuffix(parseInt(judgeRank));
         }
@@ -411,13 +425,20 @@ function openGameDetail(gameId) {
         } else if (detailSort.col === '_total') {
             valA = a._total;
             valB = b._total;
-        } else if (detailSort.col === '_finalRank') {
-            const getRankNum = (v) => {
-                const m = String(v).match(/\d+/);
+        } else if (detailSort.col === '_finalRank' || detailSort.col === 'final_rank') {
+            const getRankNum = (s) => {
+                const val = s.score_payload.final_rank || s.score_payload.manual_rank || s.score_payload.rank || s._finalRank;
+                const m = String(val).match(/\d+/);
                 return m ? parseInt(m[0]) : 999;
             };
-            valA = getRankNum(a._finalRank);
-            valB = getRankNum(b._finalRank);
+            valA = getRankNum(a);
+            valB = getRankNum(b);
+
+            // Fallback for ties (common in brackets or before finalization)
+            if (valA === valB) {
+                valA = a.score_payload.bracket_result || a._total || 0;
+                valB = b.score_payload.bracket_result || b._total || 0;
+            }
         } else if (detailSort.col === '_finalPoints') {
             valA = parseFloat(a._finalPoints) || 0;
             valB = parseFloat(b._finalPoints) || 0;
@@ -494,7 +515,7 @@ function openGameDetail(gameId) {
     thEdit.classList.add('collapsible-col');
     headerRow.appendChild(thEdit);
 
-    scoringFields.forEach(field => {
+    scoreFields.forEach(field => {
         const th = createTh(field.label);
         th.className += ' rotate-header';
         if (field.kind !== 'entryname') th.className += ' collapsible-col';
@@ -503,26 +524,29 @@ function openGameDetail(gameId) {
         headerRow.appendChild(th);
     });
 
-    const thTotal = createTh('Game<br>Total');
-    addSortBtn(thTotal, '_total');
-    headerRow.appendChild(thTotal);
+    // Skip hardcoded columns for Brackets (they use dynamic schema fields)
+    if (!game.bracketMode) {
+        const thTotal = createTh('Game<br>Total');
+        addSortBtn(thTotal, '_total');
+        headerRow.appendChild(thTotal);
 
-    const thRank = document.createElement('th');
-    thRank.innerHTML = `
-        <div style="display:flex; flex-direction:column; align-items:center; gap:5px; padding:2px;">
-            <div class="form-check form-switch p-0" style="min-height:auto; display:flex; align-items:center; justify-content:center;" onclick="event.stopPropagation()">
-                <input class="form-check-input ms-0" type="checkbox" id="toggle-compact-view" ${finalMode ? 'checked' : ''} onchange="toggleFinalMode(this.checked)" style="transform: scale(0.9); cursor:pointer; margin-top:0;">
-                <span class="fw-bold text-uppercase ms-1" style="font-size: 0.6rem; color:#666;">Final</span>
+        const thRank = document.createElement('th');
+        thRank.innerHTML = `
+            <div style="display:flex; flex-direction:column; align-items:center; gap:5px; padding:2px;">
+                <div class="form-check form-switch p-0" style="min-height:auto; display:flex; align-items:center; justify-content:center;" onclick="event.stopPropagation()">
+                    <input class="form-check-input ms-0" type="checkbox" id="toggle-compact-view" ${finalMode ? 'checked' : ''} onchange="toggleFinalMode(this.checked)" style="transform: scale(0.9); cursor:pointer; margin-top:0;">
+                    <span class="fw-bold text-uppercase ms-1" style="font-size: 0.6rem; color:#666;">Final</span>
+                </div>
+                <div class="header-text" style="font-weight:bold; line-height:1.1;">Game<br>Rank</div>
             </div>
-            <div class="header-text" style="font-weight:bold; line-height:1.1;">Game<br>Rank</div>
-        </div>
-    `;
-    addSortBtn(thRank, '_finalRank');
-    headerRow.appendChild(thRank);
+        `;
+        addSortBtn(thRank, '_finalRank');
+        headerRow.appendChild(thRank);
 
-    const thPoints = createTh('Overall<br>Points');
-    addSortBtn(thPoints, '_finalPoints');
-    headerRow.appendChild(thPoints);
+        const thPoints = createTh('Overall<br>Points');
+        addSortBtn(thPoints, '_finalPoints');
+        headerRow.appendChild(thPoints);
+    }
 
     if (notesField) {
         const thNotes = createTh('Notes');
@@ -557,7 +581,7 @@ function openGameDetail(gameId) {
         actionTd.appendChild(btn);
         tr.appendChild(actionTd);
 
-        scoringFields.forEach(field => {
+        scoreFields.forEach(field => {
             const val = score.score_payload[field.id];
             if (field.audience === 'admin') {
                 const td = document.createElement('td');
@@ -578,7 +602,7 @@ function openGameDetail(gameId) {
                     if (field.kind === 'points' || field.kind === 'penalty') {
                         // Recalculate local _total
                         let total = 0;
-                        scoringFields.forEach(f => {
+                        scoreFields.forEach(f => {
                             if (f.kind === 'points' || f.kind === 'penalty') {
                                 const v = parseFloat(score.score_payload[f.id]);
                                 if (!isNaN(v)) {
@@ -591,10 +615,6 @@ function openGameDetail(gameId) {
                             }
                         });
                         score._total = total;
-                        // Find the total cell in this row (it's the one before notes if notes exist, OR the last one otherwise)
-                        // Actually, safer to just update the innerHTML of the total cell if we can find it.
-                        // Or just trigger a re-render of the whole game detail if performance isn't an issue.
-                        // Given the context, a re-render is simplest.
                         openGameDetail(activeGameId);
                     }
                 };
@@ -611,41 +631,43 @@ function openGameDetail(gameId) {
             }
         });
 
-        // Total Column
-        tr.appendChild(createTd(`<strong>${score._total}</strong>`));
+        if (!game.bracketMode) {
+            // Total Column
+            tr.appendChild(createTd(`<strong>${score._total}</strong>`));
 
-        // Rank Cell (Manual Input)
-        const tdRank = document.createElement('td');
-        const inputRank = document.createElement('input');
-        inputRank.className = 'admin-input';
-        inputRank.style.width = '50px';
-        inputRank.value = score.score_payload.manual_rank || '';
-        inputRank.placeholder = score._autoRank;
-        inputRank.onchange = async () => {
-            await updateScoreField(score.uuid, 'manual_rank', inputRank.value);
-            openGameDetail(gameId);
-        };
-        tdRank.appendChild(inputRank);
-        tr.appendChild(tdRank);
+            // Rank Cell (Manual Input)
+            const tdRank = document.createElement('td');
+            const inputRank = document.createElement('input');
+            inputRank.className = 'admin-input';
+            inputRank.style.width = '50px';
+            inputRank.value = score.score_payload.manual_rank || '';
+            inputRank.placeholder = score._autoRank;
+            inputRank.onchange = async () => {
+                await updateScoreField(score.uuid, 'manual_rank', inputRank.value);
+                openGameDetail(gameId);
+            };
+            tdRank.appendChild(inputRank);
+            tr.appendChild(tdRank);
 
-        // Placement Points Column (Manual Input)
-        const tdPoints = document.createElement('td');
-        const inputPoints = document.createElement('input');
-        inputPoints.className = 'admin-input';
-        inputPoints.type = 'number';
-        inputPoints.style.width = '60px';
-        inputPoints.value = (score.score_payload.manual_points !== undefined && score.score_payload.manual_points !== null) ? score.score_payload.manual_points : '';
-        const autoPts = getPointsForRank(score._finalRank);
-        inputPoints.placeholder = autoPts;
-        inputPoints.onchange = async () => {
-            let val = inputPoints.value;
-            if (val !== "") val = parseFloat(val);
-            else val = null;
-            await updateScoreField(score.uuid, 'manual_points', val);
-            openGameDetail(gameId);
-        };
-        tdPoints.appendChild(inputPoints);
-        tr.appendChild(tdPoints);
+            // Placement Points Column (Manual Input)
+            const tdPoints = document.createElement('td');
+            const inputPoints = document.createElement('input');
+            inputPoints.className = 'admin-input';
+            inputPoints.type = 'number';
+            inputPoints.style.width = '60px';
+            inputPoints.value = (score.score_payload.manual_points !== undefined && score.score_payload.manual_points !== null) ? score.score_payload.manual_points : '';
+            const autoPts = getPointsForRank(score._finalRank);
+            inputPoints.placeholder = autoPts;
+            inputPoints.onchange = async () => {
+                let val = inputPoints.value;
+                if (val !== "") val = parseFloat(val);
+                else val = null;
+                await updateScoreField(score.uuid, 'manual_points', val);
+                openGameDetail(gameId);
+            };
+            tdPoints.appendChild(inputPoints);
+            tr.appendChild(tdPoints);
+        }
 
         // Judge Notes (Last)
         if (notesField) {
@@ -663,7 +685,8 @@ function openGameDetail(gameId) {
     if (gameScores.length === 0) {
         const tr = document.createElement('tr');
         const td = document.createElement('td');
-        td.colSpan = 7 + scoringFields.length + (notesField ? 1 : 0);
+        const baseColSpan = game.bracketMode ? 4 : 7;
+        td.colSpan = baseColSpan + scoreFields.length + (notesField ? 1 : 0);
         td.innerText = "No scores submitted yet.";
         td.style.textAlign = 'center';
         td.style.padding = '20px';

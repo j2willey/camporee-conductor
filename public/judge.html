@@ -144,10 +144,10 @@
                         <h2 id="bracket-round-title" class="mb-0 me-2">Round 1</h2>
                         <span onclick="app.bracketRenameRound()" style="cursor: pointer; font-size: 1.2rem;">✏️</span>
                     </div>
-                    <button class="btn btn-primary btn-sm py-1 px-3 shadow-sm w-auto flex-grow-0" onclick="app.bracketCreateHeat()">+ New Heat</button>
+                    <button id="btn-bracket-create-heat" class="btn btn-primary btn-sm py-1 px-3 shadow-sm w-auto flex-grow-0" onclick="app.bracketCreateHeat()">+ New Match</button>
                 </div>
-                <div class="small text-muted mt-1">
-                    Select teams below to create a heat. <span class="badge bg-secondary rounded-pill" id="bracket-pool-count">0</span> remaining.
+                <div id="bracket-create-instructions" class="small text-muted mt-1">
+                    Select teams below to create a match. <span class="badge bg-secondary rounded-pill" id="bracket-pool-count">0</span> remaining.
                 </div>
             </div>
 
@@ -162,7 +162,7 @@
 
         <div id="view-bracket-heat" class="hidden d-flex flex-column" style="height: calc(100vh - 60px);">
             <div class="flex-shrink-0 mb-2">
-                <h2 id="heat-title" class="mb-0">Heat 1</h2>
+                <h2 id="heat-title" class="mb-0">Match 1</h2>
                 <p class="text-muted small mb-0">Enter results below.</p>
             </div>
 
@@ -177,7 +177,7 @@
 
             <div class="flex-shrink-0 border-top pt-3 pb-2 bg-white mt-auto d-flex gap-2">
                 <button class="btn btn-outline-secondary flex-grow-1 py-3 fw-bold" onclick="app.navigate('bracketRound')">Cancel</button>
-                <button class="btn btn-warning flex-grow-1 py-3 fw-bold" onclick="app.bracketSaveHeat()">SAVE HEAT</button>
+                <button id="btn-bracket-save-heat" class="btn btn-warning flex-grow-1 py-3 fw-bold" onclick="app.bracketSaveHeat()">SAVE MATCH</button>
             </div>
         </div>
 
