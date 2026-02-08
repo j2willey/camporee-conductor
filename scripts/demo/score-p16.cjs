@@ -5,7 +5,7 @@ const gameName = "Tangled Treasure";
 const judgeInfo = {
     name: "Demo Judge 8",
     email: "demojudge8@acme.com",
-    unit: "District"
+    unit: "Troop 452"
 };
 const patrols = [
   {

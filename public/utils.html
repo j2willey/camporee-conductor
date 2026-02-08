@@ -3,84 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Camporee Collator - Admin Dashboard</title>
+    <title>Camporee Collator - Utilities</title>
     <link rel="stylesheet" href="css/bootstrap.min.css">
     <link rel="stylesheet" href="css/conductor.css">
     <link rel="stylesheet" href="css/admin.css">
     <link rel="stylesheet" href="css/spreadsheet.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script type="module" src="js/admin.js" defer></script>
+    <script type="module" src="js/utils.js" defer></script>
 </head>
 <body>
     <header class="conductor-header theme-official">
-        <div style="display:flex; align-items:center;">
-            <button id="header-back-btn" class="hidden" onclick="handleBack()" style="background:none; border:none; color:white; cursor:pointer; padding:0; margin-right:15px; display:flex; align-items:center; justify-content:center;" title="Back">
-                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="19" y1="12" x2="5" y2="12"></line>
-                    <polyline points="12 19 5 12 12 5"></polyline>
-                </svg>
-            </button>
-            <h1>Camporee Collator<span id="header-subtitle"></span></h1>
+        <div class="header-left">
+            <h1>Camporee Utilities</h1>
         </div>
-        <div id="header-actions" class="hidden" style="display:flex; align-items:center; gap:10px; margin-left:auto; margin-right:20px;">
-            <div id="mode-filter-container" style="display:flex; align-items:center; gap:10px;">
-                <select id="view-mode-select" style="padding:5px; border-radius:4px; font-weight:bold;">
-                    <option value="patrol">Patrol Games</option>
-                    <option value="troop">Troop Games</option>
-                    <option value="exhibition">Exhibition Games</option>
-                </select>
-            </div>
-            <div class="form-check form-switch text-white" style="display:flex; align-items:center; gap:5px;" title="Auto-refresh data every 15s">
-                <input class="form-check-input" type="checkbox" id="auto-refresh-switch" style="cursor:pointer;">
-                <label class="form-check-label" for="auto-refresh-switch" style="cursor:pointer; font-weight:bold;">Live</label>
-            </div>
-        </div>
-        <nav class="hidden">
-            <button id="nav-dashboard">Dashboard</button>
+
+        <nav class="header-right">
+            <button class="btn btn-sm btn-outline-light" onclick="utils.switchView('awards')" id="nav-awards">Awards</button>
+            <button class="btn btn-sm btn-outline-light" onclick="utils.switchView('qrcode')" id="nav-qr">QR Codes</button>
+            <button class="btn btn-sm btn-outline-light" onclick="utils.switchView('debug')" id="nav-debug">System</button>
         </nav>
+        <a href="admin.html" class="header-back-link">⬅ </a>
     </header>
 
     <main>
         <!-- View 0: Dashboard (Landing) -->
         <section id="view-dashboard" class="hidden">
-            <div class="dashboard-container">
-                <h2 class="dashboard-title">Camporee Collator</h2>
-
-                <div class="dashboard-grid">
-
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 30px; margin-top: 50px;">
+                <h2 style="font-size: 2.5rem; color: #2c3e50;">Camporee Collator - Dashboard</h2>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; width: 100%; max-width: 900px;">
                     <button class="dashboard-link-btn" onclick="switchView('registration', true)">
-                        <span class="dashboard-icon">📋</span>
-                        Registration
+                        <span style="font-size: 3rem;">📋</span>
+                        <br>Registration
                     </button>
-
-                    <a href="official.html" class="dashboard-link-btn">
-                        <span class="dashboard-icon">⏱️</span>
-                        Scoring
-                    </a>
-
-                    <a href="utils.html#awards" class="dashboard-link-btn">
-                        <span class="dashboard-icon">🏆</span>
-                        Awards
-                    </a>
-
+                    <button class="dashboard-link-btn" onclick="switchView('overview', true)">
+                        <span style="font-size: 3rem;">⏱️</span>
+                        <br>Scoring
+                    </button>
+                    <button class="dashboard-link-btn" onclick="switchView('awards', true)">
+                        <span style="font-size: 3rem;">🏆</span>
+                        <br>Awards
+                    </button>
                     <button class="dashboard-link-btn" onclick="switchView('judges', true)">
-                        <span class="dashboard-icon">⚖️</span>
-                        Judges
+                        <span style="font-size: 3rem;">⚖️</span>
+                        <br>Judges
                     </button>
-
-                    <a href="utils.html#debug" class="dashboard-link-btn">
-                        <span class="dashboard-icon">🛠️</span>
-                        System
-                    </a>
-
-                    <a href="utils.html#qrcode" class="dashboard-link-btn">
-                        <span class="dashboard-icon">📱</span>
-                        QR Gen
-                    </a>
-                </div>
-
-                <div class="mt-4">
-                    <a href="judge.html" class="btn btn-outline-secondary">Go to Field Judge App &rarr;</a>
+                    <button class="dashboard-link-btn" onclick="switchView('debug', true)">
+                        <span style="font-size: 3rem;">🛠️</span>
+                        <br>System
+                    </button>
+                    <button class="dashboard-link-btn" onclick="switchView('qrcode', true)">
+                        <span style="font-size: 3rem;">📱</span>
+                        <br>QR Gen
+                    </button>
                 </div>
             </div>
         </section>

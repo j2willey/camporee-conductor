@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "Offline-first PWA for Scout Camporee scoring",
   "type": "module",
-  "main": "server.js",
+  "main": "collator-server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node collator-server.js",
     "composer": "node composer_server.js",
     "minify": "terser public/js/composer_app.js -o public/js/composer_app.js --compress --mangle",
     "test": "npx playwright test"

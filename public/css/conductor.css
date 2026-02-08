@@ -20,3 +20,116 @@
     align-items: center;
     justify-content: space-between;
 }
+
+/* --- New Refactor Styles --- */
+
+/* 1. Header Themes */
+.conductor-header.theme-official {
+    background-color: #212529; /* Dark Blue */
+}
+
+.conductor-header.theme-utils {
+    background-color: #7f8c8d; /* Grey */
+}
+
+/* 2. Header Navigation */
+.header-left {
+    display: flex;
+    align-items: center;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
+    margin-right: 20px;
+}
+
+.header-back-link {
+    color: white;
+    text-decoration: none;
+    margin-right: 15px;
+    font-size: 1.2rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.header-back-link:hover {
+    color: #dfe6e9; /* Light grey on hover */
+}
+
+/* 3. Dashboard Layout */
+.dashboard-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+    margin-top: 50px;
+}
+
+.dashboard-title {
+    font-size: 2.5rem;
+    color: #2c3e50;
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    width: 100%;
+    max-width: 900px;
+}
+
+.dashboard-icon {
+    font-size: 3rem;
+    display: block;
+    margin-bottom: 10px;
+}
+
+/* ... (previous styles) ... */
+
+/* UNIFIED STYLES for both <button> and <a> */
+.dashboard-link-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;      /* Center horizontally */
+    justify-content: center;  /* Center vertically */
+    text-align: center;
+
+    width: 100%;
+    height: 100%;
+    padding: 20px;
+
+    /* Uniform Look */
+    background-color: white;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+
+    /* Typography Fixes */
+    color: #2c3e50;           /* Dark Grey */
+    font-weight: 700;         /* Bold */
+    font-size: 1.1rem;
+    text-decoration: none;    /* No Underline */
+    line-height: 1.2;
+
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.dashboard-link-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 .5rem 1rem rgba(0,0,0,.15);
+    border-color: #3498db;
+    color: #3498db;
+    text-decoration: none;
+}
+
+.dashboard-icon {
+    font-size: 3rem;
+    display: block;
+    margin-bottom: 15px;
+    line-height: 1;
+    font-weight: normal;
+}

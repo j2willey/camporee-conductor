@@ -3,88 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Camporee Collator - Admin Dashboard</title>
+    <title>Camporee Collator - Official Scoreboard</title>
     <link rel="stylesheet" href="css/bootstrap.min.css">
     <link rel="stylesheet" href="css/conductor.css">
     <link rel="stylesheet" href="css/admin.css">
     <link rel="stylesheet" href="css/spreadsheet.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script type="module" src="js/admin.js" defer></script>
+    <script type="module" src="js/official.js" defer></script>
 </head>
 <body>
     <header class="conductor-header theme-official">
-        <div style="display:flex; align-items:center;">
-            <button id="header-back-btn" class="hidden" onclick="handleBack()" style="background:none; border:none; color:white; cursor:pointer; padding:0; margin-right:15px; display:flex; align-items:center; justify-content:center;" title="Back">
-                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="19" y1="12" x2="5" y2="12"></line>
-                    <polyline points="12 19 5 12 12 5"></polyline>
-                </svg>
-            </button>
-            <h1>Camporee Collator<span id="header-subtitle"></span></h1>
+        <div class="header-left">
+
+            <h1>Official Scoring<span id="header-subtitle"></span></h1>
         </div>
-        <div id="header-actions" class="hidden" style="display:flex; align-items:center; gap:10px; margin-left:auto; margin-right:20px;">
-            <div id="mode-filter-container" style="display:flex; align-items:center; gap:10px;">
-                <select id="view-mode-select" style="padding:5px; border-radius:4px; font-weight:bold;">
-                    <option value="patrol">Patrol Games</option>
-                    <option value="troop">Troop Games</option>
-                    <option value="exhibition">Exhibition Games</option>
-                </select>
+
+        <div class="header-right">
+            <select id="view-mode-select" class="form-select form-select-sm fw-bold">
+                <option value="patrol">Patrol Games</option>
+                <option value="troop">Troop Games</option>
+            </select>
+            <div class="form-check form-switch text-white">
+                <input class="form-check-input" type="checkbox" id="auto-refresh-switch">
+                <label class="form-check-label fw-bold" for="auto-refresh-switch">Live</label>
             </div>
-            <div class="form-check form-switch text-white" style="display:flex; align-items:center; gap:5px;" title="Auto-refresh data every 15s">
-                <input class="form-check-input" type="checkbox" id="auto-refresh-switch" style="cursor:pointer;">
-                <label class="form-check-label" for="auto-refresh-switch" style="cursor:pointer; font-weight:bold;">Live</label>
-            </div>
+            <a href="admin.html" class="header-back-link">⬅</a>
         </div>
+    </header>
         <nav class="hidden">
             <button id="nav-dashboard">Dashboard</button>
         </nav>
     </header>
 
     <main>
-        <!-- View 0: Dashboard (Landing) -->
-        <section id="view-dashboard" class="hidden">
-            <div class="dashboard-container">
-                <h2 class="dashboard-title">Camporee Collator</h2>
-
-                <div class="dashboard-grid">
-
-                    <button class="dashboard-link-btn" onclick="switchView('registration', true)">
-                        <span class="dashboard-icon">📋</span>
-                        Registration
-                    </button>
-
-                    <a href="official.html" class="dashboard-link-btn">
-                        <span class="dashboard-icon">⏱️</span>
-                        Scoring
-                    </a>
-
-                    <a href="utils.html#awards" class="dashboard-link-btn">
-                        <span class="dashboard-icon">🏆</span>
-                        Awards
-                    </a>
-
-                    <button class="dashboard-link-btn" onclick="switchView('judges', true)">
-                        <span class="dashboard-icon">⚖️</span>
-                        Judges
-                    </button>
-
-                    <a href="utils.html#debug" class="dashboard-link-btn">
-                        <span class="dashboard-icon">🛠️</span>
-                        System
-                    </a>
-
-                    <a href="utils.html#qrcode" class="dashboard-link-btn">
-                        <span class="dashboard-icon">📱</span>
-                        QR Gen
-                    </a>
-                </div>
-
-                <div class="mt-4">
-                    <a href="judge.html" class="btn btn-outline-secondary">Go to Field Judge App &rarr;</a>
-                </div>
-            </div>
-        </section>
-
         <!-- View 1: Overview -->
         <section id="view-overview" class="hidden">
             <div class="controls">
@@ -116,18 +67,6 @@
                 <table id="matrix-table">
                     <!-- Matrix content injected here -->
                 </table>
-            </div>
-        </section>
-
-        <!-- View 4: Registration (Tree) -->
-        <section id="view-registration" class="hidden">
-            <div class="controls">
-                <h2 class="hidden">Entity Registration</h2>
-                <button onclick="addEntity(null)" class="btn" style="background-color:#27ae60;">+ Add Troop</button>
-            </div>
-
-            <div id="roster-tree" style="display:block; border: 1px solid #ddd; border-radius: 4px; overflow: hidden; background: #fff;">
-                <!-- Tree Injected Here -->
             </div>
         </section>
 
@@ -168,15 +107,6 @@
                     <!-- Sticker Table Injected Here -->
                 </div>
             </div>
-        </section>
-
-        <!-- View 6: Judges Directory -->
-        <section id="view-judges" class="hidden">
-            <div class="controls" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h2>Judges Directory</h2>
-                <button id="btn-copy-emails" class="btn btn-secondary">📋 Copy All Emails</button>
-            </div>
-            <div id="judges-list" class="table-container"></div>
         </section>
 
         <!-- View 7: System & Debug -->
