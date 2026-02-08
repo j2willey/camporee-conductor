@@ -26,85 +26,6 @@
     </header>
 
     <main>
-        <!-- View 0: Dashboard (Landing) -->
-        <section id="view-dashboard" class="hidden">
-            <div style="display: flex; flex-direction: column; align-items: center; gap: 30px; margin-top: 50px;">
-                <h2 style="font-size: 2.5rem; color: #2c3e50;">Camporee Collator - Dashboard</h2>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; width: 100%; max-width: 900px;">
-                    <button class="dashboard-link-btn" onclick="switchView('registration', true)">
-                        <span style="font-size: 3rem;">📋</span>
-                        <br>Registration
-                    </button>
-                    <button class="dashboard-link-btn" onclick="switchView('overview', true)">
-                        <span style="font-size: 3rem;">⏱️</span>
-                        <br>Scoring
-                    </button>
-                    <button class="dashboard-link-btn" onclick="switchView('awards', true)">
-                        <span style="font-size: 3rem;">🏆</span>
-                        <br>Awards
-                    </button>
-                    <button class="dashboard-link-btn" onclick="switchView('judges', true)">
-                        <span style="font-size: 3rem;">⚖️</span>
-                        <br>Judges
-                    </button>
-                    <button class="dashboard-link-btn" onclick="switchView('debug', true)">
-                        <span style="font-size: 3rem;">🛠️</span>
-                        <br>System
-                    </button>
-                    <button class="dashboard-link-btn" onclick="switchView('qrcode', true)">
-                        <span style="font-size: 3rem;">📱</span>
-                        <br>QR Gen
-                    </button>
-                </div>
-            </div>
-        </section>
-
-        <!-- View 1: Overview -->
-        <section id="view-overview" class="hidden">
-            <div class="controls">
-                <h2 class="hidden">Game Overview</h2>
-            </div>
-            <div id="games-grid" class="dashboard-grid">
-                <!-- Cards injected here -->
-            </div>
-        </section>
-
-        <!-- View 2: Game Detail -->
-        <section id="view-detail" class="hidden">
-            <div class="controls hidden">
-                <h2 id="detail-title" class="hidden">Game Detail</h2>
-            </div>
-            <div class="table-container">
-                <table id="detail-table">
-                    <!-- Table content injected here -->
-                </table>
-            </div>
-        </section>
-
-        <!-- View 3: Matrix -->
-        <section id="view-matrix" class="hidden">
-            <div class="controls">
-                <h2 id="matrix-title" class="hidden">Leader Board</h2>
-            </div>
-            <div class="table-container">
-                <table id="matrix-table">
-                    <!-- Matrix content injected here -->
-                </table>
-            </div>
-        </section>
-
-        <!-- View 4: Registration (Tree) -->
-        <section id="view-registration" class="hidden">
-            <div class="controls">
-                <h2 class="hidden">Entity Registration</h2>
-                <button onclick="addEntity(null)" class="btn" style="background-color:#27ae60;">+ Add Troop</button>
-            </div>
-
-            <div id="roster-tree" style="display:block; border: 1px solid #ddd; border-radius: 4px; overflow: hidden; background: #fff;">
-                <!-- Tree Injected Here -->
-            </div>
-        </section>
-
         <!-- View 5: Awards -->
         <section id="view-awards" class="hidden">
             <div class="table-container">
@@ -142,15 +63,6 @@
                     <!-- Sticker Table Injected Here -->
                 </div>
             </div>
-        </section>
-
-        <!-- View 6: Judges Directory -->
-        <section id="view-judges" class="hidden">
-            <div class="controls" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h2>Judges Directory</h2>
-                <button id="btn-copy-emails" class="btn btn-secondary">📋 Copy All Emails</button>
-            </div>
-            <div id="judges-list" class="table-container"></div>
         </section>
 
         <!-- View 7: System & Debug -->

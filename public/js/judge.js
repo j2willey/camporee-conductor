@@ -1,5 +1,6 @@
 import { SyncManager } from './sync-manager.js';
 import { generateFieldHTML } from './core/ui.js';
+import { formatGameTitle } from './core/schema.js';
 
 const syncManager = new SyncManager();
 
@@ -264,15 +265,6 @@ function formatEntityLabel(e) {
         if (isRedundant || !name) return base;
         return `${base} ${name}`;
     }
-}
-
-function formatGameTitle(game) {
-    if (!game) return '';
-    if (game.name.match(/^(Game|Exhibition|p\d)/i)) return game.name;
-    const match = game.id.match(/(\d+)/);
-    const num = match ? match[1] : '';
-    if (num) return `Game ${num}. ${game.name}`;
-    return game.name;
 }
 
 // --- Standard Entity & Form Logic ---

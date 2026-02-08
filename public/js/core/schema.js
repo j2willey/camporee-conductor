@@ -46,3 +46,44 @@ export function normalizeGameDefinition(gameDef, playlistOrder = 0) {
 
     return game;
 }
+/**
+ * Common Utility Functions
+ */
+
+export function formatGameTitle(game) {
+    if (!game) return '';
+    // If name already has "Game" or number prefix, assume legacy and leave it
+    if (game.name.match(/^(Game|Exhibition|p\d)/i)) return game.name;
+
+    // Extract Number from ID (p1 -> 1, t10 -> 10)
+    const match = game.id.match(/(\d+)/);
+    const num = match ? match[1] : '';
+
+    if (num) return `Game ${num}. ${game.name}`;
+    return game.name; // Fallback for Exhibition etc
+}
+
+export function getOrdinalSuffix(i) {
+    const j = i % 10, k = i % 100;
+    if (j == 1 && k != 11) {
+        return i + "st";
+    }
+    if (j == 2 && k != 12) {
+        return i + "nd";
+    }
+    if (j == 3 && k != 13) {
+        return i + "rd";
+    }
+    return i + "th";
+}
+
+export function getPointsForRank(r) {
+    const m = String(r).match(/\d+/);
+    const n = m ? parseInt(m[0]) : 999;
+    if (n === 1) return 100;
+    if (n === 2) return 90;
+    if (n === 3) return 80;
+    if (n === 4) return 70;
+    if (n === 5) return 60;
+    return 50;
+}

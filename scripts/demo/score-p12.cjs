@@ -5,7 +5,7 @@ const gameName = "Stepping Shells";
 const judgeInfo = {
     name: "Demo Judge 4",
     email: "demojudge4@acme.com",
-    unit: "Troop 612"
+    unit: "Troop 580"
 };
 const patrols = [
   {

@@ -5,7 +5,7 @@ const gameName = "Compass Game";
 const judgeInfo = {
     name: "Demo Judge 18",
     email: "demojudge18@acme.com",
-    unit: "District"
+    unit: "Troop 185"
 };
 const patrols = [
   {
