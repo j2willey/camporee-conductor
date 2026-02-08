@@ -51,21 +51,33 @@ export class SyncManager {
                 });
 
                 if (response.ok) {
-                    // Mark as synced locally or remove?
-                    // To keep history, we mark as synced. To save space, we remove.
-                    // Let's mark as synced so user has a record.
+                    // SAFE PARSING: Chrome forgives empty JSON, Safari throws.
+                    // Even if we don't use the result, parsing it ensures the stream is drained.
+                    if (response.status !== 204) {
+                        try {
+                            await response.json();
+                        } catch (parseErr) {
+                            // If it's not valid JSON but the status was OK, we can often ignore
+                            // but Safari might be sensitive to unconsumed bodies.
+                        }
+                    }
+
                     const index = newQueue.findIndex(q => q.uuid === item.uuid);
                     if (index !== -1) {
                          newQueue[index]._synced = true;
                     }
                     successCount++;
                 } else {
-                    console.error('Server refused:', await response.text());
+                    const errorText = await response.text();
+                    console.error('Server refused:', errorText);
                     errorCount++;
+                    throw new Error(`Server Error: ${response.status} ${errorText}`);
                 }
             } catch (err) {
-                console.error('Network error during sync:', err);
+                console.error('Network or Parsing error during sync:', err);
                 errorCount++;
+                // Rethrow so the UI (judge.js) can catch it and alert the user.
+                throw err;
             }
         }
 

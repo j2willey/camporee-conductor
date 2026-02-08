@@ -416,8 +416,8 @@ function saveDraft() {
     localStorage.setItem('coyote_drafts', JSON.stringify(drafts));
 }
 
-function submitScore(e) {
-    e.preventDefault();
+async function submitScore(e) {
+    if (e && e.preventDefault) e.preventDefault();
     if(!state.currentStation || !state.currentEntity) return;
     const payload = {};
     const fields = [...(state.currentStation.fields||[]), ...(state.config.common_scoring||[])];
@@ -448,11 +448,22 @@ function submitScore(e) {
     const drafts = JSON.parse(localStorage.getItem('coyote_drafts') || '{}');
     delete drafts[draftKey];
     localStorage.setItem('coyote_drafts', JSON.stringify(drafts));
-    updateSyncCounts();
-    alert('Score Saved!');
-    renderEntityList();
-    navigate('entity');
-    if(state.isOnline) syncManager.sync().then(updateSyncCounts);
+
+    try {
+        if(state.isOnline) {
+            await syncManager.sync();
+        }
+        updateSyncCounts();
+        renderEntityList();
+        alert('Score Saved!');
+        navigate('entity');
+    } catch (err) {
+        console.error("Sync Error:", err);
+        updateSyncCounts();
+        renderEntityList();
+        alert("⚠️ Score Saved Locally\n\nHowever, it failed to sync to the server:\n" + err.message);
+        navigate('entity');
+    }
 }
 
 // --- STOPWATCH LOGIC ---
@@ -1001,7 +1012,7 @@ function bracketScratchTeam(eid) {
 }
 
 // 3. Quick Save Logic
-function bracketQuickSave(heatIdx) {
+async function bracketQuickSave(heatIdx) {
     const gameId = state.currentStation.id;
     const round = state.bracketData[gameId].rounds[state.currentRoundIdx];
     const heat = round.heats[heatIdx];
@@ -1019,10 +1030,17 @@ function bracketQuickSave(heatIdx) {
 
     saveBracketState();
     updateSyncCounts();
-    if (state.isOnline) syncManager.sync();
 
-    renderBracketRound();
-    // Don't alert, just update UI (Speed!)
+    try {
+        if (state.isOnline) {
+            await syncManager.sync();
+        }
+        renderBracketRound();
+    } catch (err) {
+        console.error("Quick Sync failed:", err);
+        renderBracketRound();
+        alert("⚠️ Saved Locally. Sync failed: " + err.message);
+    }
 }
 
 function bracketAdvanceRound() {
@@ -1254,59 +1272,69 @@ function bracketOpenHeat(heatIdx) {
     navigate('bracketHeat');
 }
 
-function bracketSaveHeat() {
+async function bracketSaveHeat() {
     const gameId = state.currentStation.id;
     const round = state.bracketData[gameId].rounds[state.currentRoundIdx];
     const heat = round.heats.find(h => h.id === state.currentHeatId);
     if (!heat) return;
 
-    document.querySelectorAll('.entity-score-row').forEach(row => {
-        const eid = row.dataset.id;
-        const payload = {};
-        const fields = [...(state.currentStation.fields||[]), ...(state.config.common_scoring||[])];
+    try {
+        document.querySelectorAll('.entity-score-row').forEach(row => {
+            const eid = row.dataset.id;
+            const payload = {};
+            const fields = [...(state.currentStation.fields||[]), ...(state.config.common_scoring||[])];
 
-        fields.forEach(f => {
-             if (f.type === 'timed' || f.type === 'stopwatch') {
-                 const mm = row.querySelector(`.heat-input-mm[data-fid="${f.id}"]`)?.value || '00';
-                 const ss = row.querySelector(`.heat-input-ss[data-fid="${f.id}"]`)?.value || '00';
-                 payload[f.id] = `${mm.padStart(2,'0')}:${ss.padStart(2,'0')}`;
-             } else if (f.type === 'boolean') {
-                 const el = row.querySelector(`.heat-input-bool[data-fid="${f.id}"]`);
-                 payload[f.id] = el ? el.checked : false;
-             } else {
-                 const el = row.querySelector(`.heat-input[data-fid="${f.id}"]`);
-                 if(el) payload[f.id] = el.value;
-             }
+            fields.forEach(f => {
+                 if (f.type === 'timed' || f.type === 'stopwatch') {
+                     const mm = row.querySelector(`.heat-input-mm[data-fid="${f.id}"]`)?.value || '00';
+                     const ss = row.querySelector(`.heat-input-ss[data-fid="${f.id}"]`)?.value || '00';
+                     payload[f.id] = `${mm.padStart(2,'0')}:${ss.padStart(2,'0')}`;
+                 } else if (f.type === 'boolean') {
+                     const el = row.querySelector(`.heat-input-bool[data-fid="${f.id}"]`);
+                     payload[f.id] = el ? el.checked : false;
+                 } else {
+                     const el = row.querySelector(`.heat-input[data-fid="${f.id}"]`);
+                     if(el) payload[f.id] = el.value;
+                 }
+            });
+
+            // Updated Logic: Check for 'active' class on the span instead of checkbox
+            const shouldAdvance = row.querySelector('.advance-star').classList.contains('active');
+            heat.results[eid] = { ...payload, advance: shouldAdvance };
+
+            if (!heat.results[eid].uuid) heat.results[eid].uuid = crypto.randomUUID();
+
+            const serverPayload = { ...payload, heat: heat.name, round: round.name };
+            const packet = {
+                uuid: heat.results[eid].uuid,
+                game_id: gameId,
+                entity_id: eid,
+                score_payload: serverPayload,
+                timestamp: Date.now(),
+                judge_name: els.judgeName.value,
+                judge_email: els.judgeEmail.value,
+                judge_unit: els.judgeUnit.value
+            };
+            syncManager.addToQueue(packet);
         });
 
-        // Updated Logic: Check for 'active' class on the span instead of checkbox
-        const shouldAdvance = row.querySelector('.advance-star').classList.contains('active');
-        heat.results[eid] = { ...payload, advance: shouldAdvance };
+        heat.complete = true;
+        saveBracketState();
+        updateSyncCounts();
 
-        if (!heat.results[eid].uuid) heat.results[eid].uuid = crypto.randomUUID();
+        if (state.isOnline) {
+            await syncManager.sync();
+        }
 
-        const serverPayload = { ...payload, heat: heat.name, round: round.name };
-        const packet = {
-            uuid: heat.results[eid].uuid,
-            game_id: gameId,
-            entity_id: eid,
-            score_payload: serverPayload,
-            timestamp: Date.now(),
-            judge_name: els.judgeName.value,
-            judge_email: els.judgeEmail.value,
-            judge_unit: els.judgeUnit.value
-        };
-        syncManager.addToQueue(packet);
-    });
-
-    heat.complete = true;
-    saveBracketState();
-    updateSyncCounts();
-    if (state.isOnline) syncManager.sync();
-
-    renderBracketRound();
-    alert("Heat Saved.");
-    navigate('bracketRound');
+        renderBracketRound();
+        alert("Heat Saved.");
+        navigate('bracketRound');
+    } catch (err) {
+        console.error("Heat Save Error:", err);
+        renderBracketRound();
+        navigate('bracketRound');
+        alert("⚠️ Heat Saved Locally\n\nHowever, it failed to sync to the server:\n" + err.message);
+    }
 }
 
 // --- PODIUM / END GAME LOGIC (Auto-Ranking) ---
@@ -1411,7 +1439,7 @@ function togglePodiumModal(show) {
     else m.classList.add('hidden');
 }
 
-function bracketSubmitPodium() {
+async function bracketSubmitPodium() {
     const s = state.currentStation;
 
     // Scrape data from the table rows
@@ -1452,12 +1480,19 @@ function bracketSubmitPodium() {
         syncManager.addToQueue(packet);
     });
 
-    if (state.isOnline) syncManager.sync();
-
-    togglePodiumModal(false);
-    alert("🏆 Results Submitted! Thank you.");
-
-    navigate('home');
+    try {
+        if (state.isOnline) {
+            await syncManager.sync();
+        }
+        togglePodiumModal(false);
+        alert("🏆 Results Submitted! Thank you.");
+        navigate('home');
+    } catch (err) {
+        console.error("Podium Sync Failed:", err);
+        togglePodiumModal(false);
+        alert("⚠️ Results Saved Locally\n\nHowever, it failed to sync to the server:\n" + err.message);
+        navigate('home');
+    }
 }
 
 
@@ -1548,11 +1583,21 @@ async function promptNewEntity(type) {
     try {
         const r = await fetch('/api/entities', { method: 'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:n, type, troop_number:t}) });
         if(r.ok) {
-            state.entities.push(await r.json());
+            // SAFE PARSING: Chrome forgives empty JSON, Safari throws.
+            if (r.status !== 204) {
+                const data = await r.json();
+                state.entities.push(data);
+            }
             localStorage.setItem('coyote_entities', JSON.stringify(state.entities));
             renderEntityList();
+        } else {
+             const err = await r.text();
+             alert("Error creating entity: " + err);
         }
-    } catch(e) { alert("Error"); }
+    } catch(e) {
+        console.error("New Entity Error:", e);
+        alert("Network Error: " + e.message);
+    }
 }
 
 function showEntitySelect() { navigate('entity'); }
