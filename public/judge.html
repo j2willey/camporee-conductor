@@ -196,7 +196,8 @@
                         <tr>
                             <th scope="col" class="ps-3">Team</th>
                             <th scope="col">Outcome</th>
-                            <th scope="col" style="width: 100px;" class="text-center">Rank</th>
+                            <th scope="col" style="width: 50px;"></th>
+                            <th scope="col" style="width: 80px;" class="text-center">Rank</th>
                         </tr>
                     </thead>
                     <tbody id="podium-list">
@@ -205,7 +206,8 @@
             </div>
 
             <div class="card-footer bg-white border-top p-3 d-grid gap-2">
-                <button class="btn btn-success btn-lg fw-bold" onclick="app.bracketSubmitPodium()">CONFIRM RESULTS</button>
+                <div id="podium-challenge-container"></div>
+                <button id="btn-podium-submit" class="btn btn-success btn-lg fw-bold" onclick="app.bracketSubmitPodium()">FINALIZE & SUBMIT</button>
                 <button class="btn btn-outline-secondary" onclick="app.togglePodiumModal(false)">Cancel</button>
             </div>
         </div>

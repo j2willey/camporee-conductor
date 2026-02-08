@@ -1,6 +1,6 @@
 import { SyncManager } from './sync-manager.js';
 import { generateFieldHTML } from './core/ui.js';
-import { formatGameTitle, getEventStatus, generateUUID } from './core/schema.js';
+import { formatGameTitle, getEventStatus, generateUUID, getOrdinalSuffix } from './core/schema.js';
 
 const syncManager = new SyncManager();
 
@@ -579,6 +579,16 @@ function saveBracketState() {
     localStorage.setItem('coyote_bracket_data', JSON.stringify(state.bracketData));
 }
 
+function getBracketRoundList(gameId) {
+    const bracket = state.bracketData[gameId];
+    if (!bracket) return [];
+    if (state.bracketMode === 'consolation') {
+        if (!bracket.consolation_rounds) bracket.consolation_rounds = [{ name: "Consolation Rd 1", pool: [], heats: [] }];
+        return bracket.consolation_rounds;
+    }
+    return bracket.rounds || [];
+}
+
 // 1. LOBBY
 function renderBracketLobby() {
     const s = state.currentStation;
@@ -682,16 +692,20 @@ function bracketStartEvent() {
     if (checked.length < 2) return alert("Select at least 2 teams.");
 
     let bracket = state.bracketData[s.id];
+    let roundList = getBracketRoundList(s.id);
 
-    if (!bracket || !bracket.rounds || bracket.rounds.length === 0) {
-        // CASE A: NEW EVENT
-        state.bracketData[s.id] = {
-            rounds: [{ name: "Round 1", pool: checked, heats: [] }]
-        };
+    if (roundList.length === 0) {
+        // CASE A: NEW EVENT (or New Mode)
+        const newRound = { name: (state.bracketMode === 'consolation' ? 'Consolation ' : '') + "Round 1", pool: checked, heats: [] };
+        if (state.bracketMode === 'consolation') {
+            bracket.consolation_rounds = [newRound];
+        } else {
+            bracket.rounds = [newRound];
+        }
         state.currentRoundIdx = 0;
     } else {
         // CASE B: LATE ADD (Update Existing)
-        const round = bracket.rounds[state.currentRoundIdx];
+        const round = roundList[state.currentRoundIdx];
 
         // 1. Identify who is already here
         const existing = new Set([...round.pool]);
@@ -721,13 +735,10 @@ function renderBracketRound() {
     const bracket = state.bracketData[gameId];
 
     // SELECT DATA SOURCE BASED ON MODE
-    let roundList;
+    let roundList = getBracketRoundList(gameId);
     if (state.bracketMode === 'consolation') {
-        if (!bracket.consolation_rounds) bracket.consolation_rounds = [{ name: "Consolation Rd 1", pool: [], heats: [] }];
-        roundList = bracket.consolation_rounds;
         document.getElementById('header-title').textContent = `${state.currentStation.name} (2nd Try)`;
     } else {
-        roundList = bracket.rounds;
         document.getElementById('header-title').textContent = state.currentStation.name;
     }
 
@@ -888,24 +899,24 @@ function renderBracketRound() {
                 saveBracketState();
                 renderBracketRound(); // Re-render to toggle inputs vs stars
                 if (isFinal) {
-                    advanceBtn.innerHTML = "🏆 SUBMIT FINAL RESULTS";
+                    advanceBtn.innerHTML = "🔍 REVIEW RESULTS";
                     advanceBtn.classList.remove('btn-success');
-                    advanceBtn.classList.add('btn-warning');
+                    advanceBtn.classList.add('btn-primary');
                 } else {
                     advanceBtn.innerHTML = "NEXT ROUND >>";
-                    advanceBtn.classList.remove('btn-warning');
+                    advanceBtn.classList.remove('btn-primary');
                     advanceBtn.classList.add('btn-success');
                 }
             };
             document.getElementById('chk-is-final').onchange = updateButton;
             // Ensure button state is correct on load
              if (round.isFinalRound) {
-                    advanceBtn.innerHTML = "🏆 SUBMIT FINAL RESULTS";
+                    advanceBtn.innerHTML = "🔍 REVIEW RESULTS";
                     advanceBtn.classList.remove('btn-success');
-                    advanceBtn.classList.add('btn-warning');
+                    advanceBtn.classList.add('btn-primary');
             } else {
                     advanceBtn.innerHTML = "NEXT ROUND >>";
-                    advanceBtn.classList.remove('btn-warning');
+                    advanceBtn.classList.remove('btn-primary');
                     advanceBtn.classList.add('btn-success');
             }
         } else {
@@ -954,7 +965,10 @@ function bracketSwitchMode(mode) {
 // 1. Unified Bye Logic
 function bracketGrantBye(eid) {
     const gameId = state.currentStation.id;
-    const round = state.bracketData[gameId].rounds[state.currentRoundIdx];
+    const roundList = getBracketRoundList(gameId);
+    const round = roundList[state.currentRoundIdx];
+
+    if (!round) return;
 
     // Find or Create a "Byes" heat
     let byeHeat = round.heats.find(h => h.name === "Byes");
@@ -973,7 +987,9 @@ function bracketGrantBye(eid) {
     const poolIdx = round.pool.indexOf(eid);
     if (poolIdx > -1) round.pool.splice(poolIdx, 1);
 
-    byeHeat.teams.push(eid);
+    if (!byeHeat.teams.includes(eid)) {
+        byeHeat.teams.push(eid);
+    }
     byeHeat.results[eid] = { advance: true, notes: "Bye" }; // Auto-advance
 
     saveBracketState();
@@ -985,7 +1001,10 @@ function bracketScratchTeam(eid) {
     if (!confirm("Scratch this team? They will be removed from the tournament.")) return;
 
     const gameId = state.currentStation.id;
-    const round = state.bracketData[gameId].rounds[state.currentRoundIdx];
+    const roundList = getBracketRoundList(gameId);
+    const round = roundList[state.currentRoundIdx];
+
+    if (!round) return;
 
     // Find or Create a "Scratched" heat (to keep record)
     let scratchHeat = round.heats.find(h => h.name === "Scratched");
@@ -1004,7 +1023,9 @@ function bracketScratchTeam(eid) {
     const poolIdx = round.pool.indexOf(eid);
     if (poolIdx > -1) round.pool.splice(poolIdx, 1);
 
-    scratchHeat.teams.push(eid);
+    if (!scratchHeat.teams.includes(eid)) {
+        scratchHeat.teams.push(eid);
+    }
     scratchHeat.results[eid] = { advance: false, notes: "Scratched" }; // Do NOT advance
 
     saveBracketState();
@@ -1014,8 +1035,11 @@ function bracketScratchTeam(eid) {
 // 3. Quick Save Logic
 async function bracketQuickSave(heatIdx) {
     const gameId = state.currentStation.id;
-    const round = state.bracketData[gameId].rounds[state.currentRoundIdx];
+    const roundList = getBracketRoundList(gameId);
+    const round = roundList[state.currentRoundIdx];
     const heat = round.heats[heatIdx];
+
+    if (!heat) return;
 
     // Validate: At least one person must be marked (Advance or Not)
     // Actually, simply clicking save is enough to "Complete" it.
@@ -1093,16 +1117,7 @@ function bracketAdvanceRound() {
     const shouldFinish = (finalCheckbox && isExplicitFinal) || (!finalCheckbox && winners.length === 1);
 
     if (shouldFinish) {
-        // Collect Manual Ranks from Heats
-        const manualRanks = {};
-        round.heats.forEach(h => {
-            h.teams.forEach(eid => {
-                if (h.results[eid] && h.results[eid].rank) {
-                    manualRanks[eid] = h.results[eid].rank;
-                }
-            });
-        });
-        openPodiumModal(winners, losers, manualRanks);
+        openPodiumModal();
         return;
     }
 
@@ -1173,7 +1188,8 @@ function bracketAdvanceRound() {
 
 function bracketUpdateRank(heatIdx, eid, val) {
     const gameId = state.currentStation.id;
-    const round = state.bracketData[gameId].rounds[state.currentRoundIdx];
+    const roundList = getBracketRoundList(gameId);
+    const round = roundList[state.currentRoundIdx];
     const heat = round.heats[heatIdx];
 
     if (!heat.results[eid]) heat.results[eid] = {};
@@ -1189,9 +1205,10 @@ function bracketUpdateRank(heatIdx, eid, val) {
 }
 
 function bracketToggleAdvance(heatIdx, eid, event) {
-    event.stopPropagation();
+    if (event && event.stopPropagation) event.stopPropagation();
     const gameId = state.currentStation.id;
-    const round = state.bracketData[gameId].rounds[state.currentRoundIdx];
+    const roundList = getBracketRoundList(gameId);
+    const round = roundList[state.currentRoundIdx];
     const heat = round.heats[heatIdx];
     if(!heat.results[eid]) heat.results[eid] = {};
     heat.results[eid].advance = !heat.results[eid].advance;
@@ -1203,7 +1220,8 @@ function bracketCreateHeat() {
     const checked = Array.from(document.querySelectorAll('.form-check-pool:checked')).map(cb => cb.value);
     if (checked.length === 0) return alert("Select teams from pool first.");
     const gameId = state.currentStation.id;
-    const round = state.bracketData[gameId].rounds[state.currentRoundIdx];
+    const roundList = getBracketRoundList(gameId);
+    const round = roundList[state.currentRoundIdx];
     round.pool = round.pool.filter(id => !checked.includes(id));
     const heatNum = round.heats.length + 1;
     round.heats.push({ id: Date.now(), name: `Heat ${heatNum}`, teams: checked, complete: false, results: {} });
@@ -1220,7 +1238,8 @@ function toggleHeatAdvance(el) {
 
 function bracketOpenHeat(heatIdx) {
     const gameId = state.currentStation.id;
-    const round = state.bracketData[gameId].rounds[state.currentRoundIdx];
+    const roundList = getBracketRoundList(gameId);
+    const round = roundList[state.currentRoundIdx];
     const heat = round.heats[heatIdx];
     state.currentHeatId = heat.id;
     document.getElementById('heat-title').innerText = `${round.name} - ${heat.name}`;
@@ -1274,7 +1293,8 @@ function bracketOpenHeat(heatIdx) {
 
 async function bracketSaveHeat() {
     const gameId = state.currentStation.id;
-    const round = state.bracketData[gameId].rounds[state.currentRoundIdx];
+    const roundList = getBracketRoundList(gameId);
+    const round = roundList[state.currentRoundIdx];
     const heat = round.heats.find(h => h.id === state.currentHeatId);
     if (!heat) return;
 
@@ -1337,127 +1357,261 @@ async function bracketSaveHeat() {
     }
 }
 
-// --- PODIUM / END GAME LOGIC (Auto-Ranking) ---
+// --- PODIUM / END GAME LOGIC (Review & Finalize) ---
 
-function openPodiumModal(winners, losers, manualRanks = {} ) {
+function openPodiumModal() {
     const gameId = state.currentStation.id;
-    const rounds = state.bracketData[gameId].rounds;
+    const bracket = state.bracketData[gameId];
+    if (!bracket) return;
 
-    // 1. Calculate Standings
-    const standings = [];
+    // 1. Gather Standings structure
+    let standings = [];
 
-    // A. Add Final Round results
-    // If we have manual ranks, use them!
-    if (Object.keys(manualRanks).length > 0) {
-        // Add everyone who has a rank
-        Object.keys(manualRanks).forEach(eid => {
-            standings.push({
-                id: eid,
-                rank: manualRanks[eid],
-                note: `Ranked ${manualRanks[eid]}`
-            });
+    const getMainFinalResults = () => {
+        const rounds = bracket.rounds || [];
+        if (rounds.length === 0) return { winner: null, loser: null };
+        const final = rounds[rounds.length - 1];
+        let winner = null, loser = null;
+        final.heats.forEach(h => {
+             if (h.complete) {
+                 h.teams.forEach(tid => {
+                     const res = h.results[tid];
+                     if (res && res.advance) winner = tid;
+                     else loser = tid;
+                 });
+             }
         });
+        return { winner, loser };
+    };
 
-        // Add anyone else in the final round as generic "Finalist" if they missed a rank
-        const finalParticipants = [...winners, ...losers];
-        finalParticipants.forEach(id => {
-            if (!manualRanks[id]) {
-                 standings.push({ id, rank: 99, note: "Finalist (Unranked)" });
-            }
-        });
+    const getConsFinalResults = () => {
+        const rounds = bracket.consolation_rounds || [];
+        if (rounds.length === 0) return { winner: null, loser: null, complete: true };
+        const final = rounds[rounds.length - 1];
+        let winner = null, loser = null, complete = false;
 
-    } else {
-        // Fallback to old Winner/Loser logic
-        winners.forEach(id => standings.push({ id, rank: 1, note: "Winner" }));
-        losers.forEach(id => standings.push({ id, rank: 2, note: "Finalist" }));
-    }
-
-    // B. Walk backwards (Unchanged logic for previous eliminations...)
-    let currentRank = 1 + winners.length + losers.length;
-
-    // Iterate backwards from the Semi-Finals (rounds.length - 2) down to Round 1
-    for (let i = rounds.length - 2; i >= 0; i--) {
-        const round = rounds[i];
-        const nextRound = rounds[i+1];
-
-        // Find teams in THIS round who did NOT appear in the NEXT round's pool or heats
-        // (i.e., they were eliminated here)
-        const advancers = new Set([
-            ...nextRound.pool,
-            ...nextRound.heats.flatMap(h => h.teams)
-        ]);
-
-        const roundParticipants = [
-            ...round.pool,
-            ...round.heats.flatMap(h => h.teams)
-        ];
-
-        const eliminated = roundParticipants.filter(id => !advancers.has(id));
-
-        eliminated.forEach(id => {
-            // Check if they were already added (e.g. via scratched/bye weirdness)
-            if (!standings.find(s => s.id === id)) {
-                standings.push({
-                    id,
-                    rank: currentRank,
-                    note: `Eliminated in ${round.name}`
+        // A round is complete if all heats are complete
+        if (final.heats.length > 0 && final.heats.every(h => h.complete)) {
+            complete = true;
+            final.heats.forEach(h => {
+                h.teams.forEach(tid => {
+                    const res = h.results[tid];
+                    if (res && res.advance) winner = tid;
+                    else loser = tid;
                 });
-            }
-        });
+            });
+        }
+        return { winner, loser, complete };
+    };
 
-        // Increment rank for the next batch (Ties share the same rank)
-        // e.g. If 2 teams were eliminated in Semis, the next group is 5th place.
-        currentRank += eliminated.length;
+    const main = getMainFinalResults();
+    const cons = getConsFinalResults();
+
+    // 2. CHECK FOR CHALLENGE MATCHES
+    // We look for a special round or heat. Let's look for a round named "Challenge Match"
+    const challengeRound = (bracket.rounds || []).find(r => r.name === "Challenge Match");
+    let challengeWinner = null, challengeLoser = null;
+    if (challengeRound && challengeRound.heats[0] && challengeRound.heats[0].complete) {
+        const h = challengeRound.heats[0];
+        h.teams.forEach(tid => {
+            if (h.results[tid]?.advance) challengeWinner = tid;
+            else challengeLoser = tid;
+        });
     }
 
-    // Sort by Rank
-    standings.sort((a,b) => a.rank - b.rank);
+    // 3. Build Ordered List
+    if (main.winner) standings.push({ id: main.winner, note: "Main Winner", rank: 1 });
 
-    // 2. Render Table
+    if (challengeWinner) {
+        // If challenge happened, the winner of that is definitely 2nd.
+        standings.push({ id: challengeWinner, note: "Challenge Winner", rank: 2 });
+        standings.push({ id: challengeLoser, note: "Challenge Loser", rank: 3 });
+    } else {
+        if (main.loser) standings.push({ id: main.loser, note: "Main Runner-up", rank: 2 });
+        if (cons.winner) standings.push({ id: cons.winner, note: "Consolation Winner", rank: 3 });
+    }
+
+    if (cons.loser) standings.push({ id: cons.loser, note: "Consolation Runner-up", rank: 4 });
+
+    // 4. Fill in the gaps (Eliminated players) with "Best Effort" Tie logic
+    const topIds = new Set(standings.map(s => s.id));
+    const others = [];
+
+    const allParticipants = new Set();
+    [...(bracket.rounds || []), ...(bracket.consolation_rounds || [])].forEach(r => {
+        r.pool.forEach(id => allParticipants.add(id));
+        r.heats.forEach(h => h.teams.forEach(id => allParticipants.add(id)));
+    });
+
+    Array.from(allParticipants).forEach(id => {
+        if (!topIds.has(id)) {
+            let highestRoundIdx = -1;
+            // Rank primarily by how far they got in the Main bracket
+            (bracket.rounds || []).forEach((r, idx) => {
+                if (r.pool.includes(id) || r.heats.some(h => h.teams.includes(id))) {
+                    highestRoundIdx = idx;
+                }
+            });
+            others.push({ id, roundIdx: highestRoundIdx, note: "Eliminated" });
+        }
+    });
+
+    // Sort others by the round they reached (higher is better)
+    others.sort((a, b) => b.roundIdx - a.roundIdx);
+    standings.push(...others);
+
+    // Store in state so moveRank and render can work
+    state.currentStandings = standings;
+
+    renderPodiumTable();
+
+    // Challenge Match Logic
+    const challengeContainer = document.getElementById('podium-challenge-container');
+    const submitBtn = document.getElementById('btn-podium-submit');
+
+    if (challengeContainer) {
+        if (!cons.complete) {
+            challengeContainer.innerHTML = `<div class="alert alert-warning py-2 small mb-0">⚠️ Consolation Bracket Incomplete. Finished it to enable Challenge Match or Finalize.</div>`;
+            if (submitBtn) submitBtn.disabled = true;
+        } else if (!challengeWinner && main.loser && cons.winner) {
+            challengeContainer.innerHTML = `
+                <button class="btn btn-outline-primary w-100 fw-bold" onclick="app.bracketCreateChallengeMatch()">
+                    ⚔️ CREATE CHALLENGE MATCH (2nd vs 3rd)
+                </button>
+                <div class="text-center small text-muted mt-1">Challenge: ${formatEntityLabel(state.entities.find(e => e.id === main.loser))} vs ${formatEntityLabel(state.entities.find(e => e.id === cons.winner))}</div>
+            `;
+            if (submitBtn) submitBtn.disabled = false;
+        } else {
+            challengeContainer.innerHTML = '';
+            if (submitBtn) submitBtn.disabled = false;
+        }
+    }
+
+    togglePodiumModal(true);
+}
+
+function renderPodiumTable() {
     const tbody = document.getElementById('podium-list');
-    tbody.innerHTML = standings.map(s => {
+    if (!tbody) return;
+
+    // Tie-aware rank assignment based on current list order
+    const getTieKey = (item) => {
+        // Top spots (1-4) are distinct by their specific outcomes
+        const distinct = ["Main Winner", "Challenge Winner", "Challenge Loser", "Main Runner-up", "Consolation Winner", "Consolation Runner-up"];
+        if (distinct.includes(item.note)) return item.id;
+        // Others are tied if they were eliminated in the same round
+        return `elim-r${item.roundIdx}`;
+    };
+
+    let lastKey = null;
+    let lastRank = 0;
+    state.currentStandings.forEach((s, idx) => {
+        const currentKey = getTieKey(s);
+        if (currentKey === lastKey) {
+            s.rank = lastRank;
+        } else {
+            s.rank = idx + 1;
+            lastRank = s.rank;
+            lastKey = currentKey;
+        }
+    });
+
+    tbody.innerHTML = state.currentStandings.map((s, idx) => {
         const e = state.entities.find(x => x.id === s.id);
         const label = formatEntityLabel(e);
 
         return `
         <tr data-id="${s.id}">
-            <td class="ps-3 fw-bold">${label}</td>
+            <td class="fw-bold ps-3">${label}</td>
             <td class="text-muted small">${s.note}</td>
+            <td class="px-0">
+                <div class="d-flex flex-column align-items-center">
+                    <button class="btn btn-sm btn-dark py-0 mb-1 ${idx === 0 ? 'invisible' : ''}" style="font-size: 0.7rem; width: 34px; height: 20px;" onclick="app.bracketMoveRank(${idx}, -1)">▲</button>
+                    <button class="btn btn-sm btn-dark py-0 ${idx === state.currentStandings.length - 1 ? 'invisible' : ''}" style="font-size: 0.7rem; width: 34px; height: 20px;" onclick="app.bracketMoveRank(${idx}, 1)">▼</button>
+                </div>
+            </td>
             <td class="text-center">
-                <input type="number" class="form-control text-center fw-bold mx-auto"
-                       value="${s.rank}" min="1" style="width: 70px;">
+                <input type="number" class="form-control text-center fw-bold mx-auto px-1"
+                       value="${s.rank}" min="1" style="width: 50px;" onchange="app.bracketSetRankManual(${idx}, this.value)">
             </td>
         </tr>`;
     }).join('');
-
-    togglePodiumModal(true);
 }
 
-function togglePodiumModal(show) {
-    const m = document.getElementById('podium-modal');
-    if (show) m.classList.remove('hidden');
-    else m.classList.add('hidden');
+function bracketMoveRank(idx, delta) {
+    const target = idx + delta;
+    if (target < 0 || target >= state.currentStandings.length) return;
+
+    const arr = state.currentStandings;
+    [arr[idx], arr[target]] = [arr[target], arr[idx]];
+
+    renderPodiumTable();
+}
+
+function bracketSetRankManual(idx, val) {
+    const newVal = parseInt(val);
+    if (!isNaN(newVal)) {
+        state.currentStandings[idx].rank = newVal;
+    }
+}
+
+function bracketCreateChallengeMatch() {
+    const gameId = state.currentStation.id;
+    const bracket = state.bracketData[gameId];
+
+    // Find the teams
+    const mainRounds = bracket.rounds;
+    const final = mainRounds[mainRounds.length - 1];
+    let mainLoser = null;
+    final.heats.forEach(h => {
+        h.teams.forEach(tid => {
+            if (!h.results[tid]?.advance) mainLoser = tid;
+        });
+    });
+
+    const consRounds = bracket.consolation_rounds;
+    const consFinal = consRounds[consRounds.length - 1];
+    let consWinner = null;
+    consFinal.heats.forEach(h => {
+        h.teams.forEach(tid => {
+            if (h.results[tid]?.advance) consWinner = tid;
+        });
+    });
+
+    if (!mainLoser || !consWinner) return alert("Could not identify 2nd and 3rd place teams.");
+
+    // Create the New Round
+    const challengeRound = {
+        name: "Challenge Match",
+        pool: [],
+        heats: [{
+            id: generateUUID(),
+            name: "Final Challenge (2nd Place)",
+            teams: [mainLoser, consWinner],
+            complete: false,
+            results: {}
+        }]
+    };
+
+    bracket.rounds.push(challengeRound);
+    state.currentRoundIdx = bracket.rounds.length - 1;
+    state.bracketMode = 'main'; // Switch back to main to show the challenge
+
+    saveBracketState();
+    togglePodiumModal(false);
+    renderBracketRound();
+    navigate('bracketRound');
 }
 
 async function bracketSubmitPodium() {
     const s = state.currentStation;
 
-    // Scrape data from the table rows
-    const rows = document.querySelectorAll('#podium-list tr');
-    const results = [];
-
-    rows.forEach(row => {
-        const eid = row.getAttribute('data-id');
-        const rankInput = row.querySelector('input');
-        const rank = parseInt(rankInput.value);
-
-        if (eid && rank) {
-            results.push({
-                entity_id: eid,
-                rank: rank
-            });
-        }
-    });
+    // Scrape data from the current Standings (Ordered list)
+    // We use the rank property which includes tie logic
+    const results = state.currentStandings.map(s => ({
+        entity_id: s.id,
+        rank: s.rank
+    }));
 
     if (results.length === 0) return alert("No results found.");
 
@@ -1468,9 +1622,8 @@ async function bracketSubmitPodium() {
             game_id: s.id,
             entity_id: r.entity_id,
             score_payload: {
-                rank: r.rank,
-                // No points calculated here. Official determines that later.
-                notes: `Tournament Place: ${r.rank}`
+                rank: r.rank, // Raw Integer
+                notes: `Tournament Place: ${getOrdinalSuffix(r.rank)}`
             },
             timestamp: Date.now(),
             judge_name: els.judgeName.value,
@@ -1485,7 +1638,7 @@ async function bracketSubmitPodium() {
             await syncManager.sync();
         }
         togglePodiumModal(false);
-        alert("🏆 Results Submitted! Thank you.");
+        alert("🏆 Results Finalized & Submitted! Thank you.");
         navigate('home');
     } catch (err) {
         console.error("Podium Sync Failed:", err);
@@ -1495,6 +1648,11 @@ async function bracketSubmitPodium() {
     }
 }
 
+function togglePodiumModal(show) {
+    const m = document.getElementById('podium-modal');
+    if (show) m.classList.remove('hidden');
+    else m.classList.add('hidden');
+}
 
 // Don't forget to export the new helper!
 window.app = {
@@ -1504,12 +1662,14 @@ window.app = {
     openPodiumModal, togglePodiumModal, bracketSubmitPodium, bracketCreateHeat,
     bracketSelectAll, bracketStartEvent, bracketCreateHeat, bracketOpenHeat,
     bracketSaveHeat, bracketAdvanceRound, bracketRenameRound, bracketToggleAdvance,
-    bracketSwitchMode, bracketGrantBye, toggleHeatAdvance, bracketUpdateRank
+    bracketSwitchMode, bracketGrantBye, toggleHeatAdvance, bracketUpdateRank,
+    bracketMoveRank, bracketCreateChallengeMatch, bracketSetRankManual
 };
 
 function bracketRenameRound() {
     const gameId = state.currentStation.id;
-    const round = state.bracketData[gameId].rounds[state.currentRoundIdx];
+    const roundList = getBracketRoundList(gameId);
+    const round = roundList[state.currentRoundIdx];
     const newName = prompt("Rename Round:", round.name);
     if (newName) {
         round.name = newName;

@@ -316,8 +316,36 @@ function openGameDetail(gameId) {
     const scoringFields = allFields.filter(f => f.id !== 'judge_notes');
     const notesField = allFields.find(f => f.id === 'judge_notes');
 
-    // Filter and Enrich
-    const gameScores = appData.scores.filter(s => s.game_id === gameId).map(score => {
+    // Filter, Deduplicate (for Bracket games), and Enrich
+    let rawScores = appData.scores.filter(s => s.game_id === gameId);
+
+    // DEDUPLICATION: If a team has multiple scores (e.g. from multiple heats),
+    // we prioritize the one with a rank/manual_rank (Final Result), then the most recent.
+    const deduped = {};
+    rawScores.forEach(s => {
+        const existing = deduped[s.entity_id];
+        if (!existing) {
+            deduped[s.entity_id] = s;
+        } else {
+            // Priority 1: Has manual_rank
+            // Priority 2: Has rank
+            // Priority 3: More recent timestamp
+            const sHasRank = s.score_payload.manual_rank || s.score_payload.rank;
+            const exHasRank = existing.score_payload.manual_rank || existing.score_payload.rank;
+
+            if (sHasRank && !exHasRank) {
+                deduped[s.entity_id] = s;
+            } else if (!exHasRank && s.timestamp > existing.timestamp) {
+                deduped[s.entity_id] = s;
+            } else if (sHasRank && exHasRank && s.timestamp > existing.timestamp) {
+                // Both have rank, take the most recent (e.g. they corrected it)
+                deduped[s.entity_id] = s;
+            }
+        }
+    });
+    rawScores = Object.values(deduped);
+
+    const gameScores = rawScores.map(score => {
         let total = 0;
         scoringFields.forEach(f => {
             // Only sum if kind is "points" or "penalty"
@@ -349,7 +377,20 @@ function openGameDetail(gameId) {
 
     // 2. Finalize Rank/Points
     gameScores.forEach(s => {
-        s._finalRank = s.score_payload.manual_rank || s._autoRank;
+        // PRIORITY: Manual Admin Rank > Judge Tournament Rank > Auto-calculated Points Rank
+        let judgeRank = s.score_payload.rank;
+        if (judgeRank && !isNaN(parseInt(judgeRank))) {
+            judgeRank = getOrdinalSuffix(parseInt(judgeRank));
+        }
+
+        s._finalRank = s.score_payload.manual_rank || judgeRank || s._autoRank;
+
+        // For bracket games, if no rank is submitted at all, don't assume 1st.
+        const game = appData.games.find(g => g.id === gameId);
+        if (game && game.bracketMode && !s.score_payload.manual_rank && !judgeRank) {
+            s._finalRank = "—";
+        }
+
         const autoPts = getPointsForRank(s._finalRank);
         const mPts = s.score_payload.manual_points;
         s._finalPoints = (mPts !== undefined && mPts !== "" && mPts !== null) ? parseFloat(mPts) : autoPts;
