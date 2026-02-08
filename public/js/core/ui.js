@@ -83,3 +83,14 @@ export function generateFieldHTML(field, value = null) {
                 </div>
             </div>`;
 }
+
+/**
+ * Updates the header subtitle if the element exists.
+ * @param {string} text - The text to display.
+ */
+export function setSubtitle(text) {
+    const subtitle = document.getElementById('header-subtitle');
+    if (subtitle) {
+        subtitle.innerText = text ? ` - ${text}` : '';
+    }
+}

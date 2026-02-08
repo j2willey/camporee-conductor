@@ -1,14 +1,7 @@
 import { formatGameTitle, getOrdinalSuffix, getPointsForRank } from './core/schema.js';
-
-// State
-let appData = {
-    games: [],
-    entities: [],
-    commonScoring: [],
-    scores: [], // Full raw score list
-    stats: {}, // Counts
-    gameStatuses: {} // NEW: Map of game_id -> status
-};
+import { appData, loadData, updateDashboardHeader } from './core/data-store.js';
+import { calculateScoreContext } from './core/leaderboard.js';
+import { setSubtitle } from './core/ui.js';
 
 let currentView = 'overview';
 let currentViewType = 'list'; // 'card' or 'list'
@@ -21,7 +14,7 @@ let autoRefreshInterval = null;
 
 // Initialization
 document.addEventListener('DOMContentLoaded', async () => {
-    await loadData();
+    await loadData({ onHeaderUpdate: updateDashboardHeader });
     setupNavigation();
 
     // Handle initial route from URL
@@ -59,62 +52,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 });
-
-async function loadData(silent = false) {
-    try {
-        const ts = Date.now();
-        // Fetch Games Config & Entities
-        const [gamesRes, entitiesRes, dataRes] = await Promise.all([
-            fetch(`/games.json?t=${ts}`),
-            fetch(`/api/entities?t=${ts}`),
-            fetch(`/api/admin/all-data?t=${ts}`)
-        ]);
-
-        const gamesResult = await gamesRes.json();
-        appData.games = gamesResult.games;
-        appData.commonScoring = gamesResult.common_scoring;
-
-        appData.entities = await entitiesRes.json();
-
-        // Fetch Data
-        const dataResult = await dataRes.json();
-        appData.scores = dataResult.scores || [];
-        appData.stats = dataResult.stats || {};
-        appData.gameStatuses = dataResult.game_status || {};
-        appData.metadata = dataResult.metadata || {};
-
-        if (!silent) console.log('Loaded Data:', appData);
-
-        // If we are auto-refreshing, we need to re-render the current view to show changes
-        if (silent) refreshCurrentView();
-        updateDashboardHeader();
-
-    } catch (err) {
-        console.error('Failed to load data', err);
-        if (!silent) alert('Error loading dashboard data');
-    }
-}
-
-function updateDashboardHeader() {
-    const meta = appData.metadata;
-    if (!meta) return;
-
-    // 1. Update the main H1 Brand
-    const brand = document.querySelector('header h1'); // or element with class .navbar-brand
-    if (brand) {
-        // Set the visible title
-        brand.innerText = meta.title || 'Camporee Collator';
-
-        // Set the debug UUID tooltip
-        if (meta.camporeeId) {
-            brand.title = `UUID: ${meta.camporeeId}\nTheme: ${meta.theme}`;
-            brand.style.cursor = 'help'; // Visual cue that hover does something
-        }
-    }
-
-    // 2. Update Document Title (Browser Tab)
-    document.title = meta.title ? `${meta.title} - Admin` : 'Camporee Collator';
-}
 
 function setupNavigation() {
     const navDashboard = document.getElementById('nav-dashboard');
@@ -185,9 +122,6 @@ function setupNavigation() {
         navDashboard.addEventListener('click', () => switchView('dashboard'));
     }
 
-    const copyEmailsBtn = document.getElementById('btn-copy-emails');
-    if (copyEmailsBtn) copyEmailsBtn.onclick = copyJudgeEmails;
-
     const exportAwardsBtn = document.getElementById('btn-export-awards');
     if (exportAwardsBtn) {
         // Awards CSV: Winners List (Processed Client-Side)
@@ -202,19 +136,6 @@ function setupNavigation() {
     const printPreviewBtn = document.getElementById('btn-print-preview');
     if (printPreviewBtn) {
         printPreviewBtn.onclick = () => window.print();
-    }
-
-    // Form Listener
-    const regForm = document.getElementById('reg-form');
-    if (regForm) {
-        regForm.addEventListener('submit', handleRegistration);
-    }
-
-    if (transposeBtn) {
-        transposeBtn.addEventListener('click', () => {
-            matrixTranspose = !matrixTranspose;
-            renderMatrix();
-        });
     }
 
     if (viewModeSelect) {
@@ -332,17 +253,11 @@ function switchView(viewName, pushToHistory = true) {
 }
 
 window.switchView = switchView;
-
-function setSubtitle(text) {
-    const subtitle = document.getElementById('header-subtitle');
-    if (subtitle) {
-        subtitle.innerText = text ? ` - ${text}` : '';
-    }
-}
+window.utils = { switchView }; // For utils.html button handlers
 
 function getWinnersRegistry() {
     const registry = [];
-    const pointsMap = calculateScoreContext();
+    const pointsMap = calculateScoreContext(appData);
 
     // 1. Individual Games
     const games = appData.games.filter(g => (g.type || 'patrol') === currentViewMode);
@@ -639,76 +554,6 @@ function toggleFinalMode(checked) {
 }
 
 // --- Score & Ranking Utils ---
-
-/**
- * Calculates the total scores and ranks for all entities across all games.
- *
- * Ranking Logic:
- * - Uses "Dense Ranking": Ties share the same rank, and the next rank is the immediate integer.
- *   Example: If two entities tie for 1st, the next entity is 2nd (not 3rd).
- *   Sequence: 1st, 1st, 2nd, 3rd...
- *
- * Precedence:
- * - If a 'manual_rank' override exists in the score payload, it takes precedence over the calculated auto-rank.
- * - Manual points overrides are also applied here for the final leaderboard calculations.
- *
- * @returns {Object} A map of { entity_id: { game_id: points } } for leaderboard aggregation.
- */
-function calculateScoreContext() {
-    // 1. Calculate totals for every score
-    const enrichedScores = appData.scores.map(score => {
-        const game = appData.games.find(g => g.id === score.game_id);
-        let total = 0;
-        if (game) {
-            const fields = game.fields || [];
-            fields.forEach(f => {
-                if (f.kind === 'points' || f.kind === 'penalty') {
-                    const val = parseFloat(score.score_payload[f.id]);
-                    if (!isNaN(val)) {
-                        if (f.kind === 'penalty') total -= val;
-                        else total += val;
-                    }
-                }
-            });
-        }
-        return { ...score, _total: total };
-    });
-
-    // 2. Group by game to calculate dense ranks
-    const gameGroups = {};
-    enrichedScores.forEach(s => {
-        if (!gameGroups[s.game_id]) gameGroups[s.game_id] = [];
-        gameGroups[s.game_id].push(s);
-    });
-
-    const finalPointsMap = {}; // { entity_id: { game_id: points } }
-
-    Object.keys(gameGroups).forEach(gameId => {
-        const scores = gameGroups[gameId];
-        scores.sort((a, b) => b._total - a._total);
-
-        let currentAutoRank = 0;
-        let lastTotal = null;
-        scores.forEach(s => {
-            if (s._total !== lastTotal) {
-                currentAutoRank++;
-                lastTotal = s._total;
-            }
-            s._autoRank = getOrdinalSuffix(currentAutoRank);
-
-            // Apply Manual Overrides
-            const finalRank = s.score_payload.manual_rank || s._autoRank;
-            const autoPts = getPointsForRank(finalRank);
-            const mPts = s.score_payload.manual_points;
-            const finalPoints = (mPts !== undefined && mPts !== "" && mPts !== null) ? parseFloat(mPts) : autoPts;
-
-            if (!finalPointsMap[s.entity_id]) finalPointsMap[s.entity_id] = {};
-            finalPointsMap[s.entity_id][gameId] = finalPoints;
-        });
-    });
-
-    return finalPointsMap;
-}
 
 function getFilteredGames() {
     return appData.games.filter(g => {
