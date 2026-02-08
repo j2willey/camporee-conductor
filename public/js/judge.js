@@ -1,6 +1,6 @@
 import { SyncManager } from './sync-manager.js';
 import { generateFieldHTML } from './core/ui.js';
-import { formatGameTitle } from './core/schema.js';
+import { formatGameTitle, getEventStatus } from './core/schema.js';
 
 const syncManager = new SyncManager();
 
@@ -141,6 +141,7 @@ function navigate(viewName) {
 function handleBack() {
     // 1. Heat -> Round
     if (state.view === 'bracketHeat') {
+        renderBracketRound();
         navigate('bracketRound');
         return;
     }
@@ -155,6 +156,7 @@ function handleBack() {
         }
 
         // Only go to Lobby if we are at the very first round (Index 0)
+        renderBracketLobby();
         navigate('bracketLobby');
         return;
     }
@@ -163,6 +165,8 @@ function handleBack() {
     if (state.view === 'bracketLobby') {
         if (confirm("Exit Tournament Manager?")) {
             navigate('home');
+            if (state.isOnline) refreshData();
+            else renderStationList();
         }
         return;
     }
@@ -279,11 +283,25 @@ function renderStationList() {
         els.stationList.innerHTML = `<div class="alert alert-info text-center">No ${state.viewMode} games found.</div>`;
         return;
     }
-    els.stationList.innerHTML = filteredStations.map(s => `
-        <button class="btn btn-outline-dark w-100 mb-2 text-start p-3 shadow-sm" onclick="app.selectStation('${s.id}')">
-            <div class="fw-bold">${formatGameTitle(s)}</div>
-            <small class="text-muted text-uppercase" style="font-size:0.75rem;">${s.type || 'General'}</small>
-        </button>`).join('');
+    els.stationList.innerHTML = filteredStations.map(s => {
+        // --- Status Detection ---
+        const status = getEventStatus(s.id, state.bracketData);
+        let statusHtml = '';
+        if (status === 'results') {
+            statusHtml = '<span class="badge bg-success" style="font-size:0.75rem;">Results</span>';
+        } else if (status === 'active') {
+            statusHtml = '<span class="badge bg-primary" style="font-size:0.75rem;">Resume</span>';
+        }
+
+        return `
+        <button class="btn btn-outline-dark w-100 mb-2 text-start p-3 shadow-sm d-flex justify-content-between align-items-center" onclick="app.selectStation('${s.id}')">
+            <div>
+                <div class="fw-bold">${formatGameTitle(s)}</div>
+                <small class="text-muted text-uppercase" style="font-size:0.75rem;">${s.type || (s.bracketMode ? 'Tournament' : 'General')}</small>
+            </div>
+            ${statusHtml}
+        </button>`;
+    }).join('');
 }
 
 function renderEntityList(filter = '') {

@@ -5,7 +5,7 @@ const gameName = "Ladder Lashing";
 const judgeInfo = {
     name: "Demo Judge 2",
     email: "demojudge2@acme.com",
-    unit: "District"
+    unit: "Troop 908"
 };
 const patrols = [
   {

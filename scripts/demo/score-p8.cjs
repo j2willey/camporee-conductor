@@ -5,7 +5,7 @@ const gameName = "Octopus Odyssey";
 const judgeInfo = {
     name: "Demo Judge 20",
     email: "demojudge20@acme.com",
-    unit: "Troop 305"
+    unit: "Troop 258"
 };
 const patrols = [
   {

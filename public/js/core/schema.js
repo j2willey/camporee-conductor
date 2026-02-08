@@ -87,3 +87,23 @@ export function getPointsForRank(r) {
     if (n === 5) return 60;
     return 50;
 }
+
+/**
+ * Shared Status Detection Logic
+ * Detects if an event is 'empty', 'active' (started/heats), or 'results' (has scores).
+ */
+export function getEventStatus(gameId, bracketData = {}) {
+    const bracket = bracketData[gameId];
+    if (!bracket || !bracket.rounds || bracket.rounds.length === 0) return 'empty';
+
+    // Check if any heats have results
+    let hasResults = false;
+    bracket.rounds.forEach(r => {
+        if (r.heats && r.heats.some(h => Object.keys(h.results || {}).length > 0)) {
+            hasResults = true;
+        }
+    });
+
+    if (hasResults) return 'results';
+    return 'active';
+}
