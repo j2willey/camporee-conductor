@@ -1,12 +1,26 @@
-const CACHE_NAME = 'camporee-scorer-v2';
-const ASSETS_TO_CACHE = [
+const CACHE_NAME = 'camporee-conductor-v3';
+const FILES_TO_CACHE = [
   '/',
-  '/index.html',
+  '/admin.html',
+  '/judge.html',
+  '/official.html',
+  '/utils.html',
+  '/css/admin.css',
   '/css/bootstrap.min.css',
+  '/css/conductor.css',
+  '/css/spreadsheet.css',
   '/css/style.css',
-  '/js/app.js',
+  '/js/admin.js',
+  '/js/composer_app.js',
+  '/js/judge.js',
+  '/js/official.js',
+  '/js/qrcode.min.js',
   '/js/sync-manager.js',
-  '/games.json',
+  '/js/utils.js',
+  '/js/core/data-store.js',
+  '/js/core/leaderboard.js',
+  '/js/core/schema.js',
+  '/js/core/ui.js',
   '/manifest.json'
 ];
 
@@ -14,7 +28,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       console.log('Caching offline resources');
-      return cache.addAll(ASSETS_TO_CACHE);
+      return cache.addAll(FILES_TO_CACHE);
     })
   );
 });
