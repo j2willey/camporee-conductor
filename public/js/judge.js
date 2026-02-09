@@ -943,32 +943,36 @@ function renderBracketRound() {
                 round.isFinalRound = isFinal;
                 saveBracketState();
                 renderBracketRound(); // Re-render to toggle inputs vs stars
-                if (isFinal) {
-                    advanceBtn.innerHTML = "🔍 REVIEW RESULTS";
-                    advanceBtn.classList.remove('btn-success');
-                    advanceBtn.classList.add('btn-primary');
-                } else {
-                    advanceBtn.innerHTML = "NEXT ROUND >>";
-                    advanceBtn.classList.remove('btn-primary');
-                    advanceBtn.classList.add('btn-success');
-                }
             };
             document.getElementById('chk-is-final').onchange = updateButton;
-            // Ensure button state is correct on load
-             if (round.isFinalRound) {
-                    advanceBtn.innerHTML = "🔍 REVIEW RESULTS";
-                    advanceBtn.classList.remove('btn-success');
-                    advanceBtn.classList.add('btn-primary');
+
+            // --- FINAL REVIEW BUTTON LOGIC ---
+            const allComplete = round.heats.length > 0 && round.heats.every(h => h.complete);
+            if (round.isFinalRound && allComplete) {
+                advanceBtn.innerHTML = "🏆 Review Results";
+                advanceBtn.classList.remove('btn-success', 'btn-warning');
+                advanceBtn.classList.add('btn-primary');
+                advanceBtn.disabled = false;
+                advanceBtn.onclick = () => app.openReviewModal();
+            } else if (round.isFinalRound) {
+                advanceBtn.innerHTML = "Finals in Progress...";
+                advanceBtn.classList.remove('btn-success', 'btn-primary');
+                advanceBtn.classList.add('btn-warning');
+                advanceBtn.disabled = true;
+                advanceBtn.onclick = () => app.bracketAdvanceRound();
             } else {
-                    advanceBtn.innerHTML = "NEXT ROUND >>";
-                    advanceBtn.classList.remove('btn-primary');
-                    advanceBtn.classList.add('btn-success');
+                advanceBtn.innerHTML = "NEXT ROUND >>";
+                advanceBtn.classList.remove('btn-primary', 'btn-warning');
+                advanceBtn.classList.add('btn-success');
+                advanceBtn.disabled = false;
+                advanceBtn.onclick = () => app.bracketAdvanceRound();
             }
         } else {
             footerOpts.innerHTML = '';
             advanceBtn.innerHTML = "NEXT ROUND >>";
-            advanceBtn.classList.remove('btn-warning');
+            advanceBtn.classList.remove('btn-warning', 'btn-primary');
             advanceBtn.classList.add('btn-success');
+            advanceBtn.disabled = false;
         }
     }
 }
@@ -1174,7 +1178,7 @@ function bracketAdvanceRound() {
     const shouldFinish = (finalCheckbox && isExplicitFinal) || (!finalCheckbox && winners.length === 1);
 
     if (shouldFinish) {
-        openPodiumModal();
+        openReviewModal();
         return;
     }
 
@@ -1424,6 +1428,99 @@ async function bracketSaveHeat() {
 }
 
 // --- PODIUM / END GAME LOGIC (Review & Finalize) ---
+
+/**
+ * REVIEW RESULTS WORKFLOW
+ * Calculates the tentative podium based on the bracket results:
+ * 1st: Winner of Main Bracket Final.
+ * 2nd: Loser of Main Bracket Final.
+ * 3rd: Winner of Consolation Bracket Final (if exists).
+ * 4th: Loser of Consolation Bracket Final (if exists).
+ */
+function openReviewModal() {
+    const gameId = state.currentStation.id;
+    const bracket = state.bracketData[gameId];
+    if (!bracket) return;
+
+    // 1. Calculate the tentative podium
+    const standings = [];
+
+    // Local helper to extract winner/loser from round list
+    const getFinalResults = (rounds) => {
+        if (!rounds || rounds.length === 0) return { winner: null, loser: null };
+        const final = rounds[rounds.length - 1];
+        let winner = null, loser = null;
+
+        // Ensure heats exists and are complete
+        if (final.heats && final.heats.length > 0) {
+            final.heats.forEach(h => {
+                if (h.complete) {
+                    h.teams.forEach(tid => {
+                        const res = h.results[tid];
+                        if (res && res.advance) winner = tid;
+                        else loser = tid;
+                    });
+                }
+            });
+        }
+        return { winner, loser };
+    };
+
+    const main = getFinalResults(bracket.rounds);
+    const cons = getFinalResults(bracket.consolation_rounds);
+
+    if (main.winner) standings.push({ id: main.winner, note: "⭐ Main Winner (1st)", rank: 1 });
+    if (main.loser) standings.push({ id: main.loser, note: "🥈 Main Runner-up (2nd)", rank: 2 });
+    if (cons.winner) standings.push({ id: cons.winner, note: "🥉 Consolation Winner (3rd)", rank: 3 });
+    if (cons.loser) standings.push({ id: cons.loser, note: "🏅 Consolation Runner-up (4th)", rank: 4 });
+
+    // Fill in other participants as "Eliminated"
+    const topIds = new Set(standings.map(s => s.id));
+    const allParticipants = new Set();
+    [...(bracket.rounds || []), ...(bracket.consolation_rounds || [])].forEach(r => {
+        r.pool.forEach(id => allParticipants.add(id));
+        r.heats.forEach(h => h.teams.forEach(id => allParticipants.add(id)));
+    });
+
+    Array.from(allParticipants).forEach(id => {
+        if (!topIds.has(id)) {
+            standings.push({ id, note: "Eliminated", rank: null });
+        }
+    });
+
+    state.currentStandings = standings;
+
+    // 2. UI: Clear #podium-list and append rows
+    const tbody = document.getElementById('podium-list');
+    if (tbody) {
+        tbody.innerHTML = standings.map((s, idx) => {
+            const e = state.entities.find(x => x.id === s.id);
+            const label = e ? formatEntityLabel(e) : 'Unknown';
+            return `
+                <tr class="${idx < 4 ? 'table-primary fw-bold' : ''}">
+                    <td class="ps-3">${label}</td>
+                    <td class="small text-muted">${s.note}</td>
+                    <td></td>
+                    <td class="text-center fw-bold">${s.rank || '-'}</td>
+                </tr>`;
+        }).join('');
+    }
+
+    // 3. Show using Bootstrap Modal
+    const modalEl = document.getElementById('podium-modal');
+    if (modalEl) {
+        // Remove hidden class if present
+        modalEl.classList.remove('hidden');
+
+        // Use new bootstrap.Modal().show() as requested
+        if (window.bootstrap && window.bootstrap.Modal) {
+            const bsModal = new bootstrap.Modal(modalEl);
+            bsModal.show();
+        } else {
+            togglePodiumModal(true);
+        }
+    }
+}
 
 function openPodiumModal() {
     const gameId = state.currentStation.id;
@@ -1753,7 +1850,7 @@ window.app = {
     init, navigate, handleBack, refreshData, selectStation, selectEntity,
     submitScore, setMode, promptNewEntity, toggleJudgeModal, saveJudgeInfo,
     saveDraft, combineTime, resetAppData, bracketQuickSave, bracketScratchTeam,
-    openPodiumModal, togglePodiumModal, bracketSubmitPodium,
+    openPodiumModal, openReviewModal, togglePodiumModal, bracketSubmitPodium,
     bracketSelectAll, bracketStartEvent, bracketDirectEntry, bracketCreateHeat, bracketOpenHeat,
     bracketSaveHeat, bracketAdvanceRound, bracketRenameRound, bracketToggleAdvance,
     bracketSwitchMode, bracketGrantBye, toggleHeatAdvance, bracketUpdateRank,
