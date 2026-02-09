@@ -766,6 +766,28 @@ app.delete('/api/admin/full-reset', (req, res) => {
     }
 });
 
+app.post('/api/admin/awards-config', express.json(), (req, res) => {
+    const { awards_config } = req.body;
+    const manifestPath = path.join(ACTIVE_DIR, 'camporee.json');
+
+    if (!fs.existsSync(manifestPath)) {
+        return res.status(404).json({ error: 'Camporee manifest not found' });
+    }
+
+    try {
+        const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+        if (!manifest.meta) manifest.meta = {};
+
+        manifest.meta.awards_config = awards_config;
+
+        fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Error saving awards config:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.put('/api/scores/:uuid', (req, res) => {
     const { uuid } = req.params;
     const { score_payload } = req.body;

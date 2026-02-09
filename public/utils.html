@@ -30,17 +30,129 @@
         <section id="view-awards" class="hidden">
             <div class="table-container">
                 <div id="awards-preview" class="no-print">
-                    <div style="margin-bottom: 20px; max-width: 700px;">
-                        <div class="mb-3 row align-items-center">
-                            <label for="awards-line1" class="col-sm-2 col-form-label fw-bold">Line 1</label>
-                            <div class="col-sm-10">
-                                <input type="text" class="form-control" id="awards-line1" placeholder="MY District Camporee" value="">
+
+                    <div id="sticker-designer" class="card shadow-sm p-4 mb-4" style="max-width: 950px;">
+                        <h5 class="mb-4">Sticker Designer</h5>
+
+                        <div class="row mb-2 fw-bold text-muted small px-2">
+                            <div class="col-2">Line</div>
+                            <div class="col-3">Text / Placeholder</div>
+                            <div class="col-3">Font Family</div>
+                            <div class="col-2">Size (pt)</div>
+                            <div class="col-1 text-center">Bold</div>
+                            <div class="col-1 text-center">Sync</div>
+                        </div>
+
+                        <!-- Line 1 -->
+                        <div class="row align-items-center mb-2 bg-light p-2 rounded mx-0">
+                            <div class="col-2 fw-bold">Line 1</div>
+                            <div class="col-3">
+                                <input type="text" class="form-control form-control-sm" id="awards-line1" placeholder="MY District Camporee">
+                            </div>
+                            <div class="col-3">
+                                <select class="form-select form-select-sm sticker-font-ctrl" data-line="1" id="font-f1">
+                                    <option value="Arial, sans-serif">Arial</option>
+                                    <option value="'Times New Roman', serif">Times</option>
+                                    <option value="Georgia, serif">Georgia</option>
+                                    <option value="'Courier New', monospace">Courier</option>
+                                    <option value="'Brush Script MT', cursive">Script</option>
+                                    <option value="'Comic Sans MS', cursive">Comic Sans</option>
+                                    <option value="Impact, sans-serif">Impact</option>
+                                </select>
+                            </div>
+                            <div class="col-2">
+                                <input type="number" class="form-control form-control-sm sticker-font-ctrl" data-line="1" id="font-s1" value="10" min="6" max="36">
+                            </div>
+                            <div class="col-1 text-center">
+                                <input type="checkbox" class="form-check-input sticker-font-ctrl" data-line="1" id="font-b1" checked>
+                            </div>
+                            <div class="col-1 text-center">
+                                <input type="checkbox" class="form-check-input" id="font-sync-all" checked title="Use Line 1 fonts for all rows">
                             </div>
                         </div>
-                        <div class="mb-3 row align-items-center">
-                            <label for="awards-line2" class="col-sm-2 col-form-label fw-bold">Line 2</label>
-                            <div class="col-sm-10">
-                                <input type="text" class="form-control" id="awards-line2" placeholder="--theme-- dates and year" value="">
+
+                        <!-- Line 2 -->
+                        <div class="row align-items-center mb-2 p-2 mx-0">
+                            <div class="col-2 fw-bold">Line 2</div>
+                            <div class="col-3">
+                                <input type="text" class="form-control form-control-sm" id="awards-line2" placeholder="--theme-- dates and year">
+                            </div>
+                            <div class="col-3">
+                                <select class="form-select form-select-sm sticker-font-ctrl" data-line="2" id="font-f2">
+                                    <option value="Arial, sans-serif">Arial</option>
+                                    <option value="'Times New Roman', serif">Times</option>
+                                    <option value="Georgia, serif">Georgia</option>
+                                    <option value="'Courier New', monospace">Courier</option>
+                                    <option value="'Brush Script MT', cursive">Script</option>
+                                    <option value="'Comic Sans MS', cursive">Comic Sans</option>
+                                    <option value="Impact, sans-serif">Impact</option>
+                                </select>
+                            </div>
+                            <div class="col-2">
+                                <input type="number" class="form-control form-control-sm sticker-font-ctrl" data-line="2" id="font-s2" value="10" min="6" max="36">
+                            </div>
+                            <div class="col-1 text-center">
+                                <input type="checkbox" class="form-check-input sticker-font-ctrl" data-line="2" id="font-b2" checked>
+                            </div>
+                            <div class="col-1"></div>
+                        </div>
+
+                        <!-- Line 3 -->
+                        <div class="row align-items-center mb-2 bg-light p-2 rounded mx-0">
+                            <div class="col-2 fw-bold">Line 3</div>
+                            <div class="col-3"><span class="text-muted small">name of the Event</span></div>
+                            <div class="col-3">
+                                <select class="form-select form-select-sm sticker-font-ctrl" data-line="3" id="font-f3">
+                                    <option value="Arial, sans-serif">Arial</option>
+                                    <option value="'Times New Roman', serif">Times</option>
+                                    <option value="Georgia, serif">Georgia</option>
+                                    <option value="'Courier New', monospace">Courier</option>
+                                    <option value="'Brush Script MT', cursive">Script</option>
+                                    <option value="'Comic Sans MS', cursive">Comic Sans</option>
+                                    <option value="Impact, sans-serif">Impact</option>
+                                </select>
+                            </div>
+                            <div class="col-2">
+                                <input type="number" class="form-control form-control-sm sticker-font-ctrl" data-line="3" id="font-s3" value="12" min="6" max="36">
+                            </div>
+                            <div class="col-1 text-center">
+                                <input type="checkbox" class="form-check-input sticker-font-ctrl" data-line="3" id="font-b3" checked>
+                            </div>
+                            <div class="col-1"></div>
+                        </div>
+
+                        <!-- Line 4 -->
+                        <div class="row align-items-center mb-4 p-2 mx-0">
+                            <div class="col-2 fw-bold">Line 4</div>
+                            <div class="col-3"><span class="text-muted small">place/Award - team name</span></div>
+                            <div class="col-3">
+                                <select class="form-select form-select-sm sticker-font-ctrl" data-line="4" id="font-f4">
+                                    <option value="Arial, sans-serif">Arial</option>
+                                    <option value="'Times New Roman', serif">Times</option>
+                                    <option value="Georgia, serif">Georgia</option>
+                                    <option value="'Courier New', monospace">Courier</option>
+                                    <option value="'Brush Script MT', cursive">Script</option>
+                                    <option value="'Comic Sans MS', cursive">Comic Sans</option>
+                                    <option value="Impact, sans-serif">Impact</option>
+                                </select>
+                            </div>
+                            <div class="col-2">
+                                <input type="number" class="form-control form-control-sm sticker-font-ctrl" data-line="4" id="font-s4" value="12" min="6" max="36">
+                            </div>
+                            <div class="col-1 text-center">
+                                <input type="checkbox" class="form-check-input sticker-font-ctrl" data-line="4" id="font-b4">
+                            </div>
+                            <div class="col-1"></div>
+                        </div>
+
+                        <!-- Preview Area -->
+                        <div class="bg-dark p-4 rounded text-center">
+                            <h6 class="text-white-50 text-uppercase small mb-3">Live Sticker Preview</h6>
+                            <div id="font-preview-sticker" class="p-3 bg-white shadow mx-auto" style="width: 3.3in; height: 1in; border: 1px solid #ccc; display: flex; flex-direction: column; justify-content: center; text-align: left;">
+                                <div id="preview-l1">Line 1 Text</div>
+                                <div id="preview-l2">Line 2 Text</div>
+                                <div id="preview-l3" class="mt-1">Sample Event Name</div>
+                                <div id="preview-l4">1st Place - Patrol Alpha</div>
                             </div>
                         </div>
                     </div>

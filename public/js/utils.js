@@ -168,6 +168,9 @@ function setupNavigation() {
             }
         });
     }
+
+    // Sticker Controls Initialization
+    initStickerControls();
 }
 
 function handleBack() {
@@ -245,6 +248,7 @@ function switchView(viewName, pushToHistory = true) {
     } else if (viewName === 'awards') {
         document.getElementById('view-awards').classList.remove('hidden');
         setSubtitle('Awards & Exports');
+        if (typeof updateStickerPreview === 'function') updateStickerPreview();
     } else if (viewName === 'debug') {
         document.getElementById('view-debug').classList.remove('hidden');
         setSubtitle('System Tools');
@@ -461,6 +465,8 @@ function renderStickers(autoPrint = true) {
     const headerLine1 = el1?.value || "";
     const headerLine2 = el2?.value || "";
 
+    const styles = getStickerStyles();
+
     const winners = getWinnersRegistry();
     const resultsByGroup = []; // Each item is { title: string, winners: [] }
     let currentGroup = null;
@@ -522,10 +528,10 @@ function renderStickers(autoPrint = true) {
 
             const innerHtml = `
                 <div class="sticker-content">
-                    ${headerLine1 ? `<div class="sticker-header">${headerLine1}</div>` : ''}
-                    ${headerLine2 ? `<div class="sticker-header">${headerLine2}</div>` : ''}
-                    <div class="sticker-game">${w.gameName}</div>
-                    <div class="sticker-info">${w.line4}</div>
+                    ${headerLine1 ? `<div class="sticker-l1" style="font-family:${styles[1].font}; font-size:${styles[1].size}; font-weight:${styles[1].bold?'bold':'normal'}">${headerLine1}</div>` : ''}
+                    ${headerLine2 ? `<div class="sticker-l2" style="font-family:${styles[2].font}; font-size:${styles[2].size}; font-weight:${styles[2].bold?'bold':'normal'}">${headerLine2}</div>` : ''}
+                    <div class="sticker-l3" style="font-family:${styles[3].font}; font-size:${styles[3].size}; font-weight:${styles[3].bold?'bold':'normal'}">${w.gameName}</div>
+                    <div class="sticker-l4" style="font-family:${styles[4].font}; font-size:${styles[4].size}; font-weight:${styles[4].bold?'bold':'normal'}">${w.line4}</div>
                 </div>
             `;
 
@@ -772,8 +778,152 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
+// --- Sticker Printing Logic ---
 
+let saveTimeout = null;
+function debounceSaveAwardsConfig() {
+    if (saveTimeout) clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(saveAwardsConfig, 1500);
+}
 
+async function saveAwardsConfig() {
+    const config = {
+        line1: document.getElementById('awards-line1')?.value,
+        line2: document.getElementById('awards-line2')?.value,
+        sync: document.getElementById('font-sync-all')?.checked,
+        styles: getStickerStyles()
+    };
 
+    try {
+        await fetch('/api/admin/awards-config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ awards_config: config })
+        });
+    } catch (err) {
+        console.error('Failed to save awards config:', err);
+    }
+}
+
+function getStickerStyles() {
+    const styles = {};
+    for (let i = 1; i <= 4; i++) {
+        const fontEl = document.getElementById(`font-f${i}`);
+        const sizeEl = document.getElementById(`font-s${i}`);
+        const boldEl = document.getElementById(`font-b${i}`);
+
+        styles[i] = {
+            font: fontEl ? fontEl.value : 'Arial, sans-serif',
+            size: sizeEl ? sizeEl.value + 'pt' : '10pt',
+            bold: boldEl ? boldEl.checked : false
+        };
+    }
+    return styles;
+}
+
+function updateStickerPreview() {
+    const l1Input = document.getElementById('awards-line1');
+    const l2Input = document.getElementById('awards-line2');
+
+    if(!l1Input) return; // Not on awards page or not loaded
+
+    const l1Text = l1Input.value || l1Input.placeholder || "Line 1 Text";
+    const l2Text = l2Input.value || l2Input.placeholder || "Line 2 Text";
+
+    document.getElementById('preview-l1').textContent = l1Text;
+    document.getElementById('preview-l2').textContent = l2Text;
+
+    const styles = getStickerStyles();
+    for (let i = 1; i <= 4; i++) {
+        const el = document.getElementById(`preview-l${i}`);
+        if (el) {
+            el.style.fontFamily = styles[i].font;
+            el.style.fontSize = styles[i].size;
+            el.style.fontWeight = styles[i].bold ? 'bold' : 'normal';
+        }
+    }
+}
+
+function initStickerControls() {
+    const ctrls = document.querySelectorAll('.sticker-font-ctrl');
+    const syncAll = document.getElementById('font-sync-all');
+    const line1Input = document.getElementById('awards-line1');
+    const line2Input = document.getElementById('awards-line2');
+
+    // Load Existing Config if present
+    const saved = appData.metadata?.awards_config;
+    if (saved) {
+        if (line1Input && saved.line1 !== undefined) line1Input.value = saved.line1;
+        if (line2Input && saved.line2 !== undefined) line2Input.value = saved.line2;
+        if (syncAll && saved.sync !== undefined) syncAll.checked = saved.sync;
+
+        if (saved.styles) {
+            for (let i = 1; i <= 4; i++) {
+                const s = saved.styles[i];
+                if (!s) continue;
+                const fontEl = document.getElementById(`font-f${i}`);
+                const sizeEl = document.getElementById(`font-s${i}`);
+                const boldEl = document.getElementById(`font-b${i}`);
+                if (fontEl) fontEl.value = s.font;
+                if (sizeEl) sizeEl.value = parseInt(s.size);
+                if (boldEl) boldEl.checked = s.bold;
+            }
+        }
+    }
+
+    if (line1Input) line1Input.addEventListener('input', () => { updateStickerPreview(); debounceSaveAwardsConfig(); });
+    if (line2Input) line2Input.addEventListener('input', () => { updateStickerPreview(); debounceSaveAwardsConfig(); });
+
+    ctrls.forEach(ctrl => {
+        ctrl.addEventListener('change', (e) => {
+            const line = e.target.dataset.line;
+
+            // If Sync is enabled and we change Line 1, update others
+            if (syncAll && syncAll.checked && line === "1") {
+                const font = document.getElementById('font-f1').value;
+                const size = document.getElementById('font-s1').value;
+                const bold = document.getElementById('font-b1').checked;
+
+                for (let i = 2; i <= 4; i++) {
+                    document.getElementById(`font-f${i}`).value = font;
+                    document.getElementById(`font-s${i}`).value = size;
+                    document.getElementById(`font-b${i}`).checked = bold;
+                }
+            }
+            updateStickerPreview();
+            debounceSaveAwardsConfig();
+        });
+
+        // Also trigger on input for number fields
+        if (ctrl.type === 'number') {
+            ctrl.addEventListener('input', () => {
+                const line = ctrl.dataset.line;
+                if (syncAll && syncAll.checked && line === "1") {
+                    const size = document.getElementById('font-s1').value;
+                    for (let i = 2; i <= 4; i++) {
+                        document.getElementById(`font-s${i}`).value = size;
+                    }
+                }
+                updateStickerPreview();
+                debounceSaveAwardsConfig();
+            });
+        }
+    });
+
+    if (syncAll) {
+        syncAll.addEventListener('change', () => {
+            if (syncAll.checked) {
+                // Trigger a sync immediately
+                const event = new Event('change');
+                document.getElementById('font-f1').dispatchEvent(event);
+            }
+            debounceSaveAwardsConfig();
+        });
+    }
+
+    updateStickerPreview();
+}
+
+window.initStickerControls = initStickerControls;
 
 // --- QR Code Generator ---
