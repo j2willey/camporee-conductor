@@ -221,7 +221,7 @@ async function runImport() {
 
         // Assign a unique judge for this game (Sheet) to populate Judges Directory
         const gameJudgeName = `Judge - ${game.name}`;
-        const gameJudgeEmail = `judge.${game.id}@coyote.local`;
+        const gameJudgeEmail = `judge.${game.id}@camporee.local`;
 
         // Iterate Rows
         for (let r = headerRowIdx + 2; r < rows.length; r++) {

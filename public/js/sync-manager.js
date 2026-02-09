@@ -1,6 +1,6 @@
 export class SyncManager {
     constructor() {
-        this.STORAGE_KEY = 'coyote_scores_queue';
+        this.STORAGE_KEY = 'camporee_scores_queue';
     }
 
     getQueue() {

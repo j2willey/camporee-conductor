@@ -14,7 +14,7 @@ const state = {
     drafts: {},
     // Bracket State
     bracketMode: 'main', // 'main' or 'consolation'
-    bracketData: JSON.parse(localStorage.getItem('coyote_bracket_data') || '{}'),
+    bracketData: JSON.parse(localStorage.getItem('camporee_bracket_data') || '{}'),
     currentRoundIdx: 0,
     currentHeatId: null
 };
@@ -308,7 +308,7 @@ function renderEntityList(filter = '') {
     if (!state.currentStation) return;
     const requiredType = state.currentStation.type || state.viewMode;
     const term = filter.toLowerCase();
-    const drafts = JSON.parse(localStorage.getItem('coyote_drafts') || '{}');
+    const drafts = JSON.parse(localStorage.getItem('camporee_drafts') || '{}');
     const queue = syncManager.getQueue();
     const scoredIds = new Set(queue.filter(s => s.game_id === state.currentStation.id).map(s => s.entity_id));
 
@@ -358,7 +358,7 @@ function renderForm(existingScore = null) {
 
     let draftData = null;
     if (!existingScore) {
-        const drafts = JSON.parse(localStorage.getItem('coyote_drafts') || '{}');
+        const drafts = JSON.parse(localStorage.getItem('camporee_drafts') || '{}');
         draftData = drafts[`${s.id}_${e.id}`];
     }
 
@@ -411,9 +411,9 @@ function saveDraft() {
         } else if (f.type === 'boolean') payload[f.id] = el?.checked;
         else if (el) payload[f.id] = el.value;
     }
-    const drafts = JSON.parse(localStorage.getItem('coyote_drafts') || '{}');
+    const drafts = JSON.parse(localStorage.getItem('camporee_drafts') || '{}');
     drafts[draftKey] = payload;
-    localStorage.setItem('coyote_drafts', JSON.stringify(drafts));
+    localStorage.setItem('camporee_drafts', JSON.stringify(drafts));
 }
 
 async function submitScore(e) {
@@ -445,9 +445,9 @@ async function submitScore(e) {
     if(packet.judge_email) localStorage.setItem('judge_info', JSON.stringify({name:packet.judge_name, email:packet.judge_email, unit:packet.judge_unit}));
     syncManager.addToQueue(packet);
     const draftKey = `${state.currentStation.id}_${state.currentEntity.id}`;
-    const drafts = JSON.parse(localStorage.getItem('coyote_drafts') || '{}');
+    const drafts = JSON.parse(localStorage.getItem('camporee_drafts') || '{}');
     delete drafts[draftKey];
-    localStorage.setItem('coyote_drafts', JSON.stringify(drafts));
+    localStorage.setItem('camporee_drafts', JSON.stringify(drafts));
 
     try {
         if(state.isOnline) {
@@ -576,7 +576,7 @@ function initBracketState(gameId) {
 }
 
 function saveBracketState() {
-    localStorage.setItem('coyote_bracket_data', JSON.stringify(state.bracketData));
+    localStorage.setItem('camporee_bracket_data', JSON.stringify(state.bracketData));
 
     // Sync to Server
     if (state.currentStation) {
@@ -1791,8 +1791,8 @@ async function refreshData() {
             const config = { stations: sc.games, common_scoring: sc.common_scoring||[] };
             state.config = config;
             state.entities = await eRes.json();
-            localStorage.setItem('coyote_config', JSON.stringify(config));
-            localStorage.setItem('coyote_entities', JSON.stringify(state.entities));
+            localStorage.setItem('camporee_config', JSON.stringify(config));
+            localStorage.setItem('camporee_entities', JSON.stringify(state.entities));
             renderStationList();
         }
     } catch(e) { console.error(e); }
@@ -1800,8 +1800,8 @@ async function refreshData() {
 
 function loadLocalData() {
     try {
-        const c = localStorage.getItem('coyote_config');
-        const e = localStorage.getItem('coyote_entities');
+        const c = localStorage.getItem('camporee_config');
+        const e = localStorage.getItem('camporee_entities');
         if (c) state.config = JSON.parse(c);
         if (e) state.entities = JSON.parse(e);
     } catch (e) {}
@@ -1842,7 +1842,7 @@ async function promptNewEntity(type) {
                 const data = await r.json();
                 state.entities.push(data);
             }
-            localStorage.setItem('coyote_entities', JSON.stringify(state.entities));
+            localStorage.setItem('camporee_entities', JSON.stringify(state.entities));
             renderEntityList();
         } else {
              const err = await r.text();

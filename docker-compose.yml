@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # 1. THE COLLATOR (Scorer) - Port 3000
   app:
-    container_name: coyote-collator-app
+    container_name: camporee-collator-app
     build:
       context: .
       dockerfile: Dockerfile  # Standard build
@@ -18,7 +18,7 @@ services:
 
   # 2. THE COMPOSER (Builder) - Port 3001
   composer:
-    container_name: coyote-collator-composer
+    container_name: camporee-collator-composer
     build:
       context: .
       dockerfile: Dockerfile.composer # Minification build
