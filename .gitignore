@@ -11,6 +11,7 @@ data/*
 *.sqlite3
 *.log
 *.xlsx
+scratch/
 
 # Environment Variables (Secrets)
 .env

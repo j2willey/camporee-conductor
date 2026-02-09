@@ -44,7 +44,9 @@ export class SyncManager {
                 // Remove internal _synced flag before sending
                 const { _synced, ...payload } = item;
 
-                const response = await fetch('/api/score', {
+                const endpoint = item.type === 'bracket_sync' ? '/api/bracket/sync' : '/api/score';
+
+                const response = await fetch(endpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)

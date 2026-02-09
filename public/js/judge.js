@@ -155,19 +155,19 @@ function handleBack() {
             return; // STOP here. Do not navigate away.
         }
 
-        // Only go to Lobby if we are at the very first round (Index 0)
-        renderBracketLobby();
-        navigate('bracketLobby');
+        // Move confirmation to Round 1 (Exit from the manager back to the lobby)
+        if (confirm("Exit Bracket Manager?")) {
+            renderBracketLobby();
+            navigate('bracketLobby');
+        }
         return;
     }
 
-    // 3. Lobby -> Home (Exit Confirmation)
+    // 3. Lobby -> Home (Direct Exit)
     if (state.view === 'bracketLobby') {
-        if (confirm("Exit Tournament Manager?")) {
-            navigate('home');
-            if (state.isOnline) refreshData();
-            else renderStationList();
-        }
+        navigate('home');
+        if (state.isOnline) refreshData();
+        else renderStationList();
         return;
     }
 
@@ -577,6 +577,24 @@ function initBracketState(gameId) {
 
 function saveBracketState() {
     localStorage.setItem('coyote_bracket_data', JSON.stringify(state.bracketData));
+
+    // Sync to Server
+    if (state.currentStation) {
+        const gameId = state.currentStation.id;
+        const bracket = state.bracketData[gameId];
+        if (bracket) {
+            const packet = {
+                type: 'bracket_sync',
+                uuid: `bracket_${gameId}`, // Unique per game to allow overwriting unsynced updates
+                game_id: gameId,
+                bracket_data: JSON.parse(JSON.stringify(bracket)), // Deep clone for safety
+                timestamp: Date.now(),
+                // Metadata for SyncManager's deduplication logic
+                entity_id: 'SYSTEM_BRACKET'
+            };
+            syncManager.addToQueue(packet);
+        }
+    }
 }
 
 function getBracketRoundList(gameId) {
@@ -633,7 +651,7 @@ function renderBracketLobby() {
     if (btnStart) {
         if (!isRunning) {
             // Case A: Fresh Start
-            btnStart.textContent = "Start Event";
+            btnStart.textContent = "Bracket Manager";
             btnStart.classList.remove('btn-outline-primary');
             btnStart.classList.add('btn-success');
         } else {
@@ -648,11 +666,11 @@ function renderBracketLobby() {
                 const hasNewTeams = checkedIds.some(id => !activeIds.has(id));
 
                 if (hasNewTeams) {
-                    btnStart.textContent = "Update Event";
+                    btnStart.textContent = "Update Bracket";
                     btnStart.classList.remove('btn-outline-primary');
                     btnStart.classList.add('btn-success');
                 } else {
-                    btnStart.textContent = "Return to Event";
+                    btnStart.textContent = "Return to Bracket";
                     btnStart.classList.remove('btn-success');
                     btnStart.classList.add('btn-outline-primary'); // Neutral color
                 }
@@ -727,6 +745,22 @@ function bracketStartEvent() {
     saveBracketState();
     renderBracketRound();
     navigate('bracketRound');
+}
+
+function bracketDirectEntry() {
+    const checked = [...document.querySelectorAll('#bracket-lobby-list input:checked')].map(i => i.value);
+
+    if (checked.length < 1) return alert("Select at least 1 team to enter records for.");
+
+    state.currentStandings = checked.map(eid => ({
+        id: eid,
+        rank: null,
+        note: 'Direct Entry',
+        roundIdx: 0
+    }));
+
+    renderPodiumTable();
+    togglePodiumModal(true);
 }
 
 // 2. ROUND MANAGER
@@ -946,17 +980,29 @@ function bracketSwitchMode(mode) {
     // Update Tab UI
     const tabMain = document.getElementById('tab-bracket-main');
     const tabCons = document.getElementById('tab-bracket-consolation');
+    const header = document.querySelector('header');
 
     if (mode === 'main') {
         tabMain.classList.add('active', 'fw-bold', 'text-primary');
         tabMain.classList.remove('text-muted');
-        tabCons.classList.remove('active', 'fw-bold', 'text-primary');
+        tabCons.classList.remove('active', 'fw-bold', 'text-success');
         tabCons.classList.add('text-muted');
+
+        // Reset Header to default Blue/Primary
+        if (header) {
+            header.style.backgroundColor = '';
+            header.classList.remove('bg-success');
+        }
     } else {
-        tabCons.classList.add('active', 'fw-bold', 'text-success'); // Green for Second Try?
+        tabCons.classList.add('active', 'fw-bold', 'text-success');
         tabCons.classList.remove('text-muted');
         tabMain.classList.remove('active', 'fw-bold', 'text-primary');
         tabMain.classList.add('text-muted');
+
+        // Visual distinction for Consolation Mode (Teal/Green)
+        if (header) {
+            header.style.backgroundColor = '#20c997'; // Brand Teal-ish Green
+        }
     }
 
     // Ensure data structure exists
@@ -1579,28 +1625,55 @@ function bracketCreateChallengeMatch() {
     const gameId = state.currentStation.id;
     const bracket = state.bracketData[gameId];
 
-    // Find the teams
+    // 1. Find the Main Loser (2nd place candidate from Finals)
     const mainRounds = bracket.rounds;
-    const final = mainRounds[mainRounds.length - 1];
+    const mainFinal = mainRounds[mainRounds.length - 1];
     let mainLoser = null;
-    final.heats.forEach(h => {
-        h.teams.forEach(tid => {
-            if (!h.results[tid]?.advance) mainLoser = tid;
+    if (mainFinal && mainFinal.heats) {
+        mainFinal.heats.forEach(h => {
+            h.teams.forEach(tid => {
+                if (h.results[tid] && !h.results[tid].advance) mainLoser = tid;
+            });
         });
-    });
+    }
 
-    const consRounds = bracket.consolation_rounds;
-    const consFinal = consRounds[consRounds.length - 1];
+    // 2. Find the Consolation Winner
+    const consRounds = bracket.consolation_rounds || [];
     let consWinner = null;
-    consFinal.heats.forEach(h => {
-        h.teams.forEach(tid => {
-            if (h.results[tid]?.advance) consWinner = tid;
-        });
-    });
 
-    if (!mainLoser || !consWinner) return alert("Could not identify 2nd and 3rd place teams.");
+    if (consRounds.length > 0) {
+        const consFinal = consRounds[consRounds.length - 1];
+        if (consFinal && consFinal.heats) {
+            consFinal.heats.forEach(h => {
+                h.teams.forEach(tid => {
+                    if (h.results[tid] && h.results[tid].advance) consWinner = tid;
+                });
+            });
+        }
+    }
 
-    // Create the New Round
+    // 3. AIR GAP FALLBACK: If Cons Winner is unknown or un-synced
+    if (!consWinner) {
+        const troopNum = prompt("Consolation Winner Unknown (data not synced?).\nEnter Troop/Patrol Number to challenge:");
+        if (troopNum) {
+            const match = state.entities.find(e =>
+                (e.troop_number === troopNum || e.name.toLowerCase().includes(troopNum.toLowerCase()))
+                && (e.type === (state.currentStation.type || 'patrol'))
+            );
+            if (match) {
+                consWinner = match.id;
+                alert(`✅ Identified ${formatEntityLabel(match)} as challenger.`);
+            } else {
+                return alert("Could not find a team matching that name or troop number.");
+            }
+        } else {
+            return; // Cancelled
+        }
+    }
+
+    if (!mainLoser || !consWinner) return alert("Could not identify both candidates for Challenge Match.");
+
+    // 4. Create the New Round
     const challengeRound = {
         name: "Challenge Match",
         pool: [],
@@ -1610,15 +1683,16 @@ function bracketCreateChallengeMatch() {
             teams: [mainLoser, consWinner],
             complete: false,
             results: {}
-        }]
+        }],
+        isFinalRound: true // Allow rank input
     };
 
     bracket.rounds.push(challengeRound);
     state.currentRoundIdx = bracket.rounds.length - 1;
-    state.bracketMode = 'main'; // Switch back to main to show the challenge
+    bracketSwitchMode('main'); // Switch to main and theme back to blue
 
     saveBracketState();
-    togglePodiumModal(false);
+    if (typeof togglePodiumModal === 'function') togglePodiumModal(false);
     renderBracketRound();
     navigate('bracketRound');
 }
@@ -1679,8 +1753,8 @@ window.app = {
     init, navigate, handleBack, refreshData, selectStation, selectEntity,
     submitScore, setMode, promptNewEntity, toggleJudgeModal, saveJudgeInfo,
     saveDraft, combineTime, resetAppData, bracketQuickSave, bracketScratchTeam,
-    openPodiumModal, togglePodiumModal, bracketSubmitPodium, bracketCreateHeat,
-    bracketSelectAll, bracketStartEvent, bracketCreateHeat, bracketOpenHeat,
+    openPodiumModal, togglePodiumModal, bracketSubmitPodium,
+    bracketSelectAll, bracketStartEvent, bracketDirectEntry, bracketCreateHeat, bracketOpenHeat,
     bracketSaveHeat, bracketAdvanceRound, bracketRenameRound, bracketToggleAdvance,
     bracketSwitchMode, bracketGrantBye, toggleHeatAdvance, bracketUpdateRank,
     bracketMoveRank, bracketCreateChallengeMatch, bracketSetRankManual

@@ -65,6 +65,40 @@ db.exec(`
     game_id TEXT PRIMARY KEY,
     status TEXT
   );
+
+  CREATE TABLE IF NOT EXISTS Matches (
+    id TEXT PRIMARY KEY,
+    tournament_id TEXT NOT NULL,
+    round_num INTEGER NOT NULL,
+    match_num INTEGER NOT NULL,
+    next_match_win_id TEXT,
+    next_match_lose_id TEXT,
+    status TEXT,
+    FOREIGN KEY(tournament_id) REFERENCES game_status(game_id)
+  );
+
+  CREATE TABLE IF NOT EXISTS Match_Participants (
+    match_id TEXT NOT NULL,
+    entity_id TEXT NOT NULL,
+    slot_index INTEGER,
+    score_value REAL,
+    time_value REAL,
+    PRIMARY KEY (match_id, entity_id),
+    FOREIGN KEY(match_id) REFERENCES Matches(id),
+    FOREIGN KEY(entity_id) REFERENCES entities(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS Event_Standings (
+    tournament_id TEXT NOT NULL,
+    entity_id TEXT NOT NULL,
+    computed_rank INTEGER,
+    official_rank INTEGER,
+    status TEXT,
+    secondary_metric REAL,
+    PRIMARY KEY (tournament_id, entity_id),
+    FOREIGN KEY(tournament_id) REFERENCES game_status(game_id),
+    FOREIGN KEY(entity_id) REFERENCES entities(id)
+  );
 `);
 
 // --- MIGRATIONS ---
@@ -88,6 +122,51 @@ try {
 }
 
 // --- HELPER FUNCTIONS ---
+
+function timeToSeconds(val) {
+    if (!val) return null;
+    if (typeof val === 'number') return val;
+    if (typeof val === 'string' && val.includes(':')) {
+        const [m, s] = val.split(':').map(Number);
+        return (m * 60) + s;
+    }
+    const n = parseFloat(val);
+    return isNaN(n) ? null : n;
+}
+
+/**
+ * Update Event_Standings for a given tournament (game_id)
+ */
+function updateStandings(tournamentId) {
+    const allGames = loadCamporeeData().games;
+    const gameDef = allGames.find(g => g.id === tournamentId);
+    if (!gameDef) return;
+
+    const isTimePriority = (gameDef.fields || []).some(f => f.type === 'timed' || f.type === 'stopwatch');
+
+    // Get all unique entities involved in this tournament
+    const entities = db.prepare(`
+        SELECT DISTINCT entity_id FROM Match_Participants
+        WHERE match_id IN (SELECT id FROM Matches WHERE tournament_id = ?)
+    `).all(tournamentId);
+
+    for (const { entity_id } of entities) {
+        const stats = db.prepare(`
+            SELECT AVG(score_value) as avg_score, MIN(time_value) as min_time, AVG(time_value) as avg_time
+            FROM Match_Participants
+            WHERE entity_id = ? AND match_id IN (SELECT id FROM Matches WHERE tournament_id = ?)
+        `).get(entity_id, tournamentId);
+
+        const secondary_metric = isTimePriority ? (stats.min_time || stats.avg_time) : stats.avg_score;
+
+        db.prepare(`
+            INSERT INTO Event_Standings (tournament_id, entity_id, secondary_metric)
+            VALUES (?, ?, ?)
+            ON CONFLICT(tournament_id, entity_id) DO UPDATE SET
+                secondary_metric = excluded.secondary_metric
+        `).run(tournamentId, entity_id, secondary_metric);
+    }
+}
 
 function getActiveMeta() {
     const metaPath = path.join(ACTIVE_DIR, 'camporee.json');
@@ -477,6 +556,84 @@ app.get('/api/admin/all-data', (req, res) => {
     }
 });
 
+// --- BRACKET SYNC ---
+app.post('/api/bracket/sync', (req, res) => {
+    const { game_id, bracket_data } = req.body;
+    if (!game_id || !bracket_data) {
+        return res.status(400).json({ error: 'Missing game_id or bracket_data' });
+    }
+
+    try {
+        const allGames = loadCamporeeData().games;
+        const gameDef = allGames.find(g => g.id === game_id);
+        const timeFields = (gameDef?.fields || []).filter(f => f.type === 'timed' || f.type === 'stopwatch').map(f => f.id);
+        const scoreFields = (gameDef?.fields || []).filter(f => f.type === 'number').map(f => f.id);
+
+        db.transaction(() => {
+            // 0. Ensure game_status entry exists to satisfy foreign key (it may naturally be 'active' if not yet managed)
+            db.prepare(`
+                INSERT INTO game_status (game_id, status) VALUES (?, 'active')
+                ON CONFLICT(game_id) DO NOTHING
+            `).run(game_id);
+
+            // Merge Main and Consolation rounds into one processing list
+            const allRounds = [
+                ...(bracket_data.rounds || []),
+                ...(bracket_data.consolation_rounds || [])
+            ];
+
+            allRounds.forEach((round, rIdx) => {
+                (round.heats || []).forEach((heat, hIdx) => {
+                    // 1. Upsert Match
+                    db.prepare(`
+                        INSERT INTO Matches (id, tournament_id, round_num, match_num, status)
+                        VALUES (?, ?, ?, ?, ?)
+                        ON CONFLICT(id) DO UPDATE SET status=excluded.status
+                    `).run(heat.id, game_id, rIdx, hIdx, heat.complete ? 'complete' : 'active');
+
+                    // 2. Upsert Participants
+                    Object.entries(heat.results || {}).forEach(([eid, result]) => {
+                        let score_value = null;
+                        let time_value = null;
+
+                        timeFields.forEach(fid => {
+                            if (result[fid]) time_value = timeToSeconds(result[fid]);
+                        });
+                        scoreFields.forEach(fid => {
+                            if (result[fid]) score_value = parseFloat(result[fid]) || 0;
+                        });
+
+                        db.prepare(`
+                            INSERT INTO Match_Participants (match_id, entity_id, score_value, time_value)
+                            VALUES (?, ?, ?, ?)
+                            ON CONFLICT(match_id, entity_id) DO UPDATE SET
+                                score_value=excluded.score_value,
+                                time_value=excluded.time_value
+                        `).run(heat.id, eid, score_value, time_value);
+
+                        // If it's the final round and they have a rank, update Event_Standings
+                        if (round.isFinalRound && result.rank) {
+                            db.prepare(`
+                                INSERT INTO Event_Standings (tournament_id, entity_id, computed_rank, status)
+                                VALUES (?, ?, ?, ?)
+                                ON CONFLICT(tournament_id, entity_id) DO UPDATE SET
+                                    computed_rank=excluded.computed_rank,
+                                    status=excluded.status
+                            `).run(game_id, eid, parseInt(result.rank), 'placed');
+                        }
+                    });
+                });
+            });
+        })();
+
+        updateStandings(game_id);
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Bracket Sync Error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.get('/api/admin/judges', (req, res) => {
     try {
         const judges = db.prepare('SELECT * FROM judges').all();
@@ -575,13 +732,17 @@ app.post('/api/admin/game-status', (req, res) => {
 app.delete('/api/admin/scores', (req, res) => {
     try {
         db.transaction(() => {
+            // Delete in order to satisfy foreign key constraints
+            db.prepare('DELETE FROM Match_Participants').run();
+            db.prepare('DELETE FROM Matches').run();
+            db.prepare('DELETE FROM Event_Standings').run();
             db.prepare('DELETE FROM scores').run();
             db.prepare('DELETE FROM judges').run();
             db.prepare('DELETE FROM game_status').run();
         })();
         res.json({
             success: true,
-            message: 'Scores, judges, and game statuses deleted.'
+            message: 'All scores and bracket data cleared.'
         });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -591,6 +752,9 @@ app.delete('/api/admin/scores', (req, res) => {
 app.delete('/api/admin/full-reset', (req, res) => {
     try {
         db.transaction(() => {
+            db.prepare('DELETE FROM Match_Participants').run();
+            db.prepare('DELETE FROM Matches').run();
+            db.prepare('DELETE FROM Event_Standings').run();
             db.prepare('DELETE FROM scores').run();
             db.prepare('DELETE FROM entities').run();
             db.prepare('DELETE FROM judges').run();
