@@ -215,19 +215,6 @@
     </div>
 
     <script type="module" src="js/judge.js"></script>
-    <script>
-        // SERVICE WORKER KILLER
-        // Forces unregistration of any existing SW to prevent stale code caching during dev.
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                for(let registration of registrations) {
-                    console.log('Unregistering Service Worker:', registration);
-                    registration.unregister();
-                }
-            });
-            // Force reload if we suspect we are stale (optional, but good for manual refresh)
-            console.log("Service Workers cleared. If app behaves strictly, Hard Refresh.");
-        }
-    </script>
+
 </body>
 </html>

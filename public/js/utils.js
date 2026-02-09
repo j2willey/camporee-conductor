@@ -925,5 +925,3 @@ function initStickerControls() {
 }
 
 window.initStickerControls = initStickerControls;
-
-// --- QR Code Generator ---
