@@ -28,3 +28,6 @@ Thumbs.db
 # Docker (Optional: if you have local override files)
 docker-compose.override.yml
 camporee/active/
+
+# generated scripts for filling data
+scripts/demo/score-*.cjs

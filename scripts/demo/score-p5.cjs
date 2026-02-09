@@ -5,7 +5,7 @@ const gameName = "Catch Fish Fry Fly";
 const judgeInfo = {
     name: "Demo Judge 17",
     email: "demojudge17@acme.com",
-    unit: "Troop 853"
+    unit: "Troop 179"
 };
 const patrols = [
   {
