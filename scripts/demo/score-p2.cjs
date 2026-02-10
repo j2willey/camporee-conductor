@@ -5,7 +5,7 @@ const gameName = "Kraken the First Aid Code";
 const judgeInfo = {
     name: "Demo Judge 12",
     email: "demojudge12@acme.com",
-    unit: "District"
+    unit: "Troop 338"
 };
 const patrols = [
   {

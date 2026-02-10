@@ -1896,28 +1896,31 @@ function updateOnlineStatus() {
 }
 
 async function refreshData() {
+    const ts = Date.now();
     try {
-        const ts = Date.now();
-        const [cRes, eRes] = await Promise.all([
-            fetch('/games.json?t='+ts).catch(err => ({ ok: false, error: err })),
-            fetch('/api/entities?t='+ts).catch(err => ({ ok: false, error: err }))
-        ]);
-
-        if (cRes.ok && eRes.ok) {
+        // 1. Fetch Config
+        const cRes = await fetch('/games.json?t=' + ts).catch(() => ({ ok: false }));
+        if (cRes.ok) {
             const sc = await cRes.json();
-            const config = { stations: sc.games, common_scoring: sc.common_scoring||[] };
-            state.config = config;
-            state.entities = await eRes.json();
-            localStorage.setItem('camporee_config', JSON.stringify(config));
-            localStorage.setItem('camporee_entities', JSON.stringify(state.entities));
-            renderStationList();
-        } else {
-            console.log("Offline or Server Unreachable: Using local data fallback.");
-            renderStationList(); // Ensure we try to render whatever we have
+            state.config = { stations: sc.games, common_scoring: sc.common_scoring || [] };
+            localStorage.setItem('camporee_config', JSON.stringify(state.config));
         }
-    } catch(e) {
-        // Only log scary errors, not fetch failures
-        if (!e.message.includes('fetch')) console.error("Refresh Error:", e);
+
+        // 2. Fetch Entities
+        const eRes = await fetch('/api/entities?t=' + ts).catch(() => ({ ok: false }));
+        if (eRes.ok) {
+            state.entities = await eRes.json();
+            localStorage.setItem('camporee_entities', JSON.stringify(state.entities));
+        }
+
+        if (!cRes.ok || !eRes.ok) {
+            console.warn("Refresh partial or failed. Using existing local state where needed.");
+        }
+
+        renderStationList();
+    } catch (err) {
+        // Catch-all for parsing errors or logic issues
+        if (!err.message?.includes('fetch')) console.error("Refresh Logic Error:", err);
         renderStationList();
     }
 }

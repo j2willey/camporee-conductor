@@ -5,7 +5,7 @@ const gameName = "Raft-a-drift at Sea";
 const judgeInfo = {
     name: "Demo Judge 3",
     email: "demojudge3@acme.com",
-    unit: "District"
+    unit: "Troop 948"
 };
 const patrols = [
   {

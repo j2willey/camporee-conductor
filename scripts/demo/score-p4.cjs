@@ -5,7 +5,7 @@ const gameName = "Coral Reef Construction";
 const judgeInfo = {
     name: "Demo Judge 16",
     email: "demojudge16@acme.com",
-    unit: "District"
+    unit: "Troop 432"
 };
 const patrols = [
   {
