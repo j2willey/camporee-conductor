@@ -1,16 +1,16 @@
 # Camporee Conductor Suite - Project Backlog
 
 ## 🚨 Critical Fixes & Stability (Immediate)
-* [ ] **Service Worker Refresh:**
+* [x] **Service Worker Refresh:**
     * *Action:* Update `service-worker.js` to explicitly cache the new modular structure (`/js/core/`, `/js/apps/`).
-    * *Why:* Ensure clients don't load old cached versions of the monolithic `app.js`.
+    * *Status:* **Completed.** SW v5 caches all modular dependencies and handles cache-busting via `ignoreSearch: true`.
 * [ ] **CSS Unification (Housekeeping):**
     * *Status:* `judge.html` and `admin.html` still reference `judge.css` and `admin.css`.
     * *Action:* Merge common styles into `conductor.css` and remove the specific files if possible to reduce maintenance.
 
 ## 🏆 Bracket & Scoring Enhancements
 * [ ] **"Grand Final" Workflow (The True 2nd Place):**
-    * *Status:* **Missing.** `judge.js` currently has the standard `submitFinals` logic but lacks the "Review Modal" and "Challenge Match" logic we discussed.
+    * *Status:* **In Progress.** Review Modal implemented with 1st-4th calculation. Challenge match logic and manual drag-and-drop podium reordering remains.
     * *Requirement:*
         1.  **Review Screen:** Replace "Submit" with "Review Results" to allow manual drag-and-drop of the podium.
         2.  **Challenge Match:** Logic to detect if [Consolation Winner] needs to play [Main Loser] for 2nd place.
