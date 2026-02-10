@@ -297,7 +297,6 @@ function renderStationList() {
         <button class="btn btn-outline-dark w-100 mb-2 text-start p-3 shadow-sm d-flex justify-content-between align-items-center" onclick="app.selectStation('${s.id}')">
             <div>
                 <div class="fw-bold">${formatGameTitle(s)}</div>
-                <small class="text-muted text-uppercase" style="font-size:0.75rem;">${s.type || (s.bracketMode ? 'Tournament' : 'General')}</small>
             </div>
             ${statusHtml}
         </button>`;
