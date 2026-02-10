@@ -5,7 +5,7 @@ const gameName = "Mermaid Tails";
 const judgeInfo = {
     name: "Demo Judge 6",
     email: "demojudge6@acme.com",
-    unit: "District"
+    unit: "Troop 863"
 };
 const patrols = [
   {
