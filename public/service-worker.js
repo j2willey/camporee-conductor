@@ -1,4 +1,4 @@
-const CACHE_NAME = 'camporee-conductor-v3';
+const CACHE_NAME = 'camporee-conductor-v4';
 const FILES_TO_CACHE = [
   '/',
   '/admin.html',
@@ -12,7 +12,7 @@ const FILES_TO_CACHE = [
   '/css/style.css',
   '/js/admin.js',
   '/js/composer_app.js',
-  '/js/judge.js',
+  '/js/judge.js?v=3',
   '/js/official.js',
   '/js/qrcode.min.js',
   '/js/sync-manager.js',

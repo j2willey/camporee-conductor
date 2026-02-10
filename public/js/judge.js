@@ -450,7 +450,7 @@ async function submitScore(e) {
     localStorage.setItem('camporee_drafts', JSON.stringify(drafts));
 
     try {
-        if(state.isOnline) {
+        if(navigator.onLine) {
             await syncManager.sync();
         }
         updateSyncCounts();
@@ -461,7 +461,12 @@ async function submitScore(e) {
         console.error("Sync Error:", err);
         updateSyncCounts();
         renderEntityList();
-        alert("⚠️ Score Saved Locally\n\nHowever, it failed to sync to the server:\n" + err.message);
+
+        if (!navigator.onLine || err.message.includes('fetch')) {
+            alert("Score Saved Locally. (Sync Pending)");
+        } else {
+            alert("⚠️ Score Saved Locally\n\nHowever, it failed to sync to the server:\n" + err.message);
+        }
         navigate('entity');
     }
 }
@@ -1410,7 +1415,7 @@ async function bracketSaveHeat() {
         saveBracketState();
         updateSyncCounts();
 
-        if (state.isOnline) {
+        if (navigator.onLine) {
             await syncManager.sync();
         }
 
@@ -1423,7 +1428,13 @@ async function bracketSaveHeat() {
         console.error(`${label} Save Error:`, err);
         renderBracketRound();
         navigate('bracketRound');
-        alert(`⚠️ ${label} Saved Locally\n\nHowever, it failed to sync to the server:\n` + err.message);
+
+        // If it's a network error, don't treat it as a "scary" failure
+        if (!navigator.onLine || err.message.includes('fetch')) {
+            alert(`${label} Saved Locally. (Sync Pending)`);
+        } else {
+            alert(`⚠️ ${label} Saved Locally\n\nHowever, it failed to sync to the server:\n` + err.message);
+        }
     }
 }
 
@@ -1507,7 +1518,7 @@ function openReviewModal() {
     }
 
     // 3. Show using Bootstrap Modal
-    const modalEl = document.getElementById('podium-modal');
+    const modalEl = document.getElementById('podiumModal');
     if (modalEl) {
         // Remove hidden class if present
         modalEl.classList.remove('hidden');
@@ -1825,16 +1836,21 @@ async function bracketSubmitPodium() {
     });
 
     try {
-        if (state.isOnline) {
+        if (navigator.onLine) {
             await syncManager.sync();
         }
         togglePodiumModal(false);
-        alert("🏆 Results Finalized & Submitted! Thank you.");
+        alert("🏆 Results Finalized & Saved Locally!");
         navigate('home');
     } catch (err) {
         console.error("Podium Sync Failed:", err);
         togglePodiumModal(false);
-        alert("⚠️ Results Saved Locally\n\nHowever, it failed to sync to the server:\n" + err.message);
+
+        if (!navigator.onLine || err.message.includes('fetch')) {
+            alert("🏆 Results Finalized & Saved Locally! (Sync Pending)");
+        } else {
+            alert("⚠️ Results Saved Locally\n\nHowever, it failed to sync to the server:\n" + err.message);
+        }
         navigate('home');
     }
 }
@@ -1882,7 +1898,11 @@ function updateOnlineStatus() {
 async function refreshData() {
     try {
         const ts = Date.now();
-        const [cRes, eRes] = await Promise.all([fetch('/games.json?t='+ts), fetch('/api/entities?t='+ts)]);
+        const [cRes, eRes] = await Promise.all([
+            fetch('/games.json?t='+ts).catch(err => ({ ok: false, error: err })),
+            fetch('/api/entities?t='+ts).catch(err => ({ ok: false, error: err }))
+        ]);
+
         if (cRes.ok && eRes.ok) {
             const sc = await cRes.json();
             const config = { stations: sc.games, common_scoring: sc.common_scoring||[] };
@@ -1891,17 +1911,30 @@ async function refreshData() {
             localStorage.setItem('camporee_config', JSON.stringify(config));
             localStorage.setItem('camporee_entities', JSON.stringify(state.entities));
             renderStationList();
+        } else {
+            console.log("Offline or Server Unreachable: Using local data fallback.");
+            renderStationList(); // Ensure we try to render whatever we have
         }
-    } catch(e) { console.error(e); }
+    } catch(e) {
+        // Only log scary errors, not fetch failures
+        if (!e.message.includes('fetch')) console.error("Refresh Error:", e);
+        renderStationList();
+    }
 }
 
 function loadLocalData() {
     try {
-        const c = localStorage.getItem('camporee_config');
-        const e = localStorage.getItem('camporee_entities');
+        // Migration: check both camporee (new) and coyote (old) keys
+        const c = localStorage.getItem('camporee_config') || localStorage.getItem('coyote_config');
+        const e = localStorage.getItem('camporee_entities') || localStorage.getItem('coyote_entities');
+        const b = localStorage.getItem('camporee_bracket_data') || localStorage.getItem('coyote_bracket_data');
+
         if (c) state.config = JSON.parse(c);
         if (e) state.entities = JSON.parse(e);
-    } catch (e) {}
+        if (b) state.bracketData = JSON.parse(b);
+    } catch (e) {
+        console.error("Local Data Load Error:", e);
+    }
 }
 
 function loadJudgeInfo() {
@@ -1973,6 +2006,8 @@ if ('serviceWorker' in navigator) {
             });
     });
 }
+
+window.onload = init;
 
 
 window.onload = init;
