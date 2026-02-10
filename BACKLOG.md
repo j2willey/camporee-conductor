@@ -4,18 +4,26 @@
 * [x] **Service Worker Refresh:**
     * *Action:* Update `service-worker.js` to explicitly cache the new modular structure (`/js/core/`, `/js/apps/`).
     * *Status:* **Completed.** SW v5 caches all modular dependencies and handles cache-busting via `ignoreSearch: true`.
-* [ ] **CSS Unification (Housekeeping):**
-    * *Status:* `judge.html` and `admin.html` still reference `judge.css` and `admin.css`.
-    * *Action:* Merge common styles into `conductor.css` and remove the specific files if possible to reduce maintenance.
+* [x] **CSS Unification (Housekeeping):**
+    * *Status:* **Completed.** Merged fragmented stylesheets into `conductor.css`. Implemented branding variables in `:root` and scoped `.judge-app` styles.
+    * *Action:* Removed `admin.css` and `style.css`. Optimized layouts for both Admin and Judge interfaces.
 
 ## 🏆 Bracket & Scoring Enhancements
-* [ ] **"Grand Final" Workflow (The True 2nd Place):**
-    * *Status:* **In Progress.** Review Modal implemented with 1st-4th calculation. Challenge match logic and manual drag-and-drop podium reordering remains.
-    * *Requirement:*
-        1.  **Review Screen:** Replace "Submit" with "Review Results" to allow manual drag-and-drop of the podium.
-        2.  **Challenge Match:** Logic to detect if [Consolation Winner] needs to play [Main Loser] for 2nd place.
-* [ ] **Ranking Logic Update:**
-    * *Action:* Ensure `leaderboard.js` respects the "True 2nd Place" override if a challenge match occurs.
+* [ ] **"The True 2nd Place" (Challenge Match Workflow):**
+    * *Status:* UI Restore complete. Logical challenge triggers required.
+    * *Priority:* **High.** This is essential for competitive fairness in bracket-style games.
+    * *New Task:* Implement the "Challenge Match" flag in the score schema to identify if a 2nd place matchup occurred.
+
+## 🚀 Camporee Composer (Designer/Composer)
+* [ ] **Layout Theme Engine:**
+    * *Status:* Variable architecture ready.
+    * *Action:* Add a "Theme" picker in Composer to allow users to change `--brand-main` and `--brand-header` colors globally.
+
+## 🎻 Camporee Collator (Admin/Runtime)
+* [ ] **Integrated Score Visualizer:**
+    * *Action:* Add a "Real-time Leaderboard" view directly into the Collator dashboard.
+* [ ] **Express Server Consolidation:**
+    * *Priority:* **Medium.** Merge `server.js` and `designer_server.js` into a single multi-port or path-based Express instance to simplify Docker/Dev runs.
 
 ## 🚀 Camporee Composer (Composer) Enhancements
 * [ ] **"Test Drive" Mode:**
