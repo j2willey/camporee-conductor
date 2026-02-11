@@ -6,6 +6,7 @@
 
 import { normalizeGameDefinition } from './core/schema.js';
 import { generateFieldHTML } from './core/ui.js';
+import { LibraryService } from './core/library-service.js';
 
 // 1. HARDCODED DEFAULTS (Cannot be overwritten by old zips)
 const SYSTEM_PRESETS = [
@@ -44,6 +45,19 @@ const composer = {
     // 3. INITIALIZATION
     init: async function() {
         console.log("Composer Initialized");
+
+        // --- Library Service Test ---
+        const lib = new LibraryService();
+        try {
+            const catalog = await lib.getCatalog();
+            console.log("Library Catalog Loaded:", catalog);
+            this.renderLibrary(catalog);
+        } catch (e) {
+            console.warn("Library Catalog failed to load:", e);
+            const statusEl = document.getElementById('library-status');
+            if (statusEl) statusEl.innerHTML = '<span class="text-danger">Failed to load library</span>';
+        }
+
         await this.checkServerStatus();
         this.setupDynamicTabs();
         this.injectModals();
@@ -346,15 +360,47 @@ const composer = {
     },
 
     // 8. RENDERERS
+    renderLibrary: function(catalog) {
+        const listEl = document.getElementById('library-list');
+        const statusEl = document.getElementById('library-status');
+        if (!listEl) return;
+
+        listEl.innerHTML = '';
+        if (catalog && catalog.games) {
+            catalog.games.forEach(game => {
+                const li = document.createElement('li');
+                li.className = 'library-item';
+                li.innerHTML = `
+                    <span class="badge bg-info text-dark">${game.complexity || 'Med'}</span>
+                    <span class="item-title">${game.title}</span>
+                    <span class="item-meta">${game.tags.join(', ')}</span>
+                `;
+                li.onclick = () => console.log("Selected Library Game:", game.id, game.path);
+                listEl.appendChild(li);
+            });
+            if (statusEl) statusEl.innerText = `${catalog.games.length} templates available`;
+        } else {
+            if (statusEl) statusEl.innerText = 'Catalog empty';
+        }
+    },
+
     renderGameLists: function() {
         const patrolList = document.getElementById('patrolList');
         const troopList = document.getElementById('troopList');
+        const patrolCountEl = document.getElementById('patrolCount');
+        const troopCountEl = document.getElementById('troopCount');
+
         if(!patrolList || !troopList) return;
         patrolList.innerHTML = ''; troopList.innerHTML = '';
+
+        let pCount = 0;
+        let tCount = 0;
 
         if (this.data.games.length === 0) {
             patrolList.innerHTML = '<div class="text-center text-muted">No patrol games.</div>';
             troopList.innerHTML = '<div class="text-center text-muted">No troop events.</div>';
+            if(patrolCountEl) patrolCountEl.innerText = '0';
+            if(troopCountEl) troopCountEl.innerText = '0';
             return;
         }
 
@@ -364,6 +410,8 @@ const composer = {
             const statusClass = game.enabled ? 'text-success' : 'text-secondary';
             const isPatrol = (!game.type || game.type === 'patrol');
             const targetList = isPatrol ? patrolList : troopList;
+
+            if(isPatrol) pCount++; else tCount++;
 
             const item = document.createElement('div');
             item.className = `list-group-item list-group-item-action d-flex align-items-center ${isActive}`;
@@ -386,6 +434,12 @@ const composer = {
                 </div>`;
             targetList.appendChild(item);
         });
+
+        if(patrolCountEl) patrolCountEl.innerText = pCount;
+        if(troopCountEl) troopCountEl.innerText = tCount;
+
+        if (pCount === 0) patrolList.innerHTML = '<div class="text-center text-muted p-3">No patrol games.</div>';
+        if (tCount === 0) troopList.innerHTML = '<div class="text-center text-muted p-3">No troop events.</div>';
     },
 
     editGame: function(gameId) {

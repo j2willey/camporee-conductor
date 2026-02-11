@@ -1,0 +1,27 @@
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "version": "1.0.0",
+  "meta": {
+    "title": "Matchless Fire",
+    "description": "Start a fire using natural materials without a single match. Points awarded based on time to boil water.",
+    "tags": ["fire", "outdoor", "survival"],
+    "logistics": {
+      "duration_min": 20,
+      "supplies": ["Dry wood", "Flint", "Steel", "Cotton balls"]
+    }
+  },
+  "scoring": [
+    {
+      "id": "boil_time",
+      "label": "Time to Boil",
+      "type": "timer",
+      "max_points": 50
+    },
+    {
+      "id": "safety",
+      "label": "Fire Safety Observed",
+      "type": "boolean",
+      "max_points": 10
+    }
+  ]
+}

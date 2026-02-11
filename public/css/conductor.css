@@ -300,3 +300,89 @@ main.has-fixed-header {
     main { padding: 0 !important; }
     .print-only { display: block !important; }
 }
+
+/* Composer Split-Pane IDE Layout */
+#composer-layout {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    height: calc(100vh - 56px); /* Subtract navbar height */
+    overflow: hidden;
+}
+
+#library-sidebar {
+    background-color: #f8f9fa;
+    border-right: 1px solid #dee2e6;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+#library-sidebar .sidebar-header {
+    background-color: #f8f9fa;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+#editor-main {
+    overflow-y: auto;
+    background-color: #f4f6f9;
+    max-width: none; /* Override global main max-width */
+    margin: 0;       /* Override global main margin */
+    padding: 0;      /* We use container-fluid for padding */
+}
+
+#library-list .library-item {
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+#library-list .library-item:hover {
+    background-color: #e9ecef;
+}
+
+#library-list .library-item .item-title {
+    font-weight: 600;
+    color: #2c3e50;
+    display: block;
+}
+
+#library-list .library-item .item-meta {
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+#library-list .library-item .badge {
+    float: right;
+    font-size: 0.7rem;
+}
+
+@media (max-width: 992px) {
+    #composer-layout {
+        grid-template-columns: 1fr;
+        height: auto;
+        overflow: visible;
+    }
+    #library-sidebar {
+        border-right: none;
+        border-bottom: 1px solid #dee2e6;
+        height: 300px;
+    }
+}
+
+/* Tabs Styling for Composer */
+.nav-tabs .nav-link {
+    color: #495057;
+    border: none;
+    border-bottom: 2px solid transparent;
+}
+
+.nav-tabs .nav-link.active {
+    font-weight: bold !important;
+    color: #0d6efd !important;
+    border: none !important;
+    border-bottom: 3px solid #0d6efd !important;
+    background: transparent !important;
+}

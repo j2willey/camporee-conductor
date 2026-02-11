@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://localhost:3000/schemas/camporee-instance.json",
+  "title": "Camporee Event Configuration",
+  "type": "object",
+  "required": ["id", "meta", "games"],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "meta": {
+      "type": "object",
+      "required": ["title", "year", "theme"],
+      "properties": {
+        "title": { "type": "string" },
+        "year": { "type": "integer" },
+        "theme": { "type": "string" },
+        "district": { "type": "string" }
+      }
+    },
+    "games": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title"],
+        "properties": {
+          "id": { "type": "string", "description": "Instance ID (e.g. game_1)" },
+          "library_ref_id": {
+              "type": ["string", "null"],
+              "format": "uuid",
+              "description": "Link to the Library Template. Null if bespoke."
+          },
+          "title": { "type": "string", "description": "Themed Title" },
+          "custom_scoring": {
+              "description": "If present, overrides the library defaults",
+              "type": "array",
+              "items": { "$ref": "https://localhost:3000/schemas/game-template.json#/properties/scoring/items" }
+          }
+        }
+      }
+    }
+  }
+}

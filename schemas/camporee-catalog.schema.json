@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://localhost:3000/schemas/camporee-catalog.json",
+  "title": "Camporee Archive Index",
+  "type": "object",
+  "required": ["camporees"],
+  "properties": {
+    "camporees": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "year", "title", "path"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "year": { "type": "integer" },
+          "title": { "type": "string" },
+          "theme": { "type": "string" },
+          "path": { "type": "string", "description": "Path to the .zip file" },
+          "game_count": { "type": "integer" },
+          "thumbnail_url": { "type": "string" }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://localhost:3000/schemas/library-catalog.json",
+  "title": "Game Library Index",
+  "type": "object",
+  "required": ["games"],
+  "properties": {
+    "last_updated": { "type": "string", "format": "date-time" },
+    "games": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "path", "tags"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "title": { "type": "string" },
+          "path": {
+              "type": "string",
+              "description": "Relative path to the full JSON definition file"
+          },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "complexity": { "type": "string", "enum": ["Low", "Medium", "High"] }
+        }
+      }
+    }
+  }
+}

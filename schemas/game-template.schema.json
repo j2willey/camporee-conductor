@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://localhost:3000/schemas/game-template.json",
+  "title": "Generic Game Template",
+  "description": "Defines a reusable game module in the Library.",
+  "type": "object",
+  "required": ["id", "meta", "scoring"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "The permanent Library UUID for this game concept."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "default": "1.0.0"
+    },
+    "meta": {
+      "type": "object",
+      "required": ["title", "tags"],
+      "properties": {
+        "title": { "type": "string", "description": "The generic name (e.g. 'Knot Relay')" },
+        "description": { "type": "string" },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Searchable tags like #fire, #firstaid"
+        },
+        "logistics": {
+            "type": "object",
+            "properties": {
+                "duration_min": { "type": "integer" },
+                "supplies": { "type": "array", "items": { "type": "string" } }
+            }
+        }
+      }
+    },
+    "scoring": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "max_points"],
+        "properties": {
+          "id": { "type": "string" },
+          "label": { "type": "string" },
+          "type": { "type": "string", "enum": ["timer", "tally", "boolean", "input"] },
+          "max_points": { "type": "integer" },
+          "weight": { "type": "number", "default": 1.0 }
+        }
+      }
+    }
+  }
+}

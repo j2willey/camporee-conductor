@@ -1,0 +1,19 @@
+{
+  "last_updated": "2026-02-10T12:00:00Z",
+  "games": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "title": "Matchless Fire",
+      "path": "fire/matchless.json",
+      "tags": ["fire", "outdoor"],
+      "complexity": "Medium"
+    },
+    {
+      "id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+      "title": "Knot Relay",
+      "path": "knots/knot_relay.json",
+      "tags": ["knots", "patrol"],
+      "complexity": "Low"
+    }
+  ]
+}

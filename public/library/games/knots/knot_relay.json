@@ -1,0 +1,27 @@
+{
+  "id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+  "version": "1.0.0",
+  "meta": {
+    "title": "Knot Relay",
+    "description": "Patrol members run to a station to tie a randomly assigned knot. Speed and accuracy are key.",
+    "tags": ["knots", "patrol", "speed"],
+    "logistics": {
+      "duration_min": 15,
+      "supplies": ["Ropes", "Knot cards"]
+    }
+  },
+  "scoring": [
+    {
+      "id": "relay_time",
+      "label": "Total Relay Time",
+      "type": "timer",
+      "max_points": 40
+    },
+    {
+      "id": "knot_count",
+      "label": "Correct Knots Tied",
+      "type": "tally",
+      "max_points": 20
+    }
+  ]
+}

@@ -6,15 +6,8 @@
     <title><%= title %></title>
 
     <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/conductor.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
-    <style>
-        /* Composer Specific Styles */
-        body { background-color: #f4f6f9; }
-        .composer-container { margin-top: 20px; }
-        .editor-panel { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .nav-tabs .nav-link.active { font-weight: bold; border-top: 3px solid #0d6efd; }
-    </style>
 </head>
 <body>
 
@@ -38,54 +31,84 @@
         </div>
     </nav>
 
-    <div class="container composer-container">
-        <ul class="nav nav-tabs" id="composerTabs" role="tablist">
-            <li class="nav-item">
-                <button class="nav-link active" id="meta-tab" data-bs-toggle="tab" data-bs-target="#meta-pane" type="button">1. Camporee Info</button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link" id="games-tab" data-bs-toggle="tab" data-bs-target="#games-pane" type="button">2. Game Library</button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link" id="editor-tab" data-bs-toggle="tab" data-bs-target="#editor-pane" type="button" disabled>3. Game Editor</button>
-            </li>
-        </ul>
+    <div id="composer-layout">
+        <aside id="library-sidebar">
+            <div class="sidebar-header p-3 border-bottom">
+                <h5 class="mb-0"><i class="fas fa-book"></i> Game Library</h5>
+            </div>
+            <ul id="library-list" class="list-unstyled p-0 mb-0"></ul>
+            <div id="library-status" class="p-3 text-muted small text-center">Loading Library...</div>
+        </aside>
 
-        <div class="tab-content p-3 border border-top-0 bg-white">
+        <main id="editor-main">
+            <div class="container-fluid py-3">
+                <ul class="nav nav-tabs" id="composerTabs" role="tablist">
+                    <li class="nav-item">
+                        <button class="nav-link active" id="meta-tab" data-bs-toggle="tab" data-bs-target="#meta-pane" type="button">1. Camporee Info</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="games-tab" data-bs-toggle="tab" data-bs-target="#games-pane" type="button">2. Active Games</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="editor-tab" data-bs-toggle="tab" data-bs-target="#editor-pane" type="button" disabled>3. Game Editor</button>
+                    </li>
+                </ul>
 
-            <div class="tab-pane fade show active" id="meta-pane">
-                <h4>Event Details</h4>
-                <p class="text-muted">Define the global settings for this specific event.</p>
-                <form id="metaForm">
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Camporee Title</label>
-                            <input type="text" class="form-control" id="metaTitle" placeholder="e.g. [District] Camporee 2026 2026">
+                <div class="tab-content p-3 border border-top-0 bg-white shadow-sm">
+
+                    <div class="tab-pane fade show active" id="meta-pane">
+                        <h4>Event Details</h4>
+                        <p class="text-muted">Define the global settings for this specific event.</p>
+                        <form id="metaForm">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Camporee Title</label>
+                                    <input type="text" class="form-control" id="metaTitle" placeholder="e.g. [District] Camporee 2026">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Theme</label>
+                                    <input type="text" class="form-control" id="metaTheme" placeholder="e.g. Space Odyssey">
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="tab-pane fade" id="games-pane">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h4>Active Games</h4>
+                            <button class="btn btn-primary btn-sm" onclick="composer.addGame()"><i class="fas fa-plus"></i> Add Game Manually</button>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Theme</label>
-                            <input type="text" class="form-control" id="metaTheme" placeholder="e.g. Space Odyssey">
+
+                        <div class="row">
+                            <div class="col-md-6 mb-4">
+                                <div class="d-flex align-items-center mb-2">
+                                    <h5 class="mb-0">Patrol Games</h5>
+                                    <span class="badge bg-secondary ms-2" id="patrolCount">0</span>
+                                </div>
+                                <div class="list-group border" id="patrolList">
+                                    <div class="text-center text-muted p-4">No patrol games.</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-4">
+                                <div class="d-flex align-items-center mb-2">
+                                    <h5 class="mb-0">Troop Events</h5>
+                                    <span class="badge bg-secondary ms-2" id="troopCount">0</span>
+                                </div>
+                                <div class="list-group border" id="troopList">
+                                    <div class="text-center text-muted p-4">No troop events.</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    </form>
-            </div>
 
-            <div class="tab-pane fade" id="games-pane">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h4>Game Library</h4>
-                    <button class="btn btn-primary btn-sm" onclick="composer.addGame()"><i class="fas fa-plus"></i> Add Game</button>
-                </div>
-                <div class="list-group" id="gameList">
-                    <div class="text-center text-muted p-4">No games loaded. Click "Add Game" or Import a Zip.</div>
+                    <div class="tab-pane fade" id="editor-pane">
+                        <div id="editor-container">
+                            <p class="text-muted">Select a game from the list to edit it.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
-
-            <div class="tab-pane fade" id="editor-pane">
-                <div id="editor-container">
-                    <p class="text-muted">Select a game from the library to edit it.</p>
-                </div>
-            </div>
-        </div>
+        </main>
     </div>
     <div class="modal fade" id="previewModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-scrollable">

@@ -1,13 +1,5 @@
 # Camporee Conductor Suite - Project Backlog
 
-## 🚨 Critical Fixes & Stability (Immediate)
-* [x] **Service Worker Refresh:**
-    * *Action:* Update `service-worker.js` to explicitly cache the new modular structure (`/js/core/`, `/js/apps/`).
-    * *Status:* **Completed.** SW v5 caches all modular dependencies and handles cache-busting via `ignoreSearch: true`.
-* [x] **CSS Unification (Housekeeping):**
-    * *Status:* **Completed.** Merged fragmented stylesheets into `conductor.css`. Implemented branding variables in `:root` and scoped `.judge-app` styles.
-    * *Action:* Removed `admin.css` and `style.css`. Optimized layouts for both Admin and Judge interfaces.
-
 ## 🏆 Bracket & Scoring Enhancements
 * [ ] **"The True 2nd Place" (Challenge Match Workflow):**
     * *Status:* UI Restore complete. Logical challenge triggers required.
