@@ -1,0 +1,27 @@
+{
+  "$schema": "../../schemas/game-template.schema.json",
+  "id": "74725ed6-f126-4108-b4ed-d56567a66059",
+  "base_title": "p2",
+  "version": "1.0",
+  "meta": {
+    "category": "first_aid",
+    "tags": [
+      "#imported",
+      "#first_aid"
+    ],
+    "description": "Imported game challenge.",
+    "logistics": {
+      "duration_minutes": 20,
+      "space_required": "Unknown",
+      "supplies_standard": []
+    }
+  },
+  "theming_guide": {
+    "narrative_prompt": "Describe a scenario relevant to the theme.",
+    "variant_suggestions": []
+  },
+  "scoring_model": {
+    "type": "standard",
+    "inputs": []
+  }
+}

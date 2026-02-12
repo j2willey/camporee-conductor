@@ -1,0 +1,27 @@
+{
+  "$schema": "../../schemas/game-template.schema.json",
+  "id": "3854f0da-eab6-4aa8-9c29-142663dd803c",
+  "base_title": "t11",
+  "version": "1.0",
+  "meta": {
+    "category": "teamwork",
+    "tags": [
+      "#imported",
+      "#teamwork"
+    ],
+    "description": "Imported game challenge.",
+    "logistics": {
+      "duration_minutes": 20,
+      "space_required": "Unknown",
+      "supplies_standard": []
+    }
+  },
+  "theming_guide": {
+    "narrative_prompt": "Describe a scenario relevant to the theme.",
+    "variant_suggestions": []
+  },
+  "scoring_model": {
+    "type": "standard",
+    "inputs": []
+  }
+}

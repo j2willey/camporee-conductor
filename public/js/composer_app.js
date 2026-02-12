@@ -369,11 +369,21 @@ const composer = {
         if (catalog && catalog.games) {
             catalog.games.forEach(game => {
                 const li = document.createElement('li');
-                li.className = 'library-item';
+                li.className = 'library-item px-3 py-2 border-bottom';
+
+                const tagsHtml = (game.tags || []).map(t => `<span class="badge bg-secondary me-1" style="font-size: 0.65rem;">${t}</span>`).join('');
+
                 li.innerHTML = `
-                    <span class="badge bg-info text-dark">${game.complexity || 'Med'}</span>
-                    <span class="item-title">${game.title}</span>
-                    <span class="item-meta">${game.tags.join(', ')}</span>
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <span class="item-title d-block fw-bold">${game.title}</span>
+                            <div class="item-tags mt-1">${tagsHtml}</div>
+                            <small class="text-muted" style="font-size: 0.7rem;">${game.complexity || 'Medium'}</small>
+                        </div>
+                        <button class="btn btn-sm btn-outline-primary ms-2" onclick="event.stopPropagation(); composer.addGameFromLibrary('${game.path}')" title="Add to Camporee">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
                 `;
                 li.onclick = () => console.log("Selected Library Game:", game.id, game.path);
                 listEl.appendChild(li);
@@ -381,6 +391,65 @@ const composer = {
             if (statusEl) statusEl.innerText = `${catalog.games.length} templates available`;
         } else {
             if (statusEl) statusEl.innerText = 'Catalog empty';
+        }
+    },
+
+    async addGameFromLibrary(gamePath) {
+        console.log("Adding game from library:", gamePath);
+        const lib = new LibraryService();
+        try {
+            const template = await lib.getGame(gamePath);
+
+            // Use structuredClone or the JSON fallback for a deep copy
+            const data = (typeof structuredClone === 'function') ?
+                structuredClone(template) : JSON.parse(JSON.stringify(template));
+
+            const instanceId = this.generateUUID();
+
+            // Construct the instance to match your existing app's schema
+            const instance = {
+                id: instanceId,
+                library_ref_id: data.id,
+                enabled: true,
+                type: data.type || (gamePath.includes('troop') ? 'troop' : 'patrol'),
+                sortOrder: (this.data.games.length + 1) * 10,
+                schemaVersion: "2.9",
+                content: {
+                    title: data.meta?.title || data.base_title || 'Untitled Game',
+                    story: data.meta?.description || '',
+                    instructions: data.meta?.instructions || ''
+                },
+                scoring: {
+                    method: 'points_desc',
+                    // Map library inputs to composer components
+                    components: (data.scoring_model?.inputs || []).map(input => ({
+                        id: input.id || this.generateUUID(),
+                        label: input.label || 'New Field',
+                        type: input.type === 'timer' ? 'stopwatch' : (input.type || 'number'),
+                        kind: input.type === 'timer' ? 'metric' : 'points',
+                        weight: input.weight !== undefined ? input.weight : 1,
+                        audience: 'judge',
+                        config: {
+                            min: 0,
+                            max: input.max_points || 0,
+                            placeholder: input.placeholder || ''
+                        }
+                    }))
+                },
+                match_label: '',
+                bracketMode: false
+            };
+
+            this.data.games.push(instance);
+            this.normalizeGameSortOrders();
+            this.renderGameLists();
+
+            // Switch to the editor for the new game
+            this.editGame(instanceId);
+
+        } catch (e) {
+            console.error("Failed to add game from library:", e);
+            alert("Error adding game: " + e.message);
         }
     },
 

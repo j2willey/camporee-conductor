@@ -1,0 +1,27 @@
+{
+  "$schema": "../../schemas/game-template.schema.json",
+  "id": "393b8d53-4113-4c40-886c-209ee241d740",
+  "base_title": "p14",
+  "version": "1.0",
+  "meta": {
+    "category": "knots",
+    "tags": [
+      "#imported",
+      "#knots"
+    ],
+    "description": "Imported game challenge.",
+    "logistics": {
+      "duration_minutes": 20,
+      "space_required": "Unknown",
+      "supplies_standard": []
+    }
+  },
+  "theming_guide": {
+    "narrative_prompt": "Describe a scenario relevant to the theme.",
+    "variant_suggestions": []
+  },
+  "scoring_model": {
+    "type": "standard",
+    "inputs": []
+  }
+}

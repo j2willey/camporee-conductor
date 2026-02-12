@@ -1,0 +1,27 @@
+{
+  "$schema": "../../schemas/game-template.schema.json",
+  "id": "5e84d402-20f9-4683-adbb-746fbbc509b4",
+  "base_title": "t5",
+  "version": "1.0",
+  "meta": {
+    "category": "cooking",
+    "tags": [
+      "#imported",
+      "#cooking"
+    ],
+    "description": "Imported game challenge.",
+    "logistics": {
+      "duration_minutes": 20,
+      "space_required": "Unknown",
+      "supplies_standard": []
+    }
+  },
+  "theming_guide": {
+    "narrative_prompt": "Describe a scenario relevant to the theme.",
+    "variant_suggestions": []
+  },
+  "scoring_model": {
+    "type": "standard",
+    "inputs": []
+  }
+}

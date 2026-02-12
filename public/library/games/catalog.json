@@ -1,19 +1,363 @@
 {
-  "last_updated": "2026-02-10T12:00:00Z",
+  "last_updated": "2026-02-11T02:51:37.839Z",
+  "categories": [
+    "cooking",
+    "fire",
+    "first_aid",
+    "knots",
+    "navigation",
+    "teamwork"
+  ],
   "games": [
     {
+      "id": "cf691a7f-bd4b-4cdb-a8f8-a837cf6258c0",
+      "title": "p5",
+      "path": "cooking/p5.json",
+      "tags": [
+        "#imported",
+        "#cooking"
+      ],
+      "complexity": "Medium"
+    },
+    {
+      "id": "2e8478f5-5648-4b11-b800-70d429dbe0f3",
+      "title": "t3",
+      "path": "cooking/t3.json",
+      "tags": [
+        "#imported",
+        "#cooking"
+      ],
+      "complexity": "Medium"
+    },
+    {
+      "id": "cb1fb9be-a90f-486d-b65e-4bdfec86f01c",
+      "title": "t4",
+      "path": "cooking/t4.json",
+      "tags": [
+        "#imported",
+        "#cooking"
+      ],
+      "complexity": "Medium"
+    },
+    {
+      "id": "5e84d402-20f9-4683-adbb-746fbbc509b4",
+      "title": "t5",
+      "path": "cooking/t5.json",
+      "tags": [
+        "#imported",
+        "#cooking"
+      ],
+      "complexity": "Medium"
+    },
+    {
       "id": "550e8400-e29b-41d4-a716-446655440000",
-      "title": "Matchless Fire",
       "path": "fire/matchless.json",
-      "tags": ["fire", "outdoor"],
+      "tags": [
+        "fire",
+        "outdoor",
+        "survival"
+      ],
+      "complexity": "Medium"
+    },
+    {
+      "id": "5bad461d-338d-4a91-bd00-9395fe1095a4",
+      "title": "p1",
+      "path": "fire/p1.json",
+      "tags": [
+        "#imported",
+        "#fire"
+      ],
+      "complexity": "Medium"
+    },
+    {
+      "id": "7f6db3ec-c017-40aa-a659-93d48b58b956",
+      "title": "t7",
+      "path": "fire/t7.json",
+      "tags": [
+        "#imported",
+        "#fire"
+      ],
+      "complexity": "Medium"
+    },
+    {
+      "id": "74725ed6-f126-4108-b4ed-d56567a66059",
+      "title": "p2",
+      "path": "first_aid/p2.json",
+      "tags": [
+        "#imported",
+        "#first_aid"
+      ],
       "complexity": "Medium"
     },
     {
       "id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
-      "title": "Knot Relay",
       "path": "knots/knot_relay.json",
-      "tags": ["knots", "patrol"],
-      "complexity": "Low"
+      "tags": [
+        "knots",
+        "patrol",
+        "speed"
+      ],
+      "complexity": "Medium"
+    },
+    {
+      "id": "ec577614-37b7-4aed-82d1-0685566fa52a",
+      "title": "p10",
+      "path": "knots/p10.json",
+      "tags": [
+        "#imported",
+        "#knots"
+      ],
+      "complexity": "Medium"
+    },
+    {
+      "id": "393b8d53-4113-4c40-886c-209ee241d740",
+      "title": "p14",
+      "path": "knots/p14.json",
+      "tags": [
+        "#imported",
+        "#knots"
+      ],
+      "complexity": "Medium"
+    },
+    {
+      "id": "64c8a84c-9d5e-4bdd-a0ca-61e72a241ca2",
+      "title": "p19",
+      "path": "knots/p19.json",
+      "tags": [
+        "#imported",
+        "#knots"
+      ],
+      "complexity": "Medium"
+    },
+    {
+      "id": "38df3637-0fa1-45ae-8848-3cbe12df3271",
+      "title": "p9",
+      "path": "knots/p9.json",
+      "tags": [
+        "#imported",
+        "#knots"
+      ],
+      "complexity": "Medium"
+    },
+    {
+      "id": "a8d2cad0-7fb6-412d-8ab8-d2241a50d11a",
+      "title": "p6",
+      "path": "navigation/p6.json",
+      "tags": [
+        "#imported",
+        "#navigation"
+      ],
+      "complexity": "Medium"
+    },
+    {
+      "id": "5db4373b-f84b-4ae6-a5c6-45a7610ff724",
+      "title": "e1",
+      "path": "teamwork/e1.json",
+      "tags": [
+        "#imported",
+        "#teamwork"
+      ],
+      "complexity": "Medium"
+    },
+    {
+      "id": "b6a5840d-18f2-4dd0-823b-5e8cde255b8d",
+      "title": "p11",
+      "path": "teamwork/p11.json",
+      "tags": [
+        "#imported",
+        "#teamwork"
+      ],
+      "complexity": "Medium"
+    },
+    {
+      "id": "3670412f-cc9a-4af8-93ed-646139aee689",
+      "title": "p12",
+      "path": "teamwork/p12.json",
+      "tags": [
+        "#imported",
+        "#teamwork"
+      ],
+      "complexity": "Medium"
+    },
+    {
+      "id": "ca5e1e70-2924-47fc-811c-83b13a1bd866",
+      "title": "p13",
+      "path": "teamwork/p13.json",
+      "tags": [
+        "#imported",
+        "#teamwork"
+      ],
+      "complexity": "Medium"
+    },
+    {
+      "id": "5d9d26a9-0346-4f79-b6bb-6368cbfb0daa",
+      "title": "p15",
+      "path": "teamwork/p15.json",
+      "tags": [
+        "#imported",
+        "#teamwork"
+      ],
+      "complexity": "Medium"
+    },
+    {
+      "id": "daccb5b5-fd15-439a-a5d9-a3213b5b99c7",
+      "title": "p16",
+      "path": "teamwork/p16.json",
+      "tags": [
+        "#imported",
+        "#teamwork"
+      ],
+      "complexity": "Medium"
+    },
+    {
+      "id": "10c4b15b-e699-4250-b659-4699fe477ab3",
+      "title": "p17",
+      "path": "teamwork/p17.json",
+      "tags": [
+        "#imported",
+        "#teamwork"
+      ],
+      "complexity": "Medium"
+    },
+    {
+      "id": "0c24e1cf-6d83-47cf-906d-ac38c3161dc2",
+      "title": "p18",
+      "path": "teamwork/p18.json",
+      "tags": [
+        "#imported",
+        "#teamwork"
+      ],
+      "complexity": "Medium"
+    },
+    {
+      "id": "a13001c6-4a4e-4cb6-8d0a-f91be1734e61",
+      "title": "p20",
+      "path": "teamwork/p20.json",
+      "tags": [
+        "#imported",
+        "#teamwork"
+      ],
+      "complexity": "Medium"
+    },
+    {
+      "id": "3afc5677-eb56-4bbf-aa16-a5fe62c459b5",
+      "title": "p21",
+      "path": "teamwork/p21.json",
+      "tags": [
+        "#imported",
+        "#teamwork"
+      ],
+      "complexity": "Medium"
+    },
+    {
+      "id": "2d85403f-5c0f-47eb-bf00-e5c2fd34cfd6",
+      "title": "p3",
+      "path": "teamwork/p3.json",
+      "tags": [
+        "#imported",
+        "#teamwork"
+      ],
+      "complexity": "Medium"
+    },
+    {
+      "id": "2b7f62d0-02e3-4ab6-bce8-0f06eaad236c",
+      "title": "p4",
+      "path": "teamwork/p4.json",
+      "tags": [
+        "#imported",
+        "#teamwork"
+      ],
+      "complexity": "Medium"
+    },
+    {
+      "id": "0e0472df-2ea2-48f7-9800-7155c9b741b0",
+      "title": "p7",
+      "path": "teamwork/p7.json",
+      "tags": [
+        "#imported",
+        "#teamwork"
+      ],
+      "complexity": "Medium"
+    },
+    {
+      "id": "221a4d71-d21d-4173-a372-59d6253dcdd5",
+      "title": "p8",
+      "path": "teamwork/p8.json",
+      "tags": [
+        "#imported",
+        "#teamwork"
+      ],
+      "complexity": "Medium"
+    },
+    {
+      "id": "e48facdd-1f2b-4343-8bae-7ace7821cb36",
+      "title": "t1",
+      "path": "teamwork/t1.json",
+      "tags": [
+        "#imported",
+        "#teamwork"
+      ],
+      "complexity": "Medium"
+    },
+    {
+      "id": "63253a83-60c8-4c4a-9ea7-50286564f710",
+      "title": "t10",
+      "path": "teamwork/t10.json",
+      "tags": [
+        "#imported",
+        "#teamwork"
+      ],
+      "complexity": "Medium"
+    },
+    {
+      "id": "3854f0da-eab6-4aa8-9c29-142663dd803c",
+      "title": "t11",
+      "path": "teamwork/t11.json",
+      "tags": [
+        "#imported",
+        "#teamwork"
+      ],
+      "complexity": "Medium"
+    },
+    {
+      "id": "fed26aa9-4b75-46fe-bbc1-2c957d2fe9f5",
+      "title": "t2",
+      "path": "teamwork/t2.json",
+      "tags": [
+        "#imported",
+        "#teamwork"
+      ],
+      "complexity": "Medium"
+    },
+    {
+      "id": "510298f6-a410-4885-9f1f-ed94266bb26c",
+      "title": "t6",
+      "path": "teamwork/t6.json",
+      "tags": [
+        "#imported",
+        "#teamwork"
+      ],
+      "complexity": "Medium"
+    },
+    {
+      "id": "04dec818-e8e7-400b-a0b6-ba9dddc5a941",
+      "title": "t8",
+      "path": "teamwork/t8.json",
+      "tags": [
+        "#imported",
+        "#teamwork"
+      ],
+      "complexity": "Medium"
+    },
+    {
+      "id": "72af268b-25ee-4bf4-9031-c54ea25ae5a5",
+      "title": "t9",
+      "path": "teamwork/t9.json",
+      "tags": [
+        "#imported",
+        "#teamwork"
+      ],
+      "complexity": "Medium"
     }
   ]
 }

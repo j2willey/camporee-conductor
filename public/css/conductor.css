@@ -303,18 +303,26 @@ main.has-fixed-header {
 
 /* Composer Split-Pane IDE Layout */
 #composer-layout {
-    display: grid;
-    grid-template-columns: 300px 1fr;
-    height: calc(100vh - 56px); /* Subtract navbar height */
+    display: flex;
+    height: calc(100vh - 56px); /* Adjusted for Bootstrap Navbar */
     overflow: hidden;
 }
 
 #library-sidebar {
-    background-color: #f8f9fa;
-    border-right: 1px solid #dee2e6;
+    width: 300px;
+    flex-shrink: 0;
+    overflow-y: auto;
+    border-right: 1px solid #ddd;
+    background: #f8f9fa;
     display: flex;
     flex-direction: column;
+}
+
+#composer-main-pane {
+    flex-grow: 1;
     overflow-y: auto;
+    padding: 20px;
+    background-color: #f4f6f9;
 }
 
 #library-sidebar .sidebar-header {
@@ -322,14 +330,6 @@ main.has-fixed-header {
     position: sticky;
     top: 0;
     z-index: 10;
-}
-
-#editor-main {
-    overflow-y: auto;
-    background-color: #f4f6f9;
-    max-width: none; /* Override global main max-width */
-    margin: 0;       /* Override global main margin */
-    padding: 0;      /* We use container-fluid for padding */
 }
 
 #library-list .library-item {
