@@ -240,6 +240,36 @@ app.post('/api/camporee/:id', (req, res) => {
     }
 });
 
+/**
+ * 6. SAVE LIBRARY GAME TEMPLATE
+ * Writes a library game JSON file to public/library/games (safe path).
+ */
+app.post('/api/library/save', async (req, res) => {
+    try {
+        const { path: gamePath, data } = req.body || {};
+        if (!gamePath || !data) return res.status(400).json({ error: 'path and data required' });
+
+        const baseDir = path.join(__dirname, 'public', 'library', 'games');
+
+        // Normalize and join to prevent directory traversal
+        if (path.isAbsolute(gamePath)) return res.status(400).json({ error: 'Invalid path' });
+        const targetPath = path.normalize(path.join(baseDir, gamePath));
+
+        // Ensure target is strictly within baseDir
+        if (!targetPath.startsWith(baseDir + path.sep)) {
+            return res.status(400).json({ error: 'Invalid path' });
+        }
+
+        await fs.promises.mkdir(path.dirname(targetPath), { recursive: true });
+        await fs.promises.writeFile(targetPath, JSON.stringify(data, null, 2), 'utf8');
+
+        return res.status(200).json({ success: true });
+    } catch (err) {
+        console.error('Library save error:', err);
+        return res.status(500).json({ error: 'Failed to save library game' });
+    }
+});
+
 // --- START SERVER ---
 app.listen(PORT, () => {
     console.log(`Composer Server running at http://localhost:${PORT}`);

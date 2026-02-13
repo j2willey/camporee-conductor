@@ -26,21 +26,51 @@ export function normalizeGameDefinition(gameDef, playlistOrder = 0) {
     // Clone to avoid mutating the input
     const game = JSON.parse(JSON.stringify(gameDef));
 
+    // Support library vs instance titles
+    // library templates may provide `base_title`; instances use `content.title`
+    if (!game.base_title && game.title) game.base_title = game.title;
+    if (!game.content || typeof game.content !== 'object') game.content = {};
+    if (!game.content.title && game.title) game.content.title = game.title;
+    if (!game.content.title) game.content.title = game.base_title || 'Untitled Game';
+
+    // Normalize variants array: each variant { id, label, description, scoring_override }
+    if (!Array.isArray(game.variants)) game.variants = [];
+    game.variants = game.variants.map(v => {
+        const variant = Object.assign({}, v || {});
+        variant.id = variant.id || (`variant-${Date.now()}-${Math.random().toString(36).slice(2,8)}`);
+        variant.label = variant.label || variant.name || 'Variant';
+        variant.description = variant.description || '';
+        if (variant.scoring_override && typeof variant.scoring_override === 'object') {
+            // deep-clone scoring_override
+            variant.scoring_override = JSON.parse(JSON.stringify(variant.scoring_override));
+        } else {
+            variant.scoring_override = null;
+        }
+        return variant;
+    });
+
     // --- THE TRANSLATION LAYER ---
     // Map Composer Schema (scoring.components) -> Collator Schema (fields)
-    if (game.scoring && game.scoring.components) {
-        game.fields = game.scoring.components.map(comp => ({
-            id: comp.id,
-            label: comp.label,
-            type: comp.type === FIELD_TYPES.STOPWATCH ? FIELD_TYPES.TIMED : comp.type,
-            kind: comp.kind,
-            weight: comp.weight,
-            audience: comp.audience,
-            ...comp.config // Spread min/max/placeholder into root
-        }));
-    } else if (!game.fields) {
-        game.fields = [];
-    }
+    // Prefer explicit scoring.components; fall back to scoring_model.inputs if present
+    const components = (game.scoring && Array.isArray(game.scoring.components)) ? game.scoring.components : (game.scoring_model && Array.isArray(game.scoring_model.inputs) ? game.scoring_model.inputs.map(i => ({
+        id: i.id || (`score-${Date.now()}-${Math.random().toString(36).slice(2,8)}`),
+        label: i.label || i.name || '',
+        type: i.type || 'number',
+        kind: i.type === 'timer' ? 'metric' : 'points',
+        weight: typeof i.weight !== 'undefined' ? i.weight : 1,
+        audience: 'judge',
+        config: { min: i.min || 0, max: i.max_points || i.max || 0, placeholder: i.placeholder || '' }
+    }) : []));
+
+    game.fields = components.map(comp => ({
+        id: comp.id,
+        label: comp.label,
+        type: comp.type === FIELD_TYPES.STOPWATCH || comp.type === 'timer' ? FIELD_TYPES.TIMED : comp.type,
+        kind: comp.kind,
+        weight: comp.weight,
+        audience: comp.audience || 'judge',
+        ...(comp.config || {}) // Spread min/max/placeholder into root
+    }));
 
     game.sortOrder = playlistOrder * 10;
 
@@ -133,5 +163,25 @@ export function generateUUID() {
         const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
         return v.toString(16);
     });
+}
+
+/**
+ * Return effective scoring for a game, optionally applying a variant's scoring_override.
+ * @param {Object} gameDef - raw or normalized game definition
+ * @param {string} [variantId] - optional variant id to apply
+ * @returns {Array|Object} scoring components/object to use for this game/variant
+ */
+export function getEffectiveScoring(gameDef, variantId) {
+    // Normalize first to ensure variants and scoring are present
+    const g = normalizeGameDefinition(gameDef);
+    if (variantId && Array.isArray(g.variants)) {
+        const v = g.variants.find(x => x.id === variantId);
+        if (v && v.scoring_override) {
+            // scoring_override might be in either composer or collator shape; return deep clone
+            return JSON.parse(JSON.stringify(v.scoring_override));
+        }
+    }
+    // Default to base scoring as originally defined (return deep clone)
+    return JSON.parse(JSON.stringify(g.scoring || g.scoring_model || g.fields || []));
 }
 
