@@ -60,7 +60,7 @@ export function normalizeGameDefinition(gameDef, playlistOrder = 0) {
         weight: typeof i.weight !== 'undefined' ? i.weight : 1,
         audience: 'judge',
         config: { min: i.min || 0, max: i.max_points || i.max || 0, placeholder: i.placeholder || '' }
-    }) : []));
+    })) : []);
 
     game.fields = components.map(comp => ({
         id: comp.id,
