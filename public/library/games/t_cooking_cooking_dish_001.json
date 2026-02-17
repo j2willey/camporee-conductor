@@ -1,0 +1,40 @@
+{
+    "id": "t3",
+    "base_title": "Cooking Dish",
+    "type": "troop",
+    "meta": {
+        "title": "Cooking Dish",
+        "description": "",
+        "instructions": ""
+    },
+    "tags": [
+        "troop",
+        "cooking"
+    ],
+    "scoring_model": {
+        "method": "points_desc",
+        "inputs": [
+            {
+                "id": "dish",
+                "label": "Dish",
+                "audience": "judge",
+                "sortOrder": 900,
+                "config": {},
+                "type": "number",
+                "kind": "points",
+                "weight": 1
+            },
+            {
+                "id": "cooking_techniques",
+                "label": "Cooking Techniques",
+                "audience": "judge",
+                "sortOrder": 900,
+                "config": {},
+                "type": "number",
+                "kind": "points",
+                "weight": 1
+            }
+        ]
+    },
+    "variants": []
+}

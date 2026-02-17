@@ -1,0 +1,69 @@
+{
+    "id": "t10",
+    "base_title": "LandSkis",
+    "type": "troop",
+    "meta": {
+        "title": "LandSkis",
+        "description": "",
+        "instructions": ""
+    },
+    "tags": [
+        "troop"
+    ],
+    "scoring_model": {
+        "method": "points_desc",
+        "inputs": [
+            {
+                "id": "points",
+                "label": "Time",
+                "audience": "judge",
+                "sortOrder": 900,
+                "config": {},
+                "type": "stopwatch",
+                "kind": "metric",
+                "weight": 0
+            },
+            {
+                "id": "bracket_result",
+                "label": "Match Result",
+                "type": "text",
+                "kind": "info",
+                "weight": 0,
+                "audience": "judge",
+                "required": true,
+                "config": {
+                    "placeholder": "Place:  1, 2, 3, 4....."
+                }
+            },
+            {
+                "id": "final_rank",
+                "label": "Final Ranking",
+                "type": "select",
+                "kind": "info",
+                "weight": 0,
+                "audience": "admin",
+                "config": {
+                    "options": [
+                        "1st Place",
+                        "2nd Place",
+                        "3rd Place",
+                        "4th Place",
+                        "Participant"
+                    ]
+                }
+            },
+            {
+                "id": "overall_points",
+                "label": "Overall Points",
+                "type": "number",
+                "kind": "points",
+                "weight": 1,
+                "audience": "admin",
+                "config": {
+                    "placeholder": "e.g., 100, 90, 80..."
+                }
+            }
+        ]
+    },
+    "variants": []
+}

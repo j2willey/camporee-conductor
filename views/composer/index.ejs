@@ -1,14 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= title %></title>
+    <title>
+        <%= title %>
+    </title>
 
     <link rel="stylesheet" href="/css/bootstrap.min.css">
     <link rel="stylesheet" href="/css/conductor.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body.mode-curator .navbar {
+            background-color: #6f42c1 !important;
+        }
+
+        body.mode-curator .btn-outline-primary {
+            color: #6f42c1;
+            border-color: #6f42c1;
+        }
+
+        body.mode-curator .btn-outline-primary:hover {
+            background-color: #6f42c1;
+            color: white;
+        }
+
+        body.mode-curator .text-primary {
+            color: #6f42c1 !important;
+        }
+
+        .variant-card {
+            border-left: 4px solid #6f42c1;
+        }
+    </style>
 </head>
+
 <body>
 
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
@@ -16,18 +43,23 @@
             <a class="navbar-brand" href="#">
                 <i class="fas fa-campground"></i> Camporee Composer
             </a>
-            <div class="d-flex">
-                <button class="btn btn-outline-light btn-sm me-2" onclick="composer.newCamporee()">
-                    <i class="fas fa-file"></i> New
-                </button>
-                <label class="btn btn-outline-warning btn-sm me-2 mb-0">
-                    <i class="fas fa-folder-open"></i> Import Zip
-                    <input type="file" id="fileInput" accept=".zip" hidden>
-                </label>
-                <button class="btn btn-success btn-sm" onclick="composer.exportCamporee()">
-                    <i class="fas fa-save"></i> Export Zip
-                </button>
+            <div class="form-check form-switch text-light me-3 d-flex align-items-center">
+                <input class="form-check-input me-2" type="checkbox" id="librarianModeSwitch"
+                    onchange="composer.toggleLibrarianMode(this.checked)">
+                <label class="form-check-label" for="librarianModeSwitch"><i class="fas fa-book-reader"></i>
+                    Librarian</label>
             </div>
+            <button class="btn btn-outline-light btn-sm me-2" onclick="composer.newCamporee()">
+                <i class="fas fa-file"></i> New
+            </button>
+            <label class="btn btn-outline-warning btn-sm me-2 mb-0">
+                <i class="fas fa-folder-open"></i> Import Zip
+                <input type="file" id="fileInput" accept=".zip" hidden>
+            </label>
+            <button class="btn btn-success btn-sm" onclick="composer.exportCamporee()">
+                <i class="fas fa-save"></i> Export Zip
+            </button>
+        </div>
         </div>
     </nav>
 
@@ -44,13 +76,16 @@
             <div class="container-fluid py-3">
                 <ul class="nav nav-tabs" id="composerTabs" role="tablist">
                     <li class="nav-item">
-                        <button class="nav-link active" id="meta-tab" data-bs-toggle="tab" data-bs-target="#meta-pane" type="button">1. Camporee Info</button>
+                        <button class="nav-link active" id="meta-tab" data-bs-toggle="tab" data-bs-target="#meta-pane"
+                            type="button">1. Camporee Info</button>
                     </li>
                     <li class="nav-item">
-                        <button class="nav-link" id="games-tab" data-bs-toggle="tab" data-bs-target="#games-pane" type="button">2. Active Games</button>
+                        <button class="nav-link" id="games-tab" data-bs-toggle="tab" data-bs-target="#games-pane"
+                            type="button">2. Active Games</button>
                     </li>
                     <li class="nav-item">
-                        <button class="nav-link" id="editor-tab" data-bs-toggle="tab" data-bs-target="#editor-pane" type="button" disabled>3. Game Editor</button>
+                        <button class="nav-link" id="editor-tab" data-bs-toggle="tab" data-bs-target="#editor-pane"
+                            type="button" disabled>3. Game Editor</button>
                     </li>
                 </ul>
 
@@ -63,11 +98,13 @@
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Camporee Title</label>
-                                    <input type="text" class="form-control" id="metaTitle" placeholder="e.g. [District] Camporee 2026">
+                                    <input type="text" class="form-control" id="metaTitle"
+                                        placeholder="e.g. [District] Camporee 2026">
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Theme</label>
-                                    <input type="text" class="form-control" id="metaTheme" placeholder="e.g. Space Odyssey">
+                                    <input type="text" class="form-control" id="metaTheme"
+                                        placeholder="e.g. Space Odyssey">
                                 </div>
                             </div>
                         </form>
@@ -76,7 +113,8 @@
                     <div class="tab-pane fade" id="games-pane">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h4>Active Games</h4>
-                            <button class="btn btn-primary btn-sm" onclick="composer.addGame()"><i class="fas fa-plus"></i> Add Game Manually</button>
+                            <button class="btn btn-primary btn-sm" onclick="composer.addGame()"><i
+                                    class="fas fa-plus"></i> Add Game Manually</button>
                         </div>
 
                         <div class="row">
@@ -118,7 +156,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body" id="previewModalBody">
-                    </div>
+                </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
@@ -132,4 +170,5 @@
 
     <script type="module" src="/js/composer_app.js?v=2"></script>
 </body>
+
 </html>

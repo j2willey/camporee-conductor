@@ -1,0 +1,29 @@
+{
+    "id": "e1",
+    "base_title": "Exhibition Game",
+    "type": "exhibition",
+    "meta": {
+        "title": "Exhibition Game",
+        "description": "",
+        "instructions": ""
+    },
+    "tags": [
+        "exhibition"
+    ],
+    "scoring_model": {
+        "method": "points_desc",
+        "inputs": [
+            {
+                "id": "patrol_spirit",
+                "label": "Patrol Spirit",
+                "audience": "judge",
+                "sortOrder": 900,
+                "config": {},
+                "type": "number",
+                "kind": "points",
+                "weight": 1
+            }
+        ]
+    },
+    "variants": []
+}

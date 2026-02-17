@@ -11,7 +11,7 @@ import { LibraryService } from './core/library-service.js';
 // 1. HARDCODED DEFAULTS (Cannot be overwritten by old zips)
 const SYSTEM_PRESETS = [
     { id: 'p_flag', label: "Patrol Flag", type: "number", kind: "points", weight: 10, audience: "judge", config: { min: 0, max: 10, placeholder: "0-10 Points" } },
-    { id: 'p_yell', label: "Patrol Yell", type: "number", kind: "points", weight: 5,  audience: "judge", config: { min: 0, max: 5,  placeholder: "0-5 Points" } },
+    { id: 'p_yell', label: "Patrol Yell", type: "number", kind: "points", weight: 5, audience: "judge", config: { min: 0, max: 5, placeholder: "0-5 Points" } },
     { id: 'p_spirit', label: "Scout Spirit", type: "number", kind: "points", weight: 10, audience: "judge", config: { min: 0, max: 10, placeholder: "0-10 Points" } },
     { id: 'off_notes', label: "Judges Notes", type: "textarea", kind: "info", weight: 0, audience: "judge", config: { placeholder: "Issues, tie-breakers, etc." } },
     // Bracketology Presets
@@ -23,6 +23,9 @@ const SYSTEM_PRESETS = [
 const composer = {
     // 2. STATE
     serverMode: false,
+    isEditingTemplate: false,
+    activeTemplatePath: null,
+    cachedCamporee: null,
 
     data: {
         meta: {
@@ -43,7 +46,7 @@ const composer = {
     dragSrcGameId: null,
 
     // 3. INITIALIZATION
-    init: async function() {
+    init: async function () {
         console.log("Composer Initialized");
 
         // --- Library Service Test ---
@@ -51,6 +54,7 @@ const composer = {
         try {
             const catalog = await lib.getCatalog();
             console.log("Library Catalog Loaded:", catalog);
+            this.libraryCatalog = catalog;
             this.renderLibrary(catalog);
         } catch (e) {
             console.warn("Library Catalog failed to load:", e);
@@ -63,7 +67,7 @@ const composer = {
         this.injectModals();
 
         const fileInput = document.getElementById('fileInput');
-        if(fileInput) fileInput.addEventListener('change', (e) => this.handleCamporeeImport(e));
+        if (fileInput) fileInput.addEventListener('change', (e) => this.handleCamporeeImport(e));
 
         const gameInput = document.createElement('input');
         gameInput.type = 'file';
@@ -75,7 +79,7 @@ const composer = {
 
         ['metaTitle', 'metaTheme'].forEach(id => {
             const el = document.getElementById(id);
-            if(el) {
+            if (el) {
                 el.addEventListener('input', (e) => {
                     const key = id === 'metaTitle' ? 'title' : 'theme';
                     this.data.meta[key] = e.target.value;
@@ -83,27 +87,27 @@ const composer = {
             }
         });
 
-        if(!this.data.meta.camporeeId) this.data.meta.camporeeId = this.generateUUID();
+        if (!this.data.meta.camporeeId) this.data.meta.camporeeId = this.generateUUID();
         this.renderServerControls();
         this.renderGameLists();
     },
 
-    checkServerStatus: async function() {
+    checkServerStatus: async function () {
         try {
             const res = await fetch('/api/status', { method: 'GET', signal: AbortSignal.timeout(2000) });
-            if(res.ok) this.serverMode = true;
-        } catch(e) { this.serverMode = false; }
+            if (res.ok) this.serverMode = true;
+        } catch (e) { this.serverMode = false; }
     },
 
-    generateUUID: function() {
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    generateUUID: function () {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
             var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
             return v.toString(16);
         });
     },
 
     // 4. DATA INTEGRITY (The Fix)
-    ensureSystemPresets: function() {
+    ensureSystemPresets: function () {
         // Merges any missing system presets into the current (potentially legacy) preset list
         SYSTEM_PRESETS.forEach(sys => {
             const exists = this.presets.find(p => p.id === sys.id);
@@ -115,12 +119,12 @@ const composer = {
     },
 
     // 5. SERVER SYNC
-    renderServerControls: function() {
-        if(!this.serverMode) return;
+    renderServerControls: function () {
+        if (!this.serverMode) return;
         const headerBtnGroup = document.querySelector('.d-flex.gap-2');
-        if(headerBtnGroup) {
+        if (headerBtnGroup) {
             const existing = document.getElementById('server-controls');
-            if(existing) existing.remove();
+            if (existing) existing.remove();
             const div = document.createElement('div');
             div.id = 'server-controls';
             div.className = "btn-group ms-2";
@@ -137,7 +141,7 @@ const composer = {
         }
     },
 
-    openServerLoadModal: async function() {
+    openServerLoadModal: async function () {
         try {
             const res = await fetch('/api/camporees');
             const list = await res.json();
@@ -150,19 +154,19 @@ const composer = {
                     </a>`).join('');
             } else { listEl.innerHTML = '<div class="p-3 text-center text-muted">No saved camporees.</div>'; }
             new bootstrap.Modal(document.getElementById('serverLoadModal')).show();
-        } catch(e) { alert("Server Error: Could not fetch list."); }
+        } catch (e) { alert("Server Error: Could not fetch list."); }
     },
 
-    loadFromServer: async function(id) {
-        if(!confirm("Load this? Unsaved changes will be lost.")) return;
+    loadFromServer: async function (id) {
+        if (!confirm("Load this? Unsaved changes will be lost.")) return;
         try {
             const res = await fetch(`/api/camporee/${id}`);
-            if(!res.ok) throw new Error("Load failed");
+            if (!res.ok) throw new Error("Load failed");
             const data = await res.json();
             this.data.meta = data.meta;
             this.data.games = data.games || [];
-            if(data.presets) this.presets = data.presets;
-            if(!this.data.meta.camporeeId) this.data.meta.camporeeId = id;
+            if (data.presets) this.presets = data.presets;
+            if (!this.data.meta.camporeeId) this.data.meta.camporeeId = id;
 
             // FIX: Inject missing presets (like Final Ranking)
             this.ensureSystemPresets();
@@ -173,26 +177,81 @@ const composer = {
             this.renderPresetManager();
             bootstrap.Modal.getInstance(document.getElementById('serverLoadModal')).hide();
             alert("Loaded from Server!");
-        } catch(e) { alert("Error: " + e.message); }
+        } catch (e) { alert("Error: " + e.message); }
     },
 
-    initiateServerSave: async function() {
+    initiateServerSave: async function () {
         const id = this.data.meta.camporeeId;
-        if(!id) { this.data.meta.camporeeId = this.generateUUID(); this.executeSave(); return; }
+        if (!id) { this.data.meta.camporeeId = this.generateUUID(); this.executeSave(); return; }
         try {
             const res = await fetch(`/api/camporee/${id}/meta`);
             const result = await res.json();
-            if(result.exists) {
+            if (result.exists) {
                 document.getElementById('overwriteServerTitle').innerText = result.meta.title;
                 document.getElementById('overwriteServerTheme').innerText = result.meta.theme;
                 document.getElementById('overwriteClientTitle').innerText = this.data.meta.title;
                 document.getElementById('overwriteClientTheme').innerText = this.data.meta.theme;
                 new bootstrap.Modal(document.getElementById('overwriteModal')).show();
             } else { this.executeSave(); }
-        } catch(e) { alert("Server Check Failed. Is server online?"); }
+        } catch (e) { alert("Server Check Failed. Is server online?"); }
     },
 
-    executeSave: async function() {
+    saveLibraryGame: async function () {
+        if (!this.activeGameId) return;
+        const game = this.data.games.find(g => g.id === this.activeGameId);
+
+        const targetPath = this.isEditingTemplate ? this.activeTemplatePath : (game ? game._libraryPath : null);
+
+        if (!game || !targetPath) {
+            alert("Error: No library path associated with this game.");
+            return;
+        }
+
+        const payload = {
+            path: targetPath,
+            data: {
+                id: game.library_ref_id || game.id,
+                base_title: game.content.title,
+                type: game.type,
+                meta: {
+                    title: game.content.title,
+                    description: game.content.story,
+                    instructions: game.content.instructions
+                },
+                scoring_model: {
+                    inputs: game.scoring.components.map(c => ({
+                        id: c.id,
+                        label: c.label,
+                        type: c.type,
+                        weight: c.weight,
+                        max_points: c.config ? c.config.max : 0,
+                        placeholder: c.config ? c.config.placeholder : '',
+                        sortOrder: c.sortOrder || 0
+                    }))
+                },
+                variants: game.variants
+            }
+        };
+
+        try {
+            const res = await fetch('/api/library/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const result = await res.json();
+            if (result.success) alert("Library Template Saved!");
+            else alert("Error: " + result.error);
+        } catch (e) {
+            alert("Save Failed: " + e.message);
+        }
+    },
+    executeSave: async function () {
+        if (this.isEditingTemplate) {
+            this.saveLibraryGame();
+            return;
+        }
+
         const id = this.data.meta.camporeeId;
         const payload = { meta: this.data.meta, games: this.data.games, presets: this.presets };
         try {
@@ -201,13 +260,13 @@ const composer = {
             });
             const result = await res.json();
             const modalEl = document.getElementById('overwriteModal');
-            if(modalEl) { const modal = bootstrap.Modal.getInstance(modalEl); if(modal) modal.hide(); }
-            if(result.success) alert("Saved Successfully!"); else alert("Error: " + result.error);
-        } catch(e) { alert("Save Failed: Network Error"); }
+            if (modalEl) { const modal = bootstrap.Modal.getInstance(modalEl); if (modal) modal.hide(); }
+            if (result.success) alert("Saved Successfully!"); else alert("Error: " + result.error);
+        } catch (e) { alert("Save Failed: Network Error"); }
     },
 
-    duplicateCamporee: function() {
-        if(confirm("Duplicate this Camporee?")) {
+    duplicateCamporee: function () {
+        if (confirm("Duplicate this Camporee?")) {
             this.data.meta.camporeeId = this.generateUUID();
             this.data.meta.title += " (Copy)";
             this.updateMetaUI();
@@ -216,36 +275,36 @@ const composer = {
     },
 
     // 6. UI SETUP
-    setupDynamicTabs: function() {
+    setupDynamicTabs: function () {
         const navTabs = document.querySelector('.nav-tabs');
         const tabContent = document.querySelector('.tab-content');
-        if(!navTabs || !tabContent) return;
+        if (!navTabs || !tabContent) return;
 
         let libraryTab = document.getElementById('library-tab') || navTabs.children[1]?.querySelector('button');
         let libraryPane = document.getElementById('library-pane') || tabContent.children[1];
 
-        if(libraryTab && libraryTab.innerText.includes('Library')) {
+        if (libraryTab && libraryTab.innerText.includes('Library')) {
             libraryTab.id = 'patrol-tab'; libraryTab.innerText = 'Patrol Games'; libraryTab.setAttribute('data-bs-target', '#patrol-pane');
             libraryPane.id = 'patrol-pane';
             libraryPane.innerHTML = `<div id="patrolList" class="list-group p-3"></div><div class="p-3"><button class="btn btn-primary w-100" onclick="composer.addGame('patrol')"><i class="fas fa-plus-circle"></i> Add Patrol Game</button></div>`;
         }
 
-        if(!document.getElementById('troop-tab')) {
+        if (!document.getElementById('troop-tab')) {
             const patrolLi = document.getElementById('patrol-tab')?.parentElement;
-            if(patrolLi) {
+            if (patrolLi) {
                 const li = document.createElement('li'); li.className = 'nav-item';
                 li.innerHTML = `<button class="nav-link" id="troop-tab" data-bs-toggle="tab" data-bs-target="#troop-pane" type="button">Troop Events</button>`;
                 navTabs.insertBefore(li, patrolLi.nextSibling);
             }
             const patrolPane = document.getElementById('patrol-pane');
-            if(patrolPane) {
+            if (patrolPane) {
                 const div = document.createElement('div'); div.className = 'tab-pane fade'; div.id = 'troop-pane';
                 div.innerHTML = `<div id="troopList" class="list-group p-3"></div><div class="p-3"><button class="btn btn-success w-100" onclick="composer.addGame('troop')"><i class="fas fa-calendar-plus"></i> Add Troop Event</button></div>`;
                 tabContent.insertBefore(div, patrolPane.nextSibling);
             }
         }
 
-        if(!document.getElementById('presets-tab')) {
+        if (!document.getElementById('presets-tab')) {
             const li = document.createElement('li'); li.className = 'nav-item';
             li.innerHTML = `<button class="nav-link" id="presets-tab" data-bs-toggle="tab" data-bs-target="#presets-pane" type="button">Presets</button>`;
             navTabs.appendChild(li);
@@ -256,7 +315,7 @@ const composer = {
         }
     },
 
-    injectModals: function() {
+    injectModals: function () {
         const modals = [
             `<div class="modal fade" id="presetModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Insert Preset</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label class="form-label">Choose Field</label><select class="form-select" id="presetSelect"></select></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-primary" onclick="composer.confirmInsertPreset()">Insert</button></div></div></div></div>`,
             `<div class="modal fade" id="importModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Import Games</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="list-group" id="importList"></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-success" onclick="composer.confirmGameImport()">Import</button></div></div></div></div>`,
@@ -271,24 +330,24 @@ const composer = {
     },
 
     // 7. STANDARD LOGIC
-    normalizeGameSortOrders: function() {
+    normalizeGameSortOrders: function () {
         const groups = { patrol: [], troop: [], exhibition: [] };
         this.data.games.forEach(g => {
             const type = g.type || 'patrol';
-            if(!groups[type]) groups[type] = [];
+            if (!groups[type]) groups[type] = [];
             groups[type].push(g);
         });
         Object.values(groups).forEach(list => {
-            list.sort((a, b) => (a.sortOrder||Infinity) - (b.sortOrder||Infinity));
+            list.sort((a, b) => (a.sortOrder || Infinity) - (b.sortOrder || Infinity));
             list.forEach((g, i) => { g.sortOrder = (i + 1) * 10; });
         });
     },
 
-    moveGame: function(srcId, targetId) {
-        if(srcId === targetId) return;
+    moveGame: function (srcId, targetId) {
+        if (srcId === targetId) return;
         const srcGame = this.data.games.find(g => g.id === srcId);
         const targetGame = this.data.games.find(g => g.id === targetId);
-        if(!srcGame || !targetGame || srcGame.type !== targetGame.type) return;
+        if (!srcGame || !targetGame || srcGame.type !== targetGame.type) return;
 
         const type = srcGame.type || 'patrol';
         const list = this.data.games.filter(g => (g.type || 'patrol') === type);
@@ -302,8 +361,8 @@ const composer = {
         this.renderGameLists();
     },
 
-    newCamporee: function() {
-        if(confirm("Start new Camporee?")) {
+    newCamporee: function () {
+        if (confirm("Start new Camporee?")) {
             this.data.games = [];
             this.data.meta = { camporeeId: this.generateUUID(), title: "New Camporee", theme: "", year: new Date().getFullYear() };
             this.activeGameId = null;
@@ -313,7 +372,7 @@ const composer = {
         }
     },
 
-    addGame: function(type = 'patrol') {
+    addGame: function (type = 'patrol') {
         const newId = `game_${Date.now()}`;
         const newGame = {
             id: newId, type: type, enabled: true, bracketMode: false, match_label: '',
@@ -326,14 +385,14 @@ const composer = {
         this.editGame(newId);
     },
 
-    duplicateGame: function(gameId) {
+    duplicateGame: function (gameId) {
         const original = this.data.games.find(g => g.id === gameId);
-        if(!original) return;
+        if (!original) return;
         const clone = JSON.parse(JSON.stringify(original));
         clone.id = `game_${Date.now()}`;
         clone.content.title += " (Copy)";
-        if(clone.scoring.components) {
-            clone.scoring.components.forEach(c => { c.id = `${c.kind}_${Date.now()}_${Math.random().toString(36).substr(2,5)}`; });
+        if (clone.scoring.components) {
+            clone.scoring.components.forEach(c => { c.id = `${c.kind}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`; });
         }
         this.data.games.push(clone);
         this.normalizeGameSortOrders();
@@ -341,8 +400,8 @@ const composer = {
         this.editGame(clone.id);
     },
 
-    deleteGame: function(gameId) {
-        if(confirm("Delete this game?")) {
+    deleteGame: function (gameId) {
+        if (confirm("Delete this game?")) {
             this.data.games = this.data.games.filter(g => g.id !== gameId);
             if (this.activeGameId === gameId) {
                 this.activeGameId = null;
@@ -352,15 +411,15 @@ const composer = {
         }
     },
 
-    updateMetaUI: function() {
+    updateMetaUI: function () {
         const titleEl = document.getElementById('metaTitle');
         const themeEl = document.getElementById('metaTheme');
-        if(titleEl) titleEl.value = this.data.meta.title || "";
-        if(themeEl) themeEl.value = this.data.meta.theme || "";
+        if (titleEl) titleEl.value = this.data.meta.title || "";
+        if (themeEl) themeEl.value = this.data.meta.theme || "";
     },
 
     // 8. RENDERERS
-    renderLibrary: function(catalog) {
+    renderLibrary: function (catalog) {
         const listEl = document.getElementById('library-list');
         const statusEl = document.getElementById('library-status');
         if (!listEl) return;
@@ -380,9 +439,12 @@ const composer = {
                             <div class="item-tags mt-1">${tagsHtml}</div>
                             <small class="text-muted" style="font-size: 0.7rem;">${game.complexity || 'Medium'}</small>
                         </div>
-                        <button class="btn btn-sm btn-outline-primary ms-2" onclick="event.stopPropagation(); composer.addGameFromLibrary('${game.path}')" title="Add to Camporee">
-                            <i class="fas fa-plus"></i>
-                        </button>
+                                                <div class="btn-group">
+                            ${this.isLibrarianMode ?
+                        `<button class="btn btn-sm btn-outline-warning" onclick="event.stopPropagation(); composer.editLibrarySource('${game.path}')" title="Edit Template Source"><i class="fas fa-pencil-alt"></i></button>` : ''
+                    }
+                            <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); composer.addGameFromLibrary('${game.path}')" title="Add to Camporee"><i class="fas fa-plus"></i></button>
+                        </div>
                     </div>
                 `;
                 li.onclick = () => console.log("Selected Library Game:", game.id, game.path);
@@ -394,6 +456,120 @@ const composer = {
         }
     },
 
+
+    toggleLibrarianMode: function (isChecked) {
+        this.isLibrarianMode = isChecked;
+        if (isChecked) document.body.classList.add('mode-curator');
+        else document.body.classList.remove('mode-curator');
+        if (this.libraryCatalog) this.renderLibrary(this.libraryCatalog);
+    },
+
+    editLibrarySource: async function (gamePath) {
+        if (this.isEditingTemplate) {
+            if (!confirm("Discard changes to current template?")) return;
+        } else {
+            // Cache current camporee
+            this.cachedCamporee = {
+                meta: JSON.parse(JSON.stringify(this.data.meta)),
+                games: JSON.parse(JSON.stringify(this.data.games)),
+                presets: JSON.parse(JSON.stringify(this.presets)),
+                activeGameId: this.activeGameId
+            };
+        }
+
+        const lib = new LibraryService();
+        try {
+            const template = await lib.getGame(gamePath);
+
+            this.isEditingTemplate = true;
+            this.activeTemplatePath = gamePath;
+
+            // Setup isolated environment
+            this.data.meta.title = `EDITING: ${template.base_title || "Template"}`;
+            this.data.meta.camporeeId = "TEMPLATE_EDITOR";
+
+            // Normalize template to game object
+            const game = {
+                id: template.id || this.generateUUID(),
+                _libraryPath: gamePath,
+                _isLibraryTemplate: true,
+                type: template.type || 'patrol',
+                enabled: true,
+                sortOrder: 10,
+                content: {
+                    title: template.base_title || template.meta?.title || "Untitled",
+                    story: template.meta?.description || "",
+                    instructions: template.meta?.instructions || ""
+                },
+                scoring: {
+                    method: 'points_desc',
+                    components: (template.scoring_model?.inputs || []).map(input => ({
+                        id: input.id || this.generateUUID(),
+                        label: input.label || 'New Field',
+                        type: input.type === 'timer' ? 'stopwatch' : (input.type || 'number'),
+                        kind: input.type === 'timer' ? 'metric' : 'points',
+                        weight: input.weight !== undefined ? input.weight : 1,
+                        audience: 'judge',
+                        sortOrder: input.sortOrder || 0,
+                        config: {
+                            min: 0,
+                            max: input.config && input.config.max ? input.config.max : (input.max_points || 0),
+                            placeholder: input.config && input.config.placeholder ? input.config.placeholder : (input.placeholder || '')
+                        }
+                    }))
+                },
+                variants: template.variants || []
+            };
+
+            this.data.games = [game];
+            this.activeGameId = game.id;
+
+            this.renderGameLists();
+            this.editGame(game.id);
+            this.showTemplateEditorBanner();
+
+        } catch (e) {
+            alert("Failed to load template: " + e.message);
+            this.closeTemplateEditor(); // Revert if failed
+        }
+    },
+
+    closeTemplateEditor: function () {
+        if (!this.isEditingTemplate) return;
+        if (this.cachedCamporee) {
+            this.data.meta = this.cachedCamporee.meta;
+            this.data.games = this.cachedCamporee.games;
+            this.presets = this.cachedCamporee.presets;
+            this.activeGameId = this.cachedCamporee.activeGameId;
+            this.cachedCamporee = null;
+        }
+        this.isEditingTemplate = false;
+        this.activeTemplatePath = null;
+
+        // Remove banner
+        const banner = document.getElementById('template-editor-banner');
+        if (banner) banner.remove();
+
+        this.updateMetaUI();
+        this.renderGameLists(); // Refresh lists
+        if (this.activeGameId) this.editGame(this.activeGameId);
+        else document.getElementById('editor-container').innerHTML = '<p class="text-muted">Select a game to edit.</p>';
+    },
+
+    showTemplateEditorBanner: function () {
+        const container = document.getElementById('editor-container');
+        const bannerId = 'template-editor-banner';
+        if (document.getElementById(bannerId)) return;
+
+        const banner = document.createElement('div');
+        banner.id = bannerId;
+        banner.className = "alert alert-warning d-flex justify-content-between align-items-center mb-3";
+        banner.innerHTML = `
+            <span><strong><i class="fas fa-exclamation-triangle"></i> EDITING MASTER TEMPLATE</strong> - Changes affect all future generic games.</span>
+            <button class="btn btn-sm btn-danger" onclick="composer.closeTemplateEditor()">Close & Return to Camporee</button>
+        `;
+        container.prepend(banner);
+    },
     async addGameFromLibrary(gamePath) {
         console.log("Adding game from library:", gamePath);
         const lib = new LibraryService();
@@ -453,13 +629,13 @@ const composer = {
         }
     },
 
-    renderGameLists: function() {
+    renderGameLists: function () {
         const patrolList = document.getElementById('patrolList');
         const troopList = document.getElementById('troopList');
         const patrolCountEl = document.getElementById('patrolCount');
         const troopCountEl = document.getElementById('troopCount');
 
-        if(!patrolList || !troopList) return;
+        if (!patrolList || !troopList) return;
         patrolList.innerHTML = ''; troopList.innerHTML = '';
 
         let pCount = 0;
@@ -468,19 +644,19 @@ const composer = {
         if (this.data.games.length === 0) {
             patrolList.innerHTML = '<div class="text-center text-muted">No patrol games.</div>';
             troopList.innerHTML = '<div class="text-center text-muted">No troop events.</div>';
-            if(patrolCountEl) patrolCountEl.innerText = '0';
-            if(troopCountEl) troopCountEl.innerText = '0';
+            if (patrolCountEl) patrolCountEl.innerText = '0';
+            if (troopCountEl) troopCountEl.innerText = '0';
             return;
         }
 
-        this.data.games.sort((a,b) => (a.sortOrder||0) - (b.sortOrder||0));
+        this.data.games.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
         this.data.games.forEach(game => {
             const isActive = game.id === this.activeGameId ? 'active' : '';
             const statusClass = game.enabled ? 'text-success' : 'text-secondary';
             const isPatrol = (!game.type || game.type === 'patrol');
             const targetList = isPatrol ? patrolList : troopList;
 
-            if(isPatrol) pCount++; else tCount++;
+            if (isPatrol) pCount++; else tCount++;
 
             const item = document.createElement('div');
             item.className = `list-group-item list-group-item-action d-flex align-items-center ${isActive}`;
@@ -488,7 +664,7 @@ const composer = {
             item.ondragstart = (e) => { this.dragSrcGameId = game.id; e.dataTransfer.effectAllowed = 'move'; item.classList.add('opacity-50'); };
             item.ondragend = (e) => { item.classList.remove('opacity-50'); this.dragSrcGameId = null; };
             item.ondragover = (e) => { e.preventDefault(); };
-            item.ondrop = (e) => { e.preventDefault(); if(this.dragSrcGameId) this.moveGame(this.dragSrcGameId, game.id); };
+            item.ondrop = (e) => { e.preventDefault(); if (this.dragSrcGameId) this.moveGame(this.dragSrcGameId, game.id); };
             item.onclick = (e) => { e.preventDefault(); this.editGame(game.id); };
 
             item.innerHTML = `
@@ -504,18 +680,18 @@ const composer = {
             targetList.appendChild(item);
         });
 
-        if(patrolCountEl) patrolCountEl.innerText = pCount;
-        if(troopCountEl) troopCountEl.innerText = tCount;
+        if (patrolCountEl) patrolCountEl.innerText = pCount;
+        if (troopCountEl) troopCountEl.innerText = tCount;
 
         if (pCount === 0) patrolList.innerHTML = '<div class="text-center text-muted p-3">No patrol games.</div>';
         if (tCount === 0) troopList.innerHTML = '<div class="text-center text-muted p-3">No troop events.</div>';
     },
 
-    editGame: function(gameId) {
+    editGame: function (gameId) {
         this.activeGameId = gameId;
         const game = this.data.games.find(g => g.id === gameId);
         if (!game) return;
-        if(!game.type) game.type = 'patrol';
+        if (!game.type) game.type = 'patrol';
 
         const tabTriggerEl = document.querySelector('#editor-tab');
         if (tabTriggerEl && window.bootstrap) { new bootstrap.Tab(tabTriggerEl).show(); }
@@ -603,10 +779,10 @@ const composer = {
                 </div>
             </div>`;
 
-        ['gameTitle','gameId','gameStory','gameInstructions','gameMatchLabel'].forEach(fid => {
-             const prop = fid === 'gameId' ? 'id' : (fid === 'gameTitle' ? 'title' : (fid==='gameStory'?'story':(fid==='gameMatchLabel'?'match_label':'instructions')));
-             const el = document.getElementById(fid);
-             if(el) { el.value = (prop === 'id' || prop === 'match_label' ? game[prop] : game.content[prop]) || ''; el.oninput = (e) => this.updateGameField(prop, e.target.value); }
+        ['gameTitle', 'gameId', 'gameStory', 'gameInstructions', 'gameMatchLabel'].forEach(fid => {
+            const prop = fid === 'gameId' ? 'id' : (fid === 'gameTitle' ? 'title' : (fid === 'gameStory' ? 'story' : (fid === 'gameMatchLabel' ? 'match_label' : 'instructions')));
+            const el = document.getElementById(fid);
+            if (el) { el.value = (prop === 'id' || prop === 'match_label' ? game[prop] : game.content[prop]) || ''; el.oninput = (e) => this.updateGameField(prop, e.target.value); }
         });
 
         const typeSelect = document.getElementById('gameType');
@@ -621,7 +797,7 @@ const composer = {
         this.renderScoringInputs(game.scoring.components, game.id, 'game');
     },
 
-    updateGameField: function(field, value) {
+    updateGameField: function (field, value) {
         if (!this.activeGameId) return;
         const game = this.data.games.find(g => g.id === this.activeGameId);
         if (!game) return;
@@ -632,9 +808,9 @@ const composer = {
     },
 
     // 9. BRACKET LOGIC
-    toggleBracketMode: function(gameId, isEnabled) {
+    toggleBracketMode: function (gameId, isEnabled) {
         const game = this.data.games.find(g => g.id === gameId);
-        if(!game) return;
+        if (!game) return;
         game.bracketMode = isEnabled;
 
         // UI Toggle
@@ -671,14 +847,14 @@ const composer = {
     },
 
     // 10. SCORING FIELD RENDERER
-    renderPresetManager: function() {
+    renderPresetManager: function () {
         const container = document.getElementById('presets-container');
-        if(!container) return;
+        if (!container) return;
         container.innerHTML = `<div class="card"><div class="card-header bg-light"><h5 class="mb-0">Preset Library</h5></div><div class="card-body bg-light"><div id="preset-editor-list" class="d-flex flex-column gap-3"></div><div class="mt-4 text-center"><button class="btn btn-primary" onclick="composer.addGenericField('global', 'preset_manager')"><i class="fas fa-plus-circle"></i> Add Field</button></div></div></div>`;
         this.renderScoringInputs(this.presets, 'global', 'preset_manager');
     },
 
-    renderScoringInputs: function(components, contextId, contextType = 'game') {
+    renderScoringInputs: function (components, contextId, contextType = 'game') {
         const containerId = contextType === 'preset_manager' ? 'preset-editor-list' : 'scoring-editor';
         const container = document.getElementById(containerId);
         if (!container) return;
@@ -715,13 +891,13 @@ const composer = {
                     <div class="col-6">
                         <label class="form-label small text-muted fw-bold mb-1">Type</label>
                         <select class="form-select form-select-sm" onchange="composer.updateComponent('${contextId}', ${index}, 'type', this.value, '${contextType}')">
-                            ${['number','stopwatch','text','textarea','checkbox','select'].map(t => `<option value="${t}" ${comp.type===t?'selected':''}>${t}</option>`).join('')}
+                            ${['number', 'stopwatch', 'text', 'textarea', 'checkbox', 'select'].map(t => `<option value="${t}" ${comp.type === t ? 'selected' : ''}>${t}</option>`).join('')}
                         </select>
                     </div>
                     <div class="col-6">
                         <label class="form-label small text-muted fw-bold mb-1">Kind</label>
                         <select class="form-select form-select-sm" onchange="composer.handleKindChange('${contextId}', ${index}, this.value, '${contextType}')">
-                            ${['points','penalty','metric','info'].map(k => `<option value="${k}" ${comp.kind===k?'selected':''}>${k}</option>`).join('')}
+                            ${['points', 'penalty', 'metric', 'info'].map(k => `<option value="${k}" ${comp.kind === k ? 'selected' : ''}>${k}</option>`).join('')}
                         </select>
                     </div>
                   </div>
@@ -750,82 +926,82 @@ const composer = {
             row.addEventListener('dragstart', (e) => { this.dragSrcGameId = index; e.dataTransfer.effectAllowed = 'move'; row.classList.add('opacity-50'); });
             row.addEventListener('dragend', (e) => { row.classList.remove('opacity-50'); this.dragSrcGameId = null; });
             row.addEventListener('dragover', (e) => { e.preventDefault(); });
-            row.addEventListener('drop', (e) => { e.preventDefault(); if(this.dragSrcGameId !== null) this.moveComponent(contextId, this.dragSrcGameId, index, contextType); });
+            row.addEventListener('drop', (e) => { e.preventDefault(); if (this.dragSrcGameId !== null) this.moveComponent(contextId, this.dragSrcGameId, index, contextType); });
             container.appendChild(row);
         });
     },
 
     // 11. HELPERS
-    getContainer: function(id, type) { return (type === 'game') ? this.data.games.find(g => g.id === id)?.scoring : { components: this.presets }; },
-    updateComponent: function(id, index, field, value, type = 'game') {
+    getContainer: function (id, type) { return (type === 'game') ? this.data.games.find(g => g.id === id)?.scoring : { components: this.presets }; },
+    updateComponent: function (id, index, field, value, type = 'game') {
         const container = this.getContainer(id, type);
-        if(container) {
+        if (container) {
             container.components[index][field] = value;
             if (field === 'type') this.renderScoringInputs(container.components, id, type); // Redraw for inputs
         }
     },
-    updateConfig: function(id, index, field, value, type = 'game') {
+    updateConfig: function (id, index, field, value, type = 'game') {
         const container = this.getContainer(id, type);
-        if(container) {
-            if(!container.components[index].config) container.components[index].config = {};
+        if (container) {
+            if (!container.components[index].config) container.components[index].config = {};
             container.components[index].config[field] = value;
         }
     },
-    handleKindChange: function(id, index, newKind, type = 'game') {
+    handleKindChange: function (id, index, newKind, type = 'game') {
         const container = this.getContainer(id, type);
-        if(!container) return;
+        if (!container) return;
         const comp = container.components[index];
         comp.kind = newKind;
         if (newKind === 'points') comp.weight = 1; else if (newKind === 'penalty') comp.weight = -1; else comp.weight = 0;
         this.renderScoringInputs(container.components, id, type);
     },
-    addGenericField: function(id, type = 'game') {
+    addGenericField: function (id, type = 'game') {
         const container = this.getContainer(id, type);
-        if(!container) return;
-        if(!container.components) container.components = [];
+        if (!container) return;
+        if (!container.components) container.components = [];
         container.components.push({ id: `field_${Date.now()}`, type: 'number', kind: 'points', label: 'Points', weight: 1, audience: 'judge', config: {} });
         this.renderScoringInputs(container.components, id, type);
     },
-    removeComponent: function(id, index, type = 'game') {
+    removeComponent: function (id, index, type = 'game') {
         const container = this.getContainer(id, type);
-        if(container) { container.components.splice(index, 1); this.renderScoringInputs(container.components, id, type); }
+        if (container) { container.components.splice(index, 1); this.renderScoringInputs(container.components, id, type); }
     },
-    duplicateComponent: function(id, index, type = 'game') {
+    duplicateComponent: function (id, index, type = 'game') {
         const container = this.getContainer(id, type);
-        if(container) {
+        if (container) {
             const copy = JSON.parse(JSON.stringify(container.components[index]));
             copy.id = `copy_${Date.now()}`; copy.label += " (Copy)";
             container.components.splice(index + 1, 0, copy);
             this.renderScoringInputs(container.components, id, type);
         }
     },
-    moveComponent: function(id, from, to, type = 'game') {
+    moveComponent: function (id, from, to, type = 'game') {
         const container = this.getContainer(id, type);
-        if(container) {
+        if (container) {
             const [moved] = container.components.splice(from, 1);
             container.components.splice(to, 0, moved);
             this.renderScoringInputs(container.components, id, type);
         }
     },
-    openPresetModal: function(gameId) {
+    openPresetModal: function (gameId) {
         this.activeGameId = gameId;
         const select = document.getElementById('presetSelect');
         select.innerHTML = this.presets.map(p => `<option value="${p.id}">${p.label}</option>`).join('');
         new bootstrap.Modal(document.getElementById('presetModal')).show();
     },
-    confirmInsertPreset: function() {
+    confirmInsertPreset: function () {
         const preset = this.presets.find(p => p.id === document.getElementById('presetSelect').value);
-        if(preset && this.activeGameId) {
+        if (preset && this.activeGameId) {
             const game = this.data.games.find(g => g.id === this.activeGameId);
             const copy = JSON.parse(JSON.stringify(preset));
             copy.id = `preset_${Date.now()}`;
-            if(!game.scoring.components) game.scoring.components = [];
+            if (!game.scoring.components) game.scoring.components = [];
             game.scoring.components.push(copy);
             this.renderScoringInputs(game.scoring.components, game.id, 'game');
         }
         bootstrap.Modal.getInstance(document.getElementById('presetModal')).hide();
     },
-    renderPreview: function(gameId) {
+    renderPreview: function (gameId) {
         const game = this.data.games.find(g => g.id === gameId);
         if (!game) return;
         const normalized = normalizeGameDefinition(game);
@@ -836,10 +1012,10 @@ const composer = {
         if (modalTitle) modalTitle.innerText = "Preview: " + (game.content.title || "Game");
         if (window.bootstrap) new bootstrap.Modal(document.getElementById('previewModal')).show();
     },
-    exportCamporee: function() {
+    exportCamporee: function () {
         this.normalizeGameSortOrders();
         const zip = new JSZip();
-        const sortedGames = [...this.data.games].sort((a,b) => (a.sortOrder||0) - (b.sortOrder||0));
+        const sortedGames = [...this.data.games].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
         const playlist = sortedGames.map((g, i) => ({ gameId: g.id, enabled: g.enabled, order: i + 1 }));
         const camporeeJson = { schemaVersion: "2.9", meta: this.data.meta, playlist: playlist };
         zip.file("camporee.json", JSON.stringify(camporeeJson, null, 2));
@@ -858,9 +1034,9 @@ const composer = {
             if (game.bracketMode) gameFile.bracketMode = true;
             gamesFolder.file(`${game.id}.json`, JSON.stringify(gameFile, null, 2));
         });
-        zip.generateAsync({type:"blob"}).then(function(content) { saveAs(content, "CamporeeConfig.zip"); });
+        zip.generateAsync({ type: "blob" }).then(function (content) { saveAs(content, "CamporeeConfig.zip"); });
     },
-    handleCamporeeImport: function(event) {
+    handleCamporeeImport: function (event) {
         const file = event.target.files[0];
         if (!file) return;
         const reader = new FileReader();
@@ -869,7 +1045,7 @@ const composer = {
                 const metaFile = await zip.file("camporee.json").async("string");
                 const metaObj = JSON.parse(metaFile);
                 this.data.meta = metaObj.meta;
-                if(zip.file("presets.json")) this.presets = JSON.parse(await zip.file("presets.json").async("string"));
+                if (zip.file("presets.json")) this.presets = JSON.parse(await zip.file("presets.json").async("string"));
                 this.data.games = [];
                 const promises = [];
                 zip.folder("games").forEach((p, f) => { promises.push(f.async("string").then(c => JSON.parse(c))); });
@@ -877,14 +1053,14 @@ const composer = {
                 loaded.forEach(g => {
                     const pItem = metaObj.playlist.find(p => p.gameId === g.id);
                     g.enabled = pItem ? pItem.enabled : false;
-                    if(pItem && pItem.order) g.sortOrder = pItem.order * 10;
-                    if(!g.scoring.components) g.scoring.components = [];
-                    if(!g.type) g.type = 'patrol';
+                    if (pItem && pItem.order) g.sortOrder = pItem.order * 10;
+                    if (!g.scoring.components) g.scoring.components = [];
+                    if (!g.type) g.type = 'patrol';
                     g.bracketMode = !!g.bracketMode;
                     g.match_label = g.match_label || '';
                     this.data.games.push(g);
                 });
-                if(!this.data.meta.camporeeId) this.data.meta.camporeeId = this.generateUUID();
+                if (!this.data.meta.camporeeId) this.data.meta.camporeeId = this.generateUUID();
 
                 // FIX: Restore missing system presets after load
                 this.ensureSystemPresets();
@@ -899,15 +1075,15 @@ const composer = {
         };
         reader.readAsArrayBuffer(file);
     },
-    exportSingleGame: function(gameId) {
+    exportSingleGame: function (gameId) {
         const game = this.data.games.find(g => g.id === gameId);
-        if(game) { const blob = new Blob([JSON.stringify(game, null, 2)], {type: "application/json;charset=utf-8"}); saveAs(blob, `${game.id}.json`); }
+        if (game) { const blob = new Blob([JSON.stringify(game, null, 2)], { type: "application/json;charset=utf-8" }); saveAs(blob, `${game.id}.json`); }
     },
-    handleGameImport: function(event) {
+    handleGameImport: function (event) {
         const file = event.target.files[0];
-        if(!file) return;
+        if (!file) return;
         const reader = new FileReader();
-        if(file.name.endsWith('.json')) {
+        if (file.name.endsWith('.json')) {
             reader.onload = (e) => {
                 try {
                     const game = JSON.parse(e.target.result);
@@ -918,7 +1094,7 @@ const composer = {
                     this.renderGameLists();
                     this.editGame(game.id);
                     alert("Game Imported!");
-                } catch(err) { alert("Invalid JSON"); }
+                } catch (err) { alert("Invalid JSON"); }
             };
             reader.readAsText(file);
         } else if (file.name.endsWith('.zip')) {
@@ -926,7 +1102,7 @@ const composer = {
                 JSZip.loadAsync(e.target.result).then(async (zip) => {
                     this.pendingImportGames = [];
                     const promises = [];
-                    zip.folder("games").forEach((p, f) => { promises.push(f.async("string").then(txt => { try { return JSON.parse(txt); } catch(e){return null;} })); });
+                    zip.folder("games").forEach((p, f) => { promises.push(f.async("string").then(txt => { try { return JSON.parse(txt); } catch (e) { return null; } })); });
                     const games = await Promise.all(promises);
                     this.pendingImportGames = games.filter(g => g !== null);
                     const list = document.getElementById('importList');
@@ -937,7 +1113,7 @@ const composer = {
             reader.readAsArrayBuffer(file);
         }
     },
-    confirmGameImport: function() {
+    confirmGameImport: function () {
         document.querySelectorAll('#importList input:checked').forEach(chk => {
             const game = JSON.parse(JSON.stringify(this.pendingImportGames[parseInt(chk.value)]));
             game.id = `import_${Date.now()}_${chk.value}`;
@@ -949,4 +1125,4 @@ const composer = {
     }
 };
 window.composer = composer;
-window.onload = function() { composer.init(); };
+window.onload = function () { composer.init(); };

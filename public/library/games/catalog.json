@@ -1,363 +1,344 @@
 {
-  "last_updated": "2026-02-11T02:51:37.839Z",
-  "categories": [
-    "cooking",
-    "fire",
-    "first_aid",
-    "knots",
-    "navigation",
-    "teamwork"
-  ],
-  "games": [
-    {
-      "id": "cf691a7f-bd4b-4cdb-a8f8-a837cf6258c0",
-      "title": "p5",
-      "path": "cooking/p5.json",
-      "tags": [
-        "#imported",
-        "#cooking"
-      ],
-      "complexity": "Medium"
-    },
-    {
-      "id": "2e8478f5-5648-4b11-b800-70d429dbe0f3",
-      "title": "t3",
-      "path": "cooking/t3.json",
-      "tags": [
-        "#imported",
-        "#cooking"
-      ],
-      "complexity": "Medium"
-    },
-    {
-      "id": "cb1fb9be-a90f-486d-b65e-4bdfec86f01c",
-      "title": "t4",
-      "path": "cooking/t4.json",
-      "tags": [
-        "#imported",
-        "#cooking"
-      ],
-      "complexity": "Medium"
-    },
-    {
-      "id": "5e84d402-20f9-4683-adbb-746fbbc509b4",
-      "title": "t5",
-      "path": "cooking/t5.json",
-      "tags": [
-        "#imported",
-        "#cooking"
-      ],
-      "complexity": "Medium"
-    },
-    {
-      "id": "550e8400-e29b-41d4-a716-446655440000",
-      "path": "fire/matchless.json",
-      "tags": [
-        "fire",
-        "outdoor",
-        "survival"
-      ],
-      "complexity": "Medium"
-    },
-    {
-      "id": "5bad461d-338d-4a91-bd00-9395fe1095a4",
-      "title": "p1",
-      "path": "fire/p1.json",
-      "tags": [
-        "#imported",
-        "#fire"
-      ],
-      "complexity": "Medium"
-    },
-    {
-      "id": "7f6db3ec-c017-40aa-a659-93d48b58b956",
-      "title": "t7",
-      "path": "fire/t7.json",
-      "tags": [
-        "#imported",
-        "#fire"
-      ],
-      "complexity": "Medium"
-    },
-    {
-      "id": "74725ed6-f126-4108-b4ed-d56567a66059",
-      "title": "p2",
-      "path": "first_aid/p2.json",
-      "tags": [
-        "#imported",
-        "#first_aid"
-      ],
-      "complexity": "Medium"
-    },
-    {
-      "id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
-      "path": "knots/knot_relay.json",
-      "tags": [
-        "knots",
-        "patrol",
-        "speed"
-      ],
-      "complexity": "Medium"
-    },
-    {
-      "id": "ec577614-37b7-4aed-82d1-0685566fa52a",
-      "title": "p10",
-      "path": "knots/p10.json",
-      "tags": [
-        "#imported",
-        "#knots"
-      ],
-      "complexity": "Medium"
-    },
-    {
-      "id": "393b8d53-4113-4c40-886c-209ee241d740",
-      "title": "p14",
-      "path": "knots/p14.json",
-      "tags": [
-        "#imported",
-        "#knots"
-      ],
-      "complexity": "Medium"
-    },
-    {
-      "id": "64c8a84c-9d5e-4bdd-a0ca-61e72a241ca2",
-      "title": "p19",
-      "path": "knots/p19.json",
-      "tags": [
-        "#imported",
-        "#knots"
-      ],
-      "complexity": "Medium"
-    },
-    {
-      "id": "38df3637-0fa1-45ae-8848-3cbe12df3271",
-      "title": "p9",
-      "path": "knots/p9.json",
-      "tags": [
-        "#imported",
-        "#knots"
-      ],
-      "complexity": "Medium"
-    },
-    {
-      "id": "a8d2cad0-7fb6-412d-8ab8-d2241a50d11a",
-      "title": "p6",
-      "path": "navigation/p6.json",
-      "tags": [
-        "#imported",
-        "#navigation"
-      ],
-      "complexity": "Medium"
-    },
-    {
-      "id": "5db4373b-f84b-4ae6-a5c6-45a7610ff724",
-      "title": "e1",
-      "path": "teamwork/e1.json",
-      "tags": [
-        "#imported",
-        "#teamwork"
-      ],
-      "complexity": "Medium"
-    },
-    {
-      "id": "b6a5840d-18f2-4dd0-823b-5e8cde255b8d",
-      "title": "p11",
-      "path": "teamwork/p11.json",
-      "tags": [
-        "#imported",
-        "#teamwork"
-      ],
-      "complexity": "Medium"
-    },
-    {
-      "id": "3670412f-cc9a-4af8-93ed-646139aee689",
-      "title": "p12",
-      "path": "teamwork/p12.json",
-      "tags": [
-        "#imported",
-        "#teamwork"
-      ],
-      "complexity": "Medium"
-    },
-    {
-      "id": "ca5e1e70-2924-47fc-811c-83b13a1bd866",
-      "title": "p13",
-      "path": "teamwork/p13.json",
-      "tags": [
-        "#imported",
-        "#teamwork"
-      ],
-      "complexity": "Medium"
-    },
-    {
-      "id": "5d9d26a9-0346-4f79-b6bb-6368cbfb0daa",
-      "title": "p15",
-      "path": "teamwork/p15.json",
-      "tags": [
-        "#imported",
-        "#teamwork"
-      ],
-      "complexity": "Medium"
-    },
-    {
-      "id": "daccb5b5-fd15-439a-a5d9-a3213b5b99c7",
-      "title": "p16",
-      "path": "teamwork/p16.json",
-      "tags": [
-        "#imported",
-        "#teamwork"
-      ],
-      "complexity": "Medium"
-    },
-    {
-      "id": "10c4b15b-e699-4250-b659-4699fe477ab3",
-      "title": "p17",
-      "path": "teamwork/p17.json",
-      "tags": [
-        "#imported",
-        "#teamwork"
-      ],
-      "complexity": "Medium"
-    },
-    {
-      "id": "0c24e1cf-6d83-47cf-906d-ac38c3161dc2",
-      "title": "p18",
-      "path": "teamwork/p18.json",
-      "tags": [
-        "#imported",
-        "#teamwork"
-      ],
-      "complexity": "Medium"
-    },
-    {
-      "id": "a13001c6-4a4e-4cb6-8d0a-f91be1734e61",
-      "title": "p20",
-      "path": "teamwork/p20.json",
-      "tags": [
-        "#imported",
-        "#teamwork"
-      ],
-      "complexity": "Medium"
-    },
-    {
-      "id": "3afc5677-eb56-4bbf-aa16-a5fe62c459b5",
-      "title": "p21",
-      "path": "teamwork/p21.json",
-      "tags": [
-        "#imported",
-        "#teamwork"
-      ],
-      "complexity": "Medium"
-    },
-    {
-      "id": "2d85403f-5c0f-47eb-bf00-e5c2fd34cfd6",
-      "title": "p3",
-      "path": "teamwork/p3.json",
-      "tags": [
-        "#imported",
-        "#teamwork"
-      ],
-      "complexity": "Medium"
-    },
-    {
-      "id": "2b7f62d0-02e3-4ab6-bce8-0f06eaad236c",
-      "title": "p4",
-      "path": "teamwork/p4.json",
-      "tags": [
-        "#imported",
-        "#teamwork"
-      ],
-      "complexity": "Medium"
-    },
-    {
-      "id": "0e0472df-2ea2-48f7-9800-7155c9b741b0",
-      "title": "p7",
-      "path": "teamwork/p7.json",
-      "tags": [
-        "#imported",
-        "#teamwork"
-      ],
-      "complexity": "Medium"
-    },
-    {
-      "id": "221a4d71-d21d-4173-a372-59d6253dcdd5",
-      "title": "p8",
-      "path": "teamwork/p8.json",
-      "tags": [
-        "#imported",
-        "#teamwork"
-      ],
-      "complexity": "Medium"
-    },
-    {
-      "id": "e48facdd-1f2b-4343-8bae-7ace7821cb36",
-      "title": "t1",
-      "path": "teamwork/t1.json",
-      "tags": [
-        "#imported",
-        "#teamwork"
-      ],
-      "complexity": "Medium"
-    },
-    {
-      "id": "63253a83-60c8-4c4a-9ea7-50286564f710",
-      "title": "t10",
-      "path": "teamwork/t10.json",
-      "tags": [
-        "#imported",
-        "#teamwork"
-      ],
-      "complexity": "Medium"
-    },
-    {
-      "id": "3854f0da-eab6-4aa8-9c29-142663dd803c",
-      "title": "t11",
-      "path": "teamwork/t11.json",
-      "tags": [
-        "#imported",
-        "#teamwork"
-      ],
-      "complexity": "Medium"
-    },
-    {
-      "id": "fed26aa9-4b75-46fe-bbc1-2c957d2fe9f5",
-      "title": "t2",
-      "path": "teamwork/t2.json",
-      "tags": [
-        "#imported",
-        "#teamwork"
-      ],
-      "complexity": "Medium"
-    },
-    {
-      "id": "510298f6-a410-4885-9f1f-ed94266bb26c",
-      "title": "t6",
-      "path": "teamwork/t6.json",
-      "tags": [
-        "#imported",
-        "#teamwork"
-      ],
-      "complexity": "Medium"
-    },
-    {
-      "id": "04dec818-e8e7-400b-a0b6-ba9dddc5a941",
-      "title": "t8",
-      "path": "teamwork/t8.json",
-      "tags": [
-        "#imported",
-        "#teamwork"
-      ],
-      "complexity": "Medium"
-    },
-    {
-      "id": "72af268b-25ee-4bf4-9031-c54ea25ae5a5",
-      "title": "t9",
-      "path": "teamwork/t9.json",
-      "tags": [
-        "#imported",
-        "#teamwork"
-      ],
-      "complexity": "Medium"
-    }
-  ]
+    "generated": true,
+    "count": 33,
+    "games": [
+        {
+            "id": "e1",
+            "title": "Exhibition Game",
+            "path": "e_general_exhibition_game_001.json",
+            "tags": [
+                "exhibition"
+            ],
+            "complexity": "Medium",
+            "type": "exhibition"
+        },
+        {
+            "id": "p1",
+            "title": "Boiling the Ocean",
+            "path": "p_general_boiling_the_ocean_001.json",
+            "tags": [
+                "patrol"
+            ],
+            "complexity": "Medium",
+            "type": "patrol"
+        },
+        {
+            "id": "p10",
+            "title": "Ladder Lashing",
+            "path": "p_knots_ladder_lashing_001.json",
+            "tags": [
+                "patrol",
+                "knots"
+            ],
+            "complexity": "Medium",
+            "type": "patrol"
+        },
+        {
+            "id": "p11",
+            "title": "Raft-a-drift at Sea",
+            "path": "p_general_raft_a_drift_at_sea_001.json",
+            "tags": [
+                "patrol"
+            ],
+            "complexity": "Medium",
+            "type": "patrol"
+        },
+        {
+            "id": "p12",
+            "title": "Stepping Shells",
+            "path": "p_general_stepping_shells_001.json",
+            "tags": [
+                "patrol"
+            ],
+            "complexity": "Medium",
+            "type": "patrol"
+        },
+        {
+            "id": "p13",
+            "title": "Underwater Treasure Hunt",
+            "path": "p_general_underwater_treasure_hunt_001.json",
+            "tags": [
+                "patrol"
+            ],
+            "complexity": "Medium",
+            "type": "patrol"
+        },
+        {
+            "id": "p14",
+            "title": "Mermaid Tails",
+            "path": "p_first_aid_mermaid_tails_001.json",
+            "tags": [
+                "patrol",
+                "first_aid"
+            ],
+            "complexity": "Medium",
+            "type": "patrol"
+        },
+        {
+            "id": "p15",
+            "title": "Mariana Trench",
+            "path": "p_general_mariana_trench_001.json",
+            "tags": [
+                "patrol"
+            ],
+            "complexity": "Medium",
+            "type": "patrol"
+        },
+        {
+            "id": "p16",
+            "title": "Tangled Treasure",
+            "path": "p_general_tangled_treasure_001.json",
+            "tags": [
+                "patrol"
+            ],
+            "complexity": "Medium",
+            "type": "patrol"
+        },
+        {
+            "id": "p17",
+            "title": "Racing Against the Tide",
+            "path": "p_general_racing_against_the_tide_001.json",
+            "tags": [
+                "patrol"
+            ],
+            "complexity": "Medium",
+            "type": "patrol"
+        },
+        {
+            "id": "p18",
+            "title": "Game 18. Blind Mindfield",
+            "path": "p_teamwork_game_18_blind_mindfield_001.json",
+            "tags": [
+                "patrol",
+                "teamwork"
+            ],
+            "complexity": "Medium",
+            "type": "patrol"
+        },
+        {
+            "id": "p19",
+            "title": "Sahara Oasis, Savanna  Irrigation",
+            "path": "p_general_sahara_oasis_savanna_irrigatio_001.json",
+            "tags": [
+                "patrol"
+            ],
+            "complexity": "Medium",
+            "type": "patrol"
+        },
+        {
+            "id": "p2",
+            "title": "Kraken the First Aid Code",
+            "path": "p_first_aid_kraken_the_first_aid_code_001.json",
+            "tags": [
+                "patrol",
+                "first_aid"
+            ],
+            "complexity": "Medium",
+            "type": "patrol"
+        },
+        {
+            "id": "p20",
+            "title": "Walking A Frame",
+            "path": "p_general_walking_a_frame_001.json",
+            "tags": [
+                "patrol"
+            ],
+            "complexity": "Medium",
+            "type": "patrol"
+        },
+        {
+            "id": "p21",
+            "title": "Crocodile Crossing",
+            "path": "p_general_crocodile_crossing_001.json",
+            "tags": [
+                "patrol"
+            ],
+            "complexity": "Medium",
+            "type": "patrol"
+        },
+        {
+            "id": "p3",
+            "title": "Showtime in Atlantis",
+            "path": "p_general_showtime_in_atlantis_001.json",
+            "tags": [
+                "patrol"
+            ],
+            "complexity": "Medium",
+            "type": "patrol"
+        },
+        {
+            "id": "p4",
+            "title": "Coral Reef Construction",
+            "path": "p_general_coral_reef_construction_001.json",
+            "tags": [
+                "patrol"
+            ],
+            "complexity": "Medium",
+            "type": "patrol"
+        },
+        {
+            "id": "p5",
+            "title": "Catch Fish Fry Fly",
+            "path": "p_general_catch_fish_fry_fly_001.json",
+            "tags": [
+                "patrol"
+            ],
+            "complexity": "Medium",
+            "type": "patrol"
+        },
+        {
+            "id": "p6",
+            "title": "Compass Game",
+            "path": "p_compass_compass_game_001.json",
+            "tags": [
+                "patrol",
+                "compass"
+            ],
+            "complexity": "Medium",
+            "type": "patrol"
+        },
+        {
+            "id": "p7",
+            "title": "Colorguard Game",
+            "path": "p_general_colorguard_game_001.json",
+            "tags": [
+                "patrol"
+            ],
+            "complexity": "Medium",
+            "type": "patrol"
+        },
+        {
+            "id": "p8",
+            "title": "Octopus Odyssey",
+            "path": "p_general_octopus_odyssey_001.json",
+            "tags": [
+                "patrol"
+            ],
+            "complexity": "Medium",
+            "type": "patrol"
+        },
+        {
+            "id": "p9",
+            "title": "Hook Line and Stretcher",
+            "path": "p_general_hook_line_and_stretcher_001.json",
+            "tags": [
+                "patrol"
+            ],
+            "complexity": "Medium",
+            "type": "patrol"
+        },
+        {
+            "id": "t1",
+            "title": "Pioneering Build",
+            "path": "t_general_pioneering_build_001.json",
+            "tags": [
+                "troop"
+            ],
+            "complexity": "Medium",
+            "type": "troop"
+        },
+        {
+            "id": "t10",
+            "title": "LandSkis",
+            "path": "t_general_landskis_001.json",
+            "tags": [
+                "troop"
+            ],
+            "complexity": "Medium",
+            "type": "troop"
+        },
+        {
+            "id": "t11",
+            "title": "TugOWar",
+            "path": "t_general_tugowar_001.json",
+            "tags": [
+                "troop"
+            ],
+            "complexity": "Medium",
+            "type": "troop"
+        },
+        {
+            "id": "t2",
+            "title": "Pioneering Points",
+            "path": "t_general_pioneering_points_001.json",
+            "tags": [
+                "troop"
+            ],
+            "complexity": "Medium",
+            "type": "troop"
+        },
+        {
+            "id": "t3",
+            "title": "Cooking Dish",
+            "path": "t_cooking_cooking_dish_001.json",
+            "tags": [
+                "troop",
+                "cooking"
+            ],
+            "complexity": "Medium",
+            "type": "troop"
+        },
+        {
+            "id": "t4",
+            "title": "Cooking Meal",
+            "path": "t_cooking_cooking_meal_001.json",
+            "tags": [
+                "troop",
+                "cooking"
+            ],
+            "complexity": "Medium",
+            "type": "troop"
+        },
+        {
+            "id": "t5",
+            "title": "Cooking Mystery item",
+            "path": "t_cooking_cooking_mystery_item_001.json",
+            "tags": [
+                "troop",
+                "cooking"
+            ],
+            "complexity": "Medium",
+            "type": "troop"
+        },
+        {
+            "id": "t6",
+            "title": "Campsite Gateway",
+            "path": "t_general_campsite_gateway_001.json",
+            "tags": [
+                "troop"
+            ],
+            "complexity": "Medium",
+            "type": "troop"
+        },
+        {
+            "id": "t7",
+            "title": "Campsite Inspection",
+            "path": "t_general_campsite_inspection_001.json",
+            "tags": [
+                "troop"
+            ],
+            "complexity": "Medium",
+            "type": "troop"
+        },
+        {
+            "id": "t8",
+            "title": "Campsite Judges Award",
+            "path": "t_general_campsite_judges_award_001.json",
+            "tags": [
+                "troop"
+            ],
+            "complexity": "Medium",
+            "type": "troop"
+        },
+        {
+            "id": "t9",
+            "title": "Crab Soccer",
+            "path": "t_general_crab_soccer_001.json",
+            "tags": [
+                "troop"
+            ],
+            "complexity": "Medium",
+            "type": "troop"
+        }
+    ]
 }
