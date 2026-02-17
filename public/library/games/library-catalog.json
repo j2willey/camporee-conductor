@@ -1,0 +1,259 @@
+[
+  {
+    "path": "t_general_tugowar_001.json",
+    "id": "t11",
+    "title": "TugOWar",
+    "tags": [],
+    "type": "troop"
+  },
+  {
+    "path": "e_general_exhibition_game_001.json",
+    "id": "e1",
+    "title": "Exhibition Game",
+    "tags": [],
+    "type": "exhibition"
+  },
+  {
+    "path": "p_general_raft_a_drift_at_sea_001.json",
+    "id": "p11",
+    "title": "Raft-a-drift at Sea",
+    "tags": [],
+    "type": "patrol"
+  },
+  {
+    "path": "t_general_campsite_judges_award_001.json",
+    "id": "t8",
+    "title": "Campsite Judges Award",
+    "tags": [
+      "#camping"
+    ],
+    "type": "troop"
+  },
+  {
+    "path": "p_first_aid_mermaid_tails_001.json",
+    "id": "p14",
+    "title": "Mermaid Tails",
+    "tags": [],
+    "type": "patrol"
+  },
+  {
+    "path": "p_general_crocodile_crossing_001.json",
+    "id": "p21",
+    "title": "Crocodile Crossing",
+    "tags": [],
+    "type": "patrol"
+  },
+  {
+    "path": "t_cooking_cooking_dish_001.json",
+    "id": "t3",
+    "title": "Cooking Dish",
+    "tags": [
+      "#cooking"
+    ],
+    "type": "troop"
+  },
+  {
+    "path": "p_knots_ladder_lashing_001.json",
+    "id": "p10",
+    "title": "Ladder Lashing",
+    "tags": [
+      "#lashing",
+      "#pioneering"
+    ],
+    "type": "patrol"
+  },
+  {
+    "path": "t_general_landskis_001.json",
+    "id": "t10",
+    "title": "LandSkis",
+    "tags": [],
+    "type": "troop"
+  },
+  {
+    "path": "t_cooking_cooking_meal_001.json",
+    "id": "t4",
+    "title": "Cooking Meal",
+    "tags": [
+      "#cooking"
+    ],
+    "type": "troop"
+  },
+  {
+    "path": "p_general_sahara_oasis_savanna_irrigatio_001.json",
+    "id": "p19",
+    "title": "Sahara Oasis, Savanna  Irrigation",
+    "tags": [],
+    "type": "patrol"
+  },
+  {
+    "path": "p_general_hook_line_and_stretcher_001.json",
+    "id": "p9",
+    "title": "Hook Line and Stretcher",
+    "tags": [],
+    "type": "patrol"
+  },
+  {
+    "path": "p_general_tangled_treasure_001.json",
+    "id": "p16",
+    "title": "Tangled Treasure",
+    "tags": [],
+    "type": "patrol"
+  },
+  {
+    "path": "p_general_boiling_the_ocean_001.json",
+    "id": "p1",
+    "title": "Boiling the Ocean",
+    "tags": [],
+    "type": "patrol"
+  },
+  {
+    "path": "p_first_aid_kraken_the_first_aid_code_001.json",
+    "id": "p2",
+    "title": "Kraken the First Aid Code",
+    "tags": [
+      "#communication",
+      "#firstaid",
+      "#safety"
+    ],
+    "type": "patrol"
+  },
+  {
+    "path": "p_general_walking_a_frame_001.json",
+    "id": "p20",
+    "title": "Walking A Frame",
+    "tags": [],
+    "type": "patrol"
+  },
+  {
+    "path": "t_general_pioneering_build_001.json",
+    "id": "t1",
+    "title": "Pioneering Build",
+    "tags": [
+      "#pioneering"
+    ],
+    "type": "troop"
+  },
+  {
+    "path": "t_cooking_cooking_mystery_item_001.json",
+    "id": "t5",
+    "title": "Cooking Mystery item",
+    "tags": [
+      "#cooking"
+    ],
+    "type": "troop"
+  },
+  {
+    "path": "t_general_pioneering_points_001.json",
+    "id": "t2",
+    "title": "Pioneering Points",
+    "tags": [
+      "#pioneering"
+    ],
+    "type": "troop"
+  },
+  {
+    "path": "p_general_showtime_in_atlantis_001.json",
+    "id": "p3",
+    "title": "Showtime in Atlantis",
+    "tags": [],
+    "type": "patrol"
+  },
+  {
+    "path": "t_general_campsite_inspection_001.json",
+    "id": "t7",
+    "title": "Campsite Inspection",
+    "tags": [
+      "#camping"
+    ],
+    "type": "troop"
+  },
+  {
+    "path": "t_general_crab_soccer_001.json",
+    "id": "t9",
+    "title": "Crab Soccer",
+    "tags": [],
+    "type": "troop"
+  },
+  {
+    "path": "p_general_coral_reef_construction_001.json",
+    "id": "p4",
+    "title": "Coral Reef Construction",
+    "tags": [],
+    "type": "patrol"
+  },
+  {
+    "path": "t_general_campsite_gateway_001.json",
+    "id": "t6",
+    "title": "Campsite Gateway",
+    "tags": [
+      "#camping"
+    ],
+    "type": "troop"
+  },
+  {
+    "path": "p_general_racing_against_the_tide_001.json",
+    "id": "p17",
+    "title": "Racing Against the Tide",
+    "tags": [],
+    "type": "patrol"
+  },
+  {
+    "path": "p_general_catch_fish_fry_fly_001.json",
+    "id": "p5",
+    "title": "Catch Fish Fry Fly",
+    "tags": [],
+    "type": "patrol"
+  },
+  {
+    "path": "p_teamwork_game_18_blind_mindfield_001.json",
+    "id": "p18",
+    "title": "Game 18. Blind Mindfield",
+    "tags": [],
+    "type": "patrol"
+  },
+  {
+    "path": "p_general_octopus_odyssey_001.json",
+    "id": "p8",
+    "title": "Octopus Odyssey",
+    "tags": [],
+    "type": "patrol"
+  },
+  {
+    "path": "p_general_stepping_shells_001.json",
+    "id": "p12",
+    "title": "Stepping Shells",
+    "tags": [],
+    "type": "patrol"
+  },
+  {
+    "path": "p_general_underwater_treasure_hunt_001.json",
+    "id": "p13",
+    "title": "Underwater Treasure Hunt",
+    "tags": [],
+    "type": "patrol"
+  },
+  {
+    "path": "p_general_mariana_trench_001.json",
+    "id": "p15",
+    "title": "Mariana Trench",
+    "tags": [],
+    "type": "patrol"
+  },
+  {
+    "path": "p_general_colorguard_game_001.json",
+    "id": "p7",
+    "title": "Colorguard Game",
+    "tags": [],
+    "type": "patrol"
+  },
+  {
+    "path": "p_compass_compass_game_001.json",
+    "id": "p6",
+    "title": "Compass Game",
+    "tags": [
+      "#navigation",
+      "#orienteering"
+    ],
+    "type": "patrol"
+  }
+]

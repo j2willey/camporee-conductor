@@ -4,7 +4,11 @@
   "title": "Generic Game Template",
   "description": "Defines a reusable game module in the Library.",
   "type": "object",
-  "required": ["id", "meta", "scoring"],
+  "required": [
+    "id",
+    "meta",
+    "scoring"
+  ],
   "properties": {
     "id": {
       "type": "string",
@@ -18,21 +22,38 @@
     },
     "meta": {
       "type": "object",
-      "required": ["title", "tags"],
+      "required": [
+        "title",
+        "tags"
+      ],
       "properties": {
-        "title": { "type": "string", "description": "The generic name (e.g. 'Knot Relay')" },
-        "description": { "type": "string" },
+        "title": {
+          "type": "string",
+          "description": "The generic name (e.g. 'Knot Relay')"
+        },
+        "description": {
+          "type": "string"
+        },
         "tags": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "Searchable tags like #fire, #firstaid"
         },
         "logistics": {
-            "type": "object",
-            "properties": {
-                "duration_min": { "type": "integer" },
-                "supplies": { "type": "array", "items": { "type": "string" } }
+          "type": "object",
+          "properties": {
+            "duration_min": {
+              "type": "integer"
+            },
+            "supplies": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             }
+          }
         }
       }
     },
@@ -40,13 +61,90 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["id", "type", "max_points"],
+        "required": [
+          "id",
+          "type",
+          "max_points"
+        ],
         "properties": {
-          "id": { "type": "string" },
-          "label": { "type": "string" },
-          "type": { "type": "string", "enum": ["timer", "tally", "boolean", "input"] },
-          "max_points": { "type": "integer" },
-          "weight": { "type": "number", "default": 1.0 }
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "timer",
+              "tally",
+              "boolean",
+              "input"
+            ]
+          },
+          "max_points": {
+            "type": "integer"
+          },
+          "weight": {
+            "type": "number",
+            "default": 1.0
+          }
+        }
+      }
+    },
+    "variants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "label"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "scoring_override": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "type",
+                "max_points"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "timer",
+                    "tally",
+                    "boolean",
+                    "input"
+                  ]
+                },
+                "max_points": {
+                  "type": "integer"
+                },
+                "weight": {
+                  "type": "number",
+                  "default": 1.0
+                }
+              }
+            }
+          }
         }
       }
     }

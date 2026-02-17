@@ -1,60 +1,68 @@
 {
-    "id": "t5",
-    "base_title": "Cooking Mystery item",
-    "type": "troop",
-    "meta": {
-        "title": "Cooking Mystery item",
-        "description": "",
-        "instructions": ""
-    },
+  "id": "t5",
+  "base_title": "Cooking Mystery item",
+  "type": "troop",
+  "meta": {
+    "title": "Cooking Mystery item",
+    "description": "",
+    "instructions": "",
     "tags": [
-        "troop",
-        "cooking"
-    ],
-    "scoring_model": {
-        "method": "points_desc",
-        "inputs": [
-            {
-                "id": "dish",
-                "label": "Dish",
-                "audience": "judge",
-                "sortOrder": 900,
-                "config": {},
-                "type": "number",
-                "kind": "points",
-                "weight": 1
-            },
-            {
-                "id": "cooking_techniques",
-                "label": "Cooking Techniques",
-                "audience": "judge",
-                "sortOrder": 900,
-                "config": {},
-                "type": "number",
-                "kind": "points",
-                "weight": 1
-            },
-            {
-                "id": "presentation",
-                "label": "Presentation",
-                "audience": "judge",
-                "sortOrder": 900,
-                "config": {},
-                "type": "number",
-                "kind": "points",
-                "weight": 1
-            },
-            {
-                "id": "flavor_taste",
-                "label": "Flavor/Taste",
-                "audience": "judge",
-                "sortOrder": 900,
-                "config": {},
-                "type": "number",
-                "kind": "points",
-                "weight": 1
-            }
-        ]
-    },
-    "variants": []
+      "#cooking"
+    ]
+  },
+  "tags": [
+    "troop",
+    "cooking"
+  ],
+  "scoring_model": {
+    "method": "points_desc",
+    "inputs": [
+      {
+        "id": "dish",
+        "label": "Dish",
+        "audience": "judge",
+        "sortOrder": 900,
+        "config": {},
+        "type": "number",
+        "kind": "points",
+        "weight": 1
+      },
+      {
+        "id": "cooking_techniques",
+        "label": "Cooking Techniques",
+        "audience": "judge",
+        "sortOrder": 900,
+        "config": {},
+        "type": "number",
+        "kind": "points",
+        "weight": 1
+      },
+      {
+        "id": "presentation",
+        "label": "Presentation",
+        "audience": "judge",
+        "sortOrder": 900,
+        "config": {},
+        "type": "number",
+        "kind": "points",
+        "weight": 1
+      },
+      {
+        "id": "flavor_taste",
+        "label": "Flavor/Taste",
+        "audience": "judge",
+        "sortOrder": 900,
+        "config": {},
+        "type": "number",
+        "kind": "points",
+        "weight": 1
+      }
+    ]
+  },
+  "variants": [],
+  "content": {
+    "tags": [
+      "#cooking"
+    ]
+  }
 }

@@ -1,29 +1,37 @@
 {
-    "id": "t6",
-    "base_title": "Campsite Gateway",
-    "type": "troop",
-    "meta": {
-        "title": "Campsite Gateway",
-        "description": "",
-        "instructions": ""
-    },
+  "id": "t6",
+  "base_title": "Campsite Gateway",
+  "type": "troop",
+  "meta": {
+    "title": "Campsite Gateway",
+    "description": "",
+    "instructions": "",
     "tags": [
-        "troop"
-    ],
-    "scoring_model": {
-        "method": "points_desc",
-        "inputs": [
-            {
-                "id": "points",
-                "label": "Points",
-                "audience": "judge",
-                "sortOrder": 900,
-                "config": {},
-                "type": "number",
-                "kind": "points",
-                "weight": 1
-            }
-        ]
-    },
-    "variants": []
+      "#camping"
+    ]
+  },
+  "tags": [
+    "troop"
+  ],
+  "scoring_model": {
+    "method": "points_desc",
+    "inputs": [
+      {
+        "id": "points",
+        "label": "Points",
+        "audience": "judge",
+        "sortOrder": 900,
+        "config": {},
+        "type": "number",
+        "kind": "points",
+        "weight": 1
+      }
+    ]
+  },
+  "variants": [],
+  "content": {
+    "tags": [
+      "#camping"
+    ]
+  }
 }

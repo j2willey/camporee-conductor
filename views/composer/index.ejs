@@ -9,31 +9,9 @@
     </title>
 
     <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <!-- Custom CSS -->
     <link rel="stylesheet" href="/css/conductor.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        body.mode-curator .navbar {
-            background-color: #6f42c1 !important;
-        }
-
-        body.mode-curator .btn-outline-primary {
-            color: #6f42c1;
-            border-color: #6f42c1;
-        }
-
-        body.mode-curator .btn-outline-primary:hover {
-            background-color: #6f42c1;
-            color: white;
-        }
-
-        body.mode-curator .text-primary {
-            color: #6f42c1 !important;
-        }
-
-        .variant-card {
-            border-left: 4px solid #6f42c1;
-        }
-    </style>
 </head>
 
 <body>
@@ -43,23 +21,19 @@
             <a class="navbar-brand" href="#">
                 <i class="fas fa-campground"></i> Camporee Composer
             </a>
-            <div class="form-check form-switch text-light me-3 d-flex align-items-center">
-                <input class="form-check-input me-2" type="checkbox" id="librarianModeSwitch"
-                    onchange="composer.toggleLibrarianMode(this.checked)">
-                <label class="form-check-label" for="librarianModeSwitch"><i class="fas fa-book-reader"></i>
-                    Librarian</label>
+
+            <div class="d-flex align-items-center">
+                <button class="btn btn-outline-light btn-sm me-2" onclick="composer.newCamporee()">
+                    <i class="fas fa-file"></i> New
+                </button>
+                <label class="btn btn-outline-warning btn-sm me-2 mb-0">
+                    <i class="fas fa-folder-open"></i> Import Zip
+                    <input type="file" id="fileInput" accept=".zip" hidden>
+                </label>
+                <button class="btn btn-success btn-sm" onclick="composer.exportCamporee()">
+                    <i class="fas fa-save"></i> Export Zip
+                </button>
             </div>
-            <button class="btn btn-outline-light btn-sm me-2" onclick="composer.newCamporee()">
-                <i class="fas fa-file"></i> New
-            </button>
-            <label class="btn btn-outline-warning btn-sm me-2 mb-0">
-                <i class="fas fa-folder-open"></i> Import Zip
-                <input type="file" id="fileInput" accept=".zip" hidden>
-            </label>
-            <button class="btn btn-success btn-sm" onclick="composer.exportCamporee()">
-                <i class="fas fa-save"></i> Export Zip
-            </button>
-        </div>
         </div>
     </nav>
 
@@ -80,12 +54,20 @@
                             type="button">1. Camporee Info</button>
                     </li>
                     <li class="nav-item">
-                        <button class="nav-link" id="games-tab" data-bs-toggle="tab" data-bs-target="#games-pane"
-                            type="button">2. Active Games</button>
+                        <button class="nav-link" id="patrol-tab" data-bs-toggle="tab" data-bs-target="#patrol-pane"
+                            type="button">2. Patrol Games</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="troop-tab" data-bs-toggle="tab" data-bs-target="#troop-pane"
+                            type="button">3. Troop Events</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="presets-tab" data-bs-toggle="tab" data-bs-target="#presets-pane"
+                            type="button">4. Presets</button>
                     </li>
                     <li class="nav-item">
                         <button class="nav-link" id="editor-tab" data-bs-toggle="tab" data-bs-target="#editor-pane"
-                            type="button" disabled>3. Game Editor</button>
+                            type="button" disabled>Game Editor</button>
                     </li>
                 </ul>
 
@@ -110,33 +92,26 @@
                         </form>
                     </div>
 
-                    <div class="tab-pane fade" id="games-pane">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h4>Active Games</h4>
-                            <button class="btn btn-primary btn-sm" onclick="composer.addGame()"><i
-                                    class="fas fa-plus"></i> Add Game Manually</button>
+                    <div class="tab-pane fade" id="patrol-pane">
+                        <div id="patrolList" class="list-group p-3"></div>
+                        <div class="p-3">
+                            <button class="btn btn-primary w-100" onclick="composer.addGame('patrol')">
+                                <i class="fas fa-plus-circle"></i> Add Patrol Game
+                            </button>
                         </div>
+                    </div>
 
-                        <div class="row">
-                            <div class="col-md-6 mb-4">
-                                <div class="d-flex align-items-center mb-2">
-                                    <h5 class="mb-0">Patrol Games</h5>
-                                    <span class="badge bg-secondary ms-2" id="patrolCount">0</span>
-                                </div>
-                                <div class="list-group border" id="patrolList">
-                                    <div class="text-center text-muted p-4">No patrol games.</div>
-                                </div>
-                            </div>
-                            <div class="col-md-6 mb-4">
-                                <div class="d-flex align-items-center mb-2">
-                                    <h5 class="mb-0">Troop Events</h5>
-                                    <span class="badge bg-secondary ms-2" id="troopCount">0</span>
-                                </div>
-                                <div class="list-group border" id="troopList">
-                                    <div class="text-center text-muted p-4">No troop events.</div>
-                                </div>
-                            </div>
+                    <div class="tab-pane fade" id="troop-pane">
+                        <div id="troopList" class="list-group p-3"></div>
+                        <div class="p-3">
+                            <button class="btn btn-success w-100" onclick="composer.addGame('troop')">
+                                <i class="fas fa-calendar-plus"></i> Add Troop Event
+                            </button>
                         </div>
+                    </div>
+
+                    <div class="tab-pane fade" id="presets-pane">
+                        <div id="presets-container" class="p-3"></div>
                     </div>
 
                     <div class="tab-pane fade" id="editor-pane">
@@ -168,7 +143,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
-    <script type="module" src="/js/composer_app.js?v=2"></script>
+    <script type="module" src="/js/apps/composer.js"></script>
 </body>
 
 </html>

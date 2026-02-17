@@ -1,79 +1,87 @@
 {
-    "id": "t1",
-    "base_title": "Pioneering Build",
-    "type": "troop",
-    "meta": {
-        "title": "Pioneering Build",
-        "description": "",
-        "instructions": ""
-    },
+  "id": "t1",
+  "base_title": "Pioneering Build",
+  "type": "troop",
+  "meta": {
+    "title": "Pioneering Build",
+    "description": "",
+    "instructions": "",
     "tags": [
-        "troop"
-    ],
-    "scoring_model": {
-        "method": "points_desc",
-        "inputs": [
-            {
-                "id": "car_name",
-                "label": "Car Name",
-                "audience": "judge",
-                "sortOrder": 900,
-                "config": {},
-                "type": "number",
-                "kind": "points",
-                "weight": 1
-            },
-            {
-                "id": "compliance",
-                "label": "Compliance",
-                "audience": "judge",
-                "sortOrder": 900,
-                "config": {},
-                "type": "number",
-                "kind": "points",
-                "weight": 1
-            },
-            {
-                "id": "design",
-                "label": "Design",
-                "audience": "judge",
-                "sortOrder": 900,
-                "config": {},
-                "type": "number",
-                "kind": "points",
-                "weight": 1
-            },
-            {
-                "id": "functionality",
-                "label": "Functionality",
-                "audience": "judge",
-                "sortOrder": 900,
-                "config": {},
-                "type": "number",
-                "kind": "points",
-                "weight": 1
-            },
-            {
-                "id": "construction",
-                "label": "Construction",
-                "audience": "judge",
-                "sortOrder": 900,
-                "config": {},
-                "type": "number",
-                "kind": "points",
-                "weight": 1
-            },
-            {
-                "id": "showmanship",
-                "label": "Showmanship",
-                "audience": "judge",
-                "sortOrder": 900,
-                "config": {},
-                "type": "number",
-                "kind": "points",
-                "weight": 1
-            }
-        ]
-    },
-    "variants": []
+      "#pioneering"
+    ]
+  },
+  "tags": [
+    "troop"
+  ],
+  "scoring_model": {
+    "method": "points_desc",
+    "inputs": [
+      {
+        "id": "car_name",
+        "label": "Car Name",
+        "audience": "judge",
+        "sortOrder": 900,
+        "config": {},
+        "type": "number",
+        "kind": "points",
+        "weight": 1
+      },
+      {
+        "id": "compliance",
+        "label": "Compliance",
+        "audience": "judge",
+        "sortOrder": 900,
+        "config": {},
+        "type": "number",
+        "kind": "points",
+        "weight": 1
+      },
+      {
+        "id": "design",
+        "label": "Design",
+        "audience": "judge",
+        "sortOrder": 900,
+        "config": {},
+        "type": "number",
+        "kind": "points",
+        "weight": 1
+      },
+      {
+        "id": "functionality",
+        "label": "Functionality",
+        "audience": "judge",
+        "sortOrder": 900,
+        "config": {},
+        "type": "number",
+        "kind": "points",
+        "weight": 1
+      },
+      {
+        "id": "construction",
+        "label": "Construction",
+        "audience": "judge",
+        "sortOrder": 900,
+        "config": {},
+        "type": "number",
+        "kind": "points",
+        "weight": 1
+      },
+      {
+        "id": "showmanship",
+        "label": "Showmanship",
+        "audience": "judge",
+        "sortOrder": 900,
+        "config": {},
+        "type": "number",
+        "kind": "points",
+        "weight": 1
+      }
+    ]
+  },
+  "variants": [],
+  "content": {
+    "tags": [
+      "#pioneering"
+    ]
+  }
 }

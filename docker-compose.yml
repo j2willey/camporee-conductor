@@ -27,6 +27,9 @@ services:
     volumes:
       # Map the host 'camporee' folder to the container's 'camporees' folder
       - ./camporee:/app/camporees
+      # Map the public library to persist template edits
+      - ./public/library:/app/public/library
+      - ./public:/app/public # Enable hot reloading for frontend code
 
       # COMMENTED OUT: We do NOT map '.' to '/app' here.
       # If we did, we would overwrite the minified code with our raw source code.

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Librarian</title>
+
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/conductor.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            /* Enforce Curator Purple Theme */
+            --bs-primary: #6f42c1;
+            --bs-primary-rgb: 111, 66, 193;
+        }
+
+        .navbar {
+            background-color: #6f42c1 !important;
+        }
+
+        .btn-outline-primary {
+            color: #6f42c1;
+            border-color: #6f42c1;
+        }
+
+        .btn-outline-primary:hover {
+            background-color: #6f42c1;
+            color: white;
+        }
+
+        .text-primary {
+            color: #6f42c1 !important;
+        }
+
+        /* Highlight the active template */
+        .variant-card {
+            border-left: 4px solid #6f42c1;
+        }
+
+        #library-sidebar {
+            width: 350px;
+            /* Wider sidebar for curator to show more details */
+        }
+    </style>
+</head>
+
+<body class="mode-curator">
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-book-reader"></i> Game Curator
+            </a>
+
+            <div class="d-flex align-items-center">
+                <button class="btn btn-outline-light btn-sm me-2" onclick="curator.newTemplate()">
+                    <i class="fas fa-plus"></i> New Template
+                </button>
+                <div class="text-white-50 small ms-3">
+                    Managing Library Catalog
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div id="composer-layout">
+        <aside id="library-sidebar">
+            <div class="sidebar-header p-3 border-bottom d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-book"></i> Catalog</h5>
+                <button class="btn btn-sm btn-link text-muted" onclick="curator.init()"><i
+                        class="fas fa-sync"></i></button>
+            </div>
+            <ul id="library-list" class="list-unstyled p-0 mb-0"></ul>
+            <div id="library-status" class="p-3 text-muted small text-center">Loading Library...</div>
+        </aside>
+
+        <main id="composer-main-pane">
+            <div class="container-fluid py-3">
+
+                <!-- Curator doesn't need tabs, just the editor -->
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white">
+                        <ul class="nav nav-tabs card-header-tabs" id="curatorTabs" role="tablist">
+                            <li class="nav-item">
+                                <button class="nav-link active" id="editor-tab" data-bs-toggle="tab"
+                                    data-bs-target="#editor-pane" type="button">Template Editor</button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link" id="preview-tab" data-bs-toggle="tab"
+                                    data-bs-target="#preview-pane" type="button">Live Preview</button>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="tab-content">
+                            <div class="tab-pane fade show active p-3" id="editor-pane">
+                                <div id="editor-container">
+                                    <div class="text-center py-5 text-muted">
+                                        <i class="fas fa-arrow-left fa-3x mb-3"></i>
+                                        <p>Select a template from the library to edit, or create a new one.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="tab-pane fade p-3" id="preview-pane">
+                                <div id="preview-container" class="border p-4 rounded bg-light">
+                                    <p class="text-center text-muted">Select a template to preview.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal fade" id="presetModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Insert Preset</h5><button type="button" class="btn-close"
+                        data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3"><label class="form-label">Choose Field</label><select class="form-select"
+                            id="presetSelect"></select></div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary"
+                        data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-primary"
+                        onclick="curator.confirmInsertPreset()">Insert</button></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+    <script type="module" src="/js/apps/curator.js"></script>
+</body>
+
+</html>

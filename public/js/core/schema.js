@@ -37,7 +37,7 @@ export function normalizeGameDefinition(gameDef, playlistOrder = 0) {
     if (!Array.isArray(game.variants)) game.variants = [];
     game.variants = game.variants.map(v => {
         const variant = Object.assign({}, v || {});
-        variant.id = variant.id || (`variant-${Date.now()}-${Math.random().toString(36).slice(2,8)}`);
+        variant.id = variant.id || (`variant-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
         variant.label = variant.label || variant.name || 'Variant';
         variant.description = variant.description || '';
         if (variant.scoring_override && typeof variant.scoring_override === 'object') {
@@ -52,15 +52,25 @@ export function normalizeGameDefinition(gameDef, playlistOrder = 0) {
     // --- THE TRANSLATION LAYER ---
     // Map Composer Schema (scoring.components) -> Collator Schema (fields)
     // Prefer explicit scoring.components; fall back to scoring_model.inputs if present
-    const components = (game.scoring && Array.isArray(game.scoring.components)) ? game.scoring.components : (game.scoring_model && Array.isArray(game.scoring_model.inputs) ? game.scoring_model.inputs.map(i => ({
-        id: i.id || (`score-${Date.now()}-${Math.random().toString(36).slice(2,8)}`),
-        label: i.label || i.name || '',
-        type: i.type || 'number',
-        kind: i.type === 'timer' ? 'metric' : 'points',
-        weight: typeof i.weight !== 'undefined' ? i.weight : 1,
-        audience: 'judge',
-        config: { min: i.min || 0, max: i.max_points || i.max || 0, placeholder: i.placeholder || '' }
-    })) : []);
+    let components = [];
+
+    if (game.scoring && Array.isArray(game.scoring.components)) {
+        components = game.scoring.components;
+    } else if (game.scoring_model && Array.isArray(game.scoring_model.inputs)) {
+        components = game.scoring_model.inputs.map(i => ({
+            id: i.id || (`score-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`),
+            label: i.label || i.name || '',
+            type: i.type || 'number',
+            kind: i.type === 'timer' ? 'metric' : 'points',
+            weight: typeof i.weight !== 'undefined' ? i.weight : 1,
+            audience: 'judge',
+            config: {
+                min: i.min || 0,
+                max: i.max_points || i.max || 0,
+                placeholder: i.placeholder || ''
+            }
+        }));
+    }
 
     game.fields = components.map(comp => ({
         id: comp.id,
@@ -159,7 +169,7 @@ export function generateUUID() {
     }
 
     // Ultimate fallback for ancient/restricted environments
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
         const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
         return v.toString(16);
     });

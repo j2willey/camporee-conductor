@@ -15,6 +15,16 @@ const PORT = 3001; // Ensure this matches your Docker port map
 app.use(bodyParser.json({ limit: '50mb' }));
 
 // SERVE STATIC FILES
+app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} ${req.method} ${req.url}`);
+    if (req.url.startsWith('/library/')) {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+    }
+    next();
+});
+
 // Important: { index: false } prevents Express from automatically serving
 // 'index.html' (the Collator App) when you hit '/', allowing the route below to handle it.
 app.use(express.static('public', { index: false }));
@@ -246,6 +256,7 @@ app.post('/api/camporee/:id', (req, res) => {
  */
 app.post('/api/library/save', async (req, res) => {
     try {
+        console.log("Received Library Save Request:", JSON.stringify(req.body, null, 2));
         const { path: gamePath, data } = req.body || {};
         if (!gamePath || !data) return res.status(400).json({ error: 'path and data required' });
 
@@ -260,10 +271,37 @@ app.post('/api/library/save', async (req, res) => {
             return res.status(400).json({ error: 'Invalid path' });
         }
 
+        console.log(`[SERVER] Writing game file to: ${targetPath}`);
         await fs.promises.mkdir(path.dirname(targetPath), { recursive: true });
         await fs.promises.writeFile(targetPath, JSON.stringify(data, null, 2), 'utf8');
+        console.log(`[SERVER] Game file written successfully.`);
 
-        return res.status(200).json({ success: true });
+        // --- CATALOG UPDATE LOGIC ---
+        const catalogPath = path.join(baseDir, 'catalog.json');
+        let catalog = [];
+        try {
+            if (fs.existsSync(catalogPath)) {
+                const rawCatalog = JSON.parse(await fs.promises.readFile(catalogPath, 'utf8'));
+                // Handle both array and object wrapper formats
+                catalog = Array.isArray(rawCatalog) ? rawCatalog : (rawCatalog.games || []);
+            }
+        } catch (e) { console.warn("Catalog read error:", e); }
+
+        let entryIndex = catalog.findIndex(c => c.path === gamePath);
+        const newEntry = {
+            path: gamePath,
+            id: data.id,
+            title: data.meta?.title || data.base_title || data.content?.title || 'Untitled',
+            tags: data.meta?.tags || data.tags || [],
+            type: data.type || 'patrol'
+        };
+
+        if (entryIndex >= 0) catalog[entryIndex] = newEntry;
+        else catalog.push(newEntry);
+
+        await fs.promises.writeFile(catalogPath, JSON.stringify(catalog, null, 2), 'utf8');
+
+        return res.status(200).json({ success: true, catalog: catalog });
     } catch (err) {
         console.error('Library save error:', err);
         return res.status(500).json({ error: 'Failed to save library game' });
