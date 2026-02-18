@@ -246,6 +246,11 @@ const curator = {
     saveTemplate: async function () {
         if (!this.data) return;
 
+        // Ensure tags have hash prefix
+        if (this.data.tags && Array.isArray(this.data.tags)) {
+            this.data.tags = this.data.tags.map(t => t.startsWith('#') ? t : `#${t}`);
+        }
+
         let path = this.activeTemplatePath;
         if (!path) {
             const filename = prompt("Enter filename (e.g. fire/matchless.json):");

@@ -11,77 +11,154 @@
     ]
   },
   "tags": [
-    "troop"
+    "#pioneering"
   ],
-  "scoring_model": {
+  "scoring": {
     "method": "points_desc",
-    "inputs": [
+    "components": [
       {
         "id": "car_name",
         "label": "Car Name",
-        "audience": "judge",
-        "sortOrder": 900,
-        "config": {},
         "type": "number",
         "kind": "points",
-        "weight": 1
+        "weight": 1,
+        "audience": "judge",
+        "sortOrder": 900,
+        "config": {
+          "min": 0,
+          "max": 0,
+          "placeholder": ""
+        }
       },
       {
         "id": "compliance",
         "label": "Compliance",
-        "audience": "judge",
-        "sortOrder": 900,
-        "config": {},
         "type": "number",
         "kind": "points",
-        "weight": 1
+        "weight": 1,
+        "audience": "judge",
+        "sortOrder": 900,
+        "config": {
+          "min": 0,
+          "max": 0,
+          "placeholder": ""
+        }
       },
       {
         "id": "design",
         "label": "Design",
-        "audience": "judge",
-        "sortOrder": 900,
-        "config": {},
         "type": "number",
         "kind": "points",
-        "weight": 1
+        "weight": 1,
+        "audience": "judge",
+        "sortOrder": 900,
+        "config": {
+          "min": 0,
+          "max": 0,
+          "placeholder": ""
+        }
       },
       {
         "id": "functionality",
         "label": "Functionality",
-        "audience": "judge",
-        "sortOrder": 900,
-        "config": {},
         "type": "number",
         "kind": "points",
-        "weight": 1
+        "weight": 1,
+        "audience": "judge",
+        "sortOrder": 900,
+        "config": {
+          "min": 0,
+          "max": 0,
+          "placeholder": ""
+        }
       },
       {
         "id": "construction",
         "label": "Construction",
-        "audience": "judge",
-        "sortOrder": 900,
-        "config": {},
         "type": "number",
         "kind": "points",
-        "weight": 1
+        "weight": 1,
+        "audience": "judge",
+        "sortOrder": 900,
+        "config": {
+          "min": 0,
+          "max": 0,
+          "placeholder": ""
+        }
       },
       {
         "id": "showmanship",
         "label": "Showmanship",
-        "audience": "judge",
-        "sortOrder": 900,
-        "config": {},
         "type": "number",
         "kind": "points",
-        "weight": 1
+        "weight": 1,
+        "audience": "judge",
+        "sortOrder": 900,
+        "config": {
+          "min": 0,
+          "max": 0,
+          "placeholder": ""
+        }
       }
     ]
   },
-  "variants": [],
-  "content": {
-    "tags": [
-      "#pioneering"
+  "scoring_model": {
+    "inputs": [
+      {
+        "id": "car_name",
+        "label": "Car Name",
+        "type": "number",
+        "weight": 1,
+        "max_points": 0,
+        "placeholder": "",
+        "sortOrder": 900
+      },
+      {
+        "id": "compliance",
+        "label": "Compliance",
+        "type": "number",
+        "weight": 1,
+        "max_points": 0,
+        "placeholder": "",
+        "sortOrder": 900
+      },
+      {
+        "id": "design",
+        "label": "Design",
+        "type": "number",
+        "weight": 1,
+        "max_points": 0,
+        "placeholder": "",
+        "sortOrder": 900
+      },
+      {
+        "id": "functionality",
+        "label": "Functionality",
+        "type": "number",
+        "weight": 1,
+        "max_points": 0,
+        "placeholder": "",
+        "sortOrder": 900
+      },
+      {
+        "id": "construction",
+        "label": "Construction",
+        "type": "number",
+        "weight": 1,
+        "max_points": 0,
+        "placeholder": "",
+        "sortOrder": 900
+      },
+      {
+        "id": "showmanship",
+        "label": "Showmanship",
+        "type": "number",
+        "weight": 1,
+        "max_points": 0,
+        "placeholder": "",
+        "sortOrder": 900
+      }
     ]
-  }
+  },
+  "variants": []
 }

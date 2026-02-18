@@ -11,38 +11,62 @@
     ]
   },
   "tags": [
-    "troop",
-    "cooking"
+    "#cooking"
   ],
-  "scoring_model": {
+  "scoring": {
     "method": "points_desc",
-    "inputs": [
+    "components": [
       {
         "id": "dish",
         "label": "Dish",
-        "audience": "judge",
-        "sortOrder": 900,
-        "config": {},
         "type": "number",
         "kind": "points",
-        "weight": 1
+        "weight": 1,
+        "audience": "judge",
+        "sortOrder": 900,
+        "config": {
+          "min": 0,
+          "max": 0,
+          "placeholder": ""
+        }
       },
       {
         "id": "cooking_techniques",
         "label": "Cooking Techniques",
-        "audience": "judge",
-        "sortOrder": 900,
-        "config": {},
         "type": "number",
         "kind": "points",
-        "weight": 1
+        "weight": 1,
+        "audience": "judge",
+        "sortOrder": 900,
+        "config": {
+          "min": 0,
+          "max": 0,
+          "placeholder": ""
+        }
       }
     ]
   },
-  "variants": [],
-  "content": {
-    "tags": [
-      "#cooking"
+  "scoring_model": {
+    "inputs": [
+      {
+        "id": "dish",
+        "label": "Dish",
+        "type": "number",
+        "weight": 1,
+        "max_points": 0,
+        "placeholder": "",
+        "sortOrder": 900
+      },
+      {
+        "id": "cooking_techniques",
+        "label": "Cooking Techniques",
+        "type": "number",
+        "weight": 1,
+        "max_points": 0,
+        "placeholder": "",
+        "sortOrder": 900
+      }
     ]
-  }
+  },
+  "variants": []
 }

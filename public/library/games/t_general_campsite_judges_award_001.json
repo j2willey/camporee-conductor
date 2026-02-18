@@ -7,31 +7,43 @@
     "description": "",
     "instructions": "",
     "tags": [
-      "#camping"
+      "#campsite"
     ]
   },
   "tags": [
-    "troop"
+    "#campsite"
   ],
-  "scoring_model": {
+  "scoring": {
     "method": "points_desc",
+    "components": [
+      {
+        "id": "points",
+        "label": "Points",
+        "type": "number",
+        "kind": "points",
+        "weight": 1,
+        "audience": "judge",
+        "sortOrder": 900,
+        "config": {
+          "min": 0,
+          "max": 0,
+          "placeholder": ""
+        }
+      }
+    ]
+  },
+  "scoring_model": {
     "inputs": [
       {
         "id": "points",
         "label": "Points",
-        "audience": "judge",
-        "sortOrder": 900,
-        "config": {},
         "type": "number",
-        "kind": "points",
-        "weight": 1
+        "weight": 1,
+        "max_points": 0,
+        "placeholder": "",
+        "sortOrder": 900
       }
     ]
   },
-  "variants": [],
-  "content": {
-    "tags": [
-      "#camping"
-    ]
-  }
+  "variants": []
 }

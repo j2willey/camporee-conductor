@@ -260,6 +260,14 @@ app.post('/api/library/save', async (req, res) => {
         const { path: gamePath, data } = req.body || {};
         if (!gamePath || !data) return res.status(400).json({ error: 'path and data required' });
 
+        // Enforce hashtags
+        if (data.tags && Array.isArray(data.tags)) {
+            data.tags = data.tags.map(t => t.startsWith('#') ? t : `#${t}`);
+        }
+        if (data.meta && data.meta.tags && Array.isArray(data.meta.tags)) {
+            data.meta.tags = data.meta.tags.map(t => t.startsWith('#') ? t : `#${t}`);
+        }
+
         const baseDir = path.join(__dirname, 'public', 'library', 'games');
 
         // Normalize and join to prevent directory traversal

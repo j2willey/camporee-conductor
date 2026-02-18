@@ -11,137 +11,292 @@
     ]
   },
   "tags": [
-    "troop"
+    "#pioneering"
   ],
-  "scoring_model": {
+  "scoring": {
     "method": "points_desc",
-    "inputs": [
+    "components": [
       {
         "id": "car_name",
         "label": "Car Name",
-        "audience": "judge",
-        "sortOrder": 900,
-        "config": {},
         "type": "number",
         "kind": "points",
-        "weight": 1
+        "weight": 1,
+        "audience": "judge",
+        "sortOrder": 900,
+        "config": {
+          "min": 0,
+          "max": 0,
+          "placeholder": ""
+        }
       },
       {
         "id": "start_line",
         "label": "Start Line",
-        "audience": "judge",
-        "sortOrder": 900,
-        "config": {},
         "type": "number",
         "kind": "points",
-        "weight": 1
+        "weight": 1,
+        "audience": "judge",
+        "sortOrder": 900,
+        "config": {
+          "min": 0,
+          "max": 0,
+          "placeholder": ""
+        }
       },
       {
         "id": "passport_check",
         "label": "Passport Check",
-        "audience": "judge",
-        "sortOrder": 900,
-        "config": {},
         "type": "number",
         "kind": "points",
-        "weight": 1
+        "weight": 1,
+        "audience": "judge",
+        "sortOrder": 900,
+        "config": {
+          "min": 0,
+          "max": 0,
+          "placeholder": ""
+        }
       },
       {
         "id": "flat_tire",
         "label": "Flat Tire",
-        "audience": "judge",
-        "sortOrder": 900,
-        "config": {},
         "type": "number",
         "kind": "points",
-        "weight": 1
+        "weight": 1,
+        "audience": "judge",
+        "sortOrder": 900,
+        "config": {
+          "min": 0,
+          "max": 0,
+          "placeholder": ""
+        }
       },
       {
         "id": "tire_repair",
         "label": "Tire Repair",
-        "audience": "judge",
-        "sortOrder": 900,
-        "config": {},
         "type": "number",
         "kind": "points",
-        "weight": 1
+        "weight": 1,
+        "audience": "judge",
+        "sortOrder": 900,
+        "config": {
+          "min": 0,
+          "max": 0,
+          "placeholder": ""
+        }
       },
       {
         "id": "brake_failure",
         "label": "Brake Failure",
-        "audience": "judge",
-        "sortOrder": 900,
-        "config": {},
         "type": "number",
         "kind": "points",
-        "weight": 1
+        "weight": 1,
+        "audience": "judge",
+        "sortOrder": 900,
+        "config": {
+          "min": 0,
+          "max": 0,
+          "placeholder": ""
+        }
       },
       {
         "id": "fuel_leak",
         "label": "Fuel Leak",
-        "audience": "judge",
-        "sortOrder": 900,
-        "config": {},
         "type": "number",
         "kind": "points",
-        "weight": 1
+        "weight": 1,
+        "audience": "judge",
+        "sortOrder": 900,
+        "config": {
+          "min": 0,
+          "max": 0,
+          "placeholder": ""
+        }
       },
       {
         "id": "fuel_depot",
         "label": "Fuel Depot",
-        "audience": "judge",
-        "sortOrder": 900,
-        "config": {},
         "type": "number",
         "kind": "points",
-        "weight": 1
+        "weight": 1,
+        "audience": "judge",
+        "sortOrder": 900,
+        "config": {
+          "min": 0,
+          "max": 0,
+          "placeholder": ""
+        }
       },
       {
         "id": "mud_flat_dig_out",
         "label": "Mud Flat / \nDig-Out",
-        "audience": "judge",
-        "sortOrder": 900,
-        "config": {},
         "type": "number",
         "kind": "points",
-        "weight": 1
+        "weight": 1,
+        "audience": "judge",
+        "sortOrder": 900,
+        "config": {
+          "min": 0,
+          "max": 0,
+          "placeholder": ""
+        }
       },
       {
         "id": "rock_slide",
         "label": "Rock Slide",
-        "audience": "judge",
-        "sortOrder": 900,
-        "config": {},
         "type": "number",
         "kind": "points",
-        "weight": 1
+        "weight": 1,
+        "audience": "judge",
+        "sortOrder": 900,
+        "config": {
+          "min": 0,
+          "max": 0,
+          "placeholder": ""
+        }
       },
       {
         "id": "rollover_desert_crossing",
         "label": "Rollover / \nDesert Crossing",
-        "audience": "judge",
-        "sortOrder": 900,
-        "config": {},
         "type": "number",
         "kind": "points",
-        "weight": 1
+        "weight": 1,
+        "audience": "judge",
+        "sortOrder": 900,
+        "config": {
+          "min": 0,
+          "max": 0,
+          "placeholder": ""
+        }
       },
       {
         "id": "finish_line",
         "label": "Finish Line",
-        "audience": "judge",
-        "sortOrder": 900,
-        "config": {},
         "type": "number",
         "kind": "points",
-        "weight": 1
+        "weight": 1,
+        "audience": "judge",
+        "sortOrder": 900,
+        "config": {
+          "min": 0,
+          "max": 0,
+          "placeholder": ""
+        }
       }
     ]
   },
-  "variants": [],
-  "content": {
-    "tags": [
-      "#pioneering"
+  "scoring_model": {
+    "inputs": [
+      {
+        "id": "car_name",
+        "label": "Car Name",
+        "type": "number",
+        "weight": 1,
+        "max_points": 0,
+        "placeholder": "",
+        "sortOrder": 900
+      },
+      {
+        "id": "start_line",
+        "label": "Start Line",
+        "type": "number",
+        "weight": 1,
+        "max_points": 0,
+        "placeholder": "",
+        "sortOrder": 900
+      },
+      {
+        "id": "passport_check",
+        "label": "Passport Check",
+        "type": "number",
+        "weight": 1,
+        "max_points": 0,
+        "placeholder": "",
+        "sortOrder": 900
+      },
+      {
+        "id": "flat_tire",
+        "label": "Flat Tire",
+        "type": "number",
+        "weight": 1,
+        "max_points": 0,
+        "placeholder": "",
+        "sortOrder": 900
+      },
+      {
+        "id": "tire_repair",
+        "label": "Tire Repair",
+        "type": "number",
+        "weight": 1,
+        "max_points": 0,
+        "placeholder": "",
+        "sortOrder": 900
+      },
+      {
+        "id": "brake_failure",
+        "label": "Brake Failure",
+        "type": "number",
+        "weight": 1,
+        "max_points": 0,
+        "placeholder": "",
+        "sortOrder": 900
+      },
+      {
+        "id": "fuel_leak",
+        "label": "Fuel Leak",
+        "type": "number",
+        "weight": 1,
+        "max_points": 0,
+        "placeholder": "",
+        "sortOrder": 900
+      },
+      {
+        "id": "fuel_depot",
+        "label": "Fuel Depot",
+        "type": "number",
+        "weight": 1,
+        "max_points": 0,
+        "placeholder": "",
+        "sortOrder": 900
+      },
+      {
+        "id": "mud_flat_dig_out",
+        "label": "Mud Flat / \nDig-Out",
+        "type": "number",
+        "weight": 1,
+        "max_points": 0,
+        "placeholder": "",
+        "sortOrder": 900
+      },
+      {
+        "id": "rock_slide",
+        "label": "Rock Slide",
+        "type": "number",
+        "weight": 1,
+        "max_points": 0,
+        "placeholder": "",
+        "sortOrder": 900
+      },
+      {
+        "id": "rollover_desert_crossing",
+        "label": "Rollover / \nDesert Crossing",
+        "type": "number",
+        "weight": 1,
+        "max_points": 0,
+        "placeholder": "",
+        "sortOrder": 900
+      },
+      {
+        "id": "finish_line",
+        "label": "Finish Line",
+        "type": "number",
+        "weight": 1,
+        "max_points": 0,
+        "placeholder": "",
+        "sortOrder": 900
+      }
     ]
-  }
+  },
+  "variants": []
 }

@@ -1,283 +1,266 @@
-{
-  "generated": true,
-  "count": 27,
-  "games": [
-    {
-      "id": "e1",
-      "title": "Exhibition Game",
-      "path": "e_general_exhibition_game_001.json",
-      "tags": [
-        "exhibition"
-      ],
-      "complexity": "Medium",
-      "type": "exhibition"
-    },
-    {
-      "id": "p1",
-      "title": "Boiling the Ocean",
-      "path": "p_Boiling_the_Ocean_001.json",
-      "tags": [
-        "patrol"
-      ],
-      "complexity": "Medium",
-      "type": "patrol"
-    },
-    {
-      "id": "p10",
-      "title": "Ladder Lashing",
-      "path": "p_Ladder_Lashing_002.json",
-      "tags": [
-        "patrol",
-        "knots"
-      ],
-      "complexity": "Medium",
-      "type": "patrol"
-    },
-    {
-      "id": "p11",
-      "title": "Raft-a-drift at Sea",
-      "path": "p_Raft-a-drift_at_Sea_003.json",
-      "tags": [
-        "patrol"
-      ],
-      "complexity": "Medium",
-      "type": "patrol"
-    },
-    {
-      "id": "p12",
-      "title": "Stepping Shells",
-      "path": "p_Stepping_Shells_004.json",
-      "tags": [
-        "patrol"
-      ],
-      "complexity": "Medium",
-      "type": "patrol"
-    },
-    {
-      "id": "p13",
-      "title": "Underwater Treasure Hunt",
-      "path": "p_Underwater_Treasure_Hunt_005.json",
-      "tags": [
-        "patrol"
-      ],
-      "complexity": "Medium",
-      "type": "patrol"
-    },
-    {
-      "id": "p18",
-      "title": "Game 18. Blind Mindfield",
-      "path": "p_Blind_Mindfield_006.json",
-      "tags": [
-        "patrol",
-        "teamwork"
-      ],
-      "complexity": "Medium",
-      "type": "patrol"
-    },
-    {
-      "id": "p2",
-      "title": "Kraken the First Aid Code",
-      "path": "p_Kraken_the_First_Aid_Code_007.json",
-      "tags": [
-        "patrol",
-        "first_aid"
-      ],
-      "complexity": "Medium",
-      "type": "patrol"
-    },
-    {
-      "id": "p20",
-      "title": "Walking A Frame",
-      "path": "p_Walking_A_Frame_008.json",
-      "tags": [
-        "patrol"
-      ],
-      "complexity": "Medium",
-      "type": "patrol"
-    },
-    {
-      "id": "p3",
-      "title": "Showtime in Atlantis",
-      "path": "p_Showtime_in_Atlantis_009.json",
-      "tags": [
-        "patrol"
-      ],
-      "complexity": "Medium",
-      "type": "patrol"
-    },
-    {
-      "id": "p4",
-      "title": "Coral Reef Construction",
-      "path": "p_Coral_Reef_Construction_010.json",
-      "tags": [
-        "patrol"
-      ],
-      "complexity": "Medium",
-      "type": "patrol"
-    },
-    {
-      "id": "p5",
-      "title": "Catch Fish Fry Fly",
-      "path": "p_Catch_Fish_Fry_Fly_011.json",
-      "tags": [
-        "patrol"
-      ],
-      "complexity": "Medium",
-      "type": "patrol"
-    },
-    {
-      "id": "p6",
-      "title": "Compass Game",
-      "path": "p_Compass_Game_012.json",
-      "tags": [
-        "patrol",
-        "compass"
-      ],
-      "complexity": "Medium",
-      "type": "patrol"
-    },
-    {
-      "id": "p7",
-      "title": "Colorguard Game",
-      "path": "p_Colorguard_Game_013.json",
-      "tags": [
-        "patrol"
-      ],
-      "complexity": "Medium",
-      "type": "patrol"
-    },
-    {
-      "id": "p8",
-      "title": "Octopus Odyssey",
-      "path": "p_Octopus_Odyssey_014.json",
-      "tags": [
-        "patrol"
-      ],
-      "complexity": "Medium",
-      "type": "patrol"
-    },
-    {
-      "id": "p9",
-      "title": "Hook Line and Stretcher",
-      "path": "p_Hook_Line_and_Stretcher_015.json",
-      "tags": [
-        "patrol"
-      ],
-      "complexity": "Medium",
-      "type": "patrol"
-    },
-    {
-      "id": "t1",
-      "title": "Pioneering Build",
-      "path": "t_general_pioneering_build_001.json",
-      "tags": [
-        "troop"
-      ],
-      "complexity": "Medium",
-      "type": "troop"
-    },
-    {
-      "id": "t10",
-      "title": "LandSkis",
-      "path": "t_general_landskis_001.json",
-      "tags": [
-        "troop"
-      ],
-      "complexity": "Medium",
-      "type": "troop"
-    },
-    {
-      "id": "t11",
-      "title": "TugOWar",
-      "path": "t_general_tugowar_001.json",
-      "tags": [
-        "troop"
-      ],
-      "complexity": "Medium",
-      "type": "troop"
-    },
-    {
-      "id": "t2",
-      "title": "Pioneering Points",
-      "path": "t_general_pioneering_points_001.json",
-      "tags": [
-        "troop"
-      ],
-      "complexity": "Medium",
-      "type": "troop"
-    },
-    {
-      "id": "t3",
-      "title": "Cooking Dish",
-      "path": "t_cooking_cooking_dish_001.json",
-      "tags": [
-        "troop",
-        "cooking"
-      ],
-      "complexity": "Medium",
-      "type": "troop"
-    },
-    {
-      "id": "t4",
-      "title": "Cooking Meal",
-      "path": "t_cooking_cooking_meal_001.json",
-      "tags": [
-        "troop",
-        "cooking"
-      ],
-      "complexity": "Medium",
-      "type": "troop"
-    },
-    {
-      "id": "t5",
-      "title": "Cooking Mystery item",
-      "path": "t_cooking_cooking_mystery_item_001.json",
-      "tags": [
-        "troop",
-        "cooking"
-      ],
-      "complexity": "Medium",
-      "type": "troop"
-    },
-    {
-      "id": "t6",
-      "title": "Campsite Gateway",
-      "path": "t_general_campsite_gateway_001.json",
-      "tags": [
-        "troop"
-      ],
-      "complexity": "Medium",
-      "type": "troop"
-    },
-    {
-      "id": "t7",
-      "title": "Campsite Inspection",
-      "path": "t_general_campsite_inspection_001.json",
-      "tags": [
-        "troop"
-      ],
-      "complexity": "Medium",
-      "type": "troop"
-    },
-    {
-      "id": "t8",
-      "title": "Campsite Judges Award",
-      "path": "t_general_campsite_judges_award_001.json",
-      "tags": [
-        "troop"
-      ],
-      "complexity": "Medium",
-      "type": "troop"
-    },
-    {
-      "id": "t9",
-      "title": "Crab Soccer",
-      "path": "t_general_crab_soccer_001.json",
-      "tags": [
-        "troop"
-      ],
-      "complexity": "Medium",
-      "type": "troop"
-    }
-  ]
-}
+[
+  {
+    "id": "e1",
+    "title": "Exhibition Game",
+    "path": "e_general_exhibition_game_001.json",
+    "tags": [],
+    "complexity": "Medium",
+    "type": "exhibition"
+  },
+  {
+    "id": "p1",
+    "title": "Fire to Water",
+    "path": "p_Fire_to_Water_001.json",
+    "tags": [
+      "#fire",
+      "#teamwork"
+    ],
+    "complexity": "Medium",
+    "type": "patrol"
+  },
+  {
+    "id": "p2",
+    "title": "First Aid Code",
+    "path": "p_Kraken_the_First_Aid_Code_001.json",
+    "tags": [
+      "#firstAid"
+    ],
+    "complexity": "Medium",
+    "type": "patrol"
+  },
+  {
+    "path": "p_Showtime_in_Atlantis_001.json",
+    "id": "p3",
+    "title": "Campfire Skit",
+    "tags": [
+      "#campfire",
+      "#skit"
+    ],
+    "type": "patrol"
+  },
+  {
+    "id": "p4",
+    "title": "Tent Setup",
+    "path": "p_Coral_Reef_Construction_001.json",
+    "tags": [
+      "#tentSetup"
+    ],
+    "complexity": "Medium",
+    "type": "patrol"
+  },
+  {
+    "path": "p_Catch_Fish_Fry_Fly_001.json",
+    "id": "p5",
+    "title": "Mix Make Pancake",
+    "tags": [
+      "#cooking"
+    ],
+    "type": "patrol"
+  },
+  {
+    "path": "p_Compass_Game_001.json",
+    "id": "p6",
+    "title": "Compass Game",
+    "tags": [
+      "#orienteering"
+    ],
+    "type": "patrol"
+  },
+  {
+    "path": "p_Colorguard_Game_001.json",
+    "id": "p7",
+    "title": "Colorguard Game",
+    "tags": [
+      "#colorguard"
+    ],
+    "type": "patrol"
+  },
+  {
+    "path": "p_Octopus_Odyssey_001.json",
+    "id": "p8",
+    "title": "Eight Legged Race",
+    "tags": [
+      "#teamwork"
+    ],
+    "type": "patrol"
+  },
+  {
+    "path": "p_Hook_Line_and_Stretcher_001.json",
+    "id": "p9",
+    "title": "Stretcher Race",
+    "tags": [
+      "#scoutskills"
+    ],
+    "type": "patrol"
+  },
+  {
+    "id": "p10",
+    "title": "Ladder Lashing",
+    "path": "p_Ladder_Lashing_001.json",
+    "tags": [
+      "#lashing",
+      "#pioneering"
+    ],
+    "complexity": "Medium",
+    "type": "patrol"
+  },
+  {
+    "path": "p_Raft-a-drift_at_Sea_001.json",
+    "id": "p11",
+    "title": "Barrel Raft",
+    "tags": [
+      "#teamwork"
+    ],
+    "type": "patrol"
+  },
+  {
+    "path": "p_Stepping_Shells_001.json",
+    "id": "p12",
+    "title": "Carpet Puzzle",
+    "tags": [
+      "#teamwork",
+      "#puzzle"
+    ],
+    "type": "patrol"
+  },
+  {
+    "path": "p_Underwater_Treasure_Hunt_001.json",
+    "id": "p13",
+    "title": "Kims Game",
+    "tags": [
+      "#observation",
+      "#KimsGame"
+    ],
+    "type": "patrol"
+  },
+  {
+    "path": "p_Blind_Mindfield_001.json",
+    "id": "p18",
+    "title": "Blind Mindfield",
+    "tags": [
+      "#teamwork"
+    ],
+    "type": "patrol"
+  },
+  {
+    "path": "p_Walking_A_Frame_001.json",
+    "id": "p20",
+    "title": "Walking A Frame",
+    "tags": [
+      "#lashings",
+      "#teamwork"
+    ],
+    "type": "patrol"
+  },
+  {
+    "id": "t1",
+    "title": "Pioneering Build",
+    "path": "t_general_pioneering_build_001.json",
+    "tags": [
+      "#pioneering"
+    ],
+    "complexity": "Medium",
+    "type": "troop"
+  },
+  {
+    "id": "t2",
+    "title": "Pioneering Points",
+    "path": "t_general_pioneering_points_001.json",
+    "tags": [
+      "#pioneering"
+    ],
+    "complexity": "Medium",
+    "type": "troop"
+  },
+  {
+    "id": "t3",
+    "title": "Cooking Dish",
+    "path": "t_cooking_cooking_dish_001.json",
+    "tags": [
+      "#cooking"
+    ],
+    "complexity": "Medium",
+    "type": "troop"
+  },
+  {
+    "id": "t4",
+    "title": "Cooking Meal",
+    "path": "t_cooking_cooking_meal_001.json",
+    "tags": [
+      "#cooking"
+    ],
+    "complexity": "Medium",
+    "type": "troop"
+  },
+  {
+    "id": "t5",
+    "title": "Cooking Mystery item",
+    "path": "t_cooking_cooking_mystery_item_001.json",
+    "tags": [
+      "#cooking"
+    ],
+    "complexity": "Medium",
+    "type": "troop"
+  },
+  {
+    "id": "t6",
+    "title": "Campsite Gateway",
+    "path": "t_general_campsite_gateway_001.json",
+    "tags": [
+      "#campsite"
+    ],
+    "complexity": "Medium",
+    "type": "troop"
+  },
+  {
+    "id": "t7",
+    "title": "Campsite Inspection",
+    "path": "t_general_campsite_inspection_001.json",
+    "tags": [
+      "#campsite"
+    ],
+    "complexity": "Medium",
+    "type": "troop"
+  },
+  {
+    "id": "t8",
+    "title": "Campsite Judges Award",
+    "path": "t_general_campsite_judges_award_001.json",
+    "tags": [
+      "#campsite"
+    ],
+    "complexity": "Medium",
+    "type": "troop"
+  },
+  {
+    "id": "t9",
+    "title": "Crab Soccer",
+    "path": "t_general_crab_soccer_001.json",
+    "tags": [
+      "#sports"
+    ],
+    "complexity": "Medium",
+    "type": "troop"
+  },
+  {
+    "id": "t10",
+    "title": "Land Skis x4",
+    "path": "t_general_landskis_001.json",
+    "tags": [
+      "#sports"
+    ],
+    "complexity": "Medium",
+    "type": "troop"
+  },
+  {
+    "id": "t11",
+    "title": "TugOWar",
+    "path": "t_general_tugowar_001.json",
+    "tags": [
+      "#sports",
+      "#tugowar"
+    ],
+    "complexity": "Medium",
+    "type": "troop"
+  }
+]

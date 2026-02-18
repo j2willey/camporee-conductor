@@ -1,101 +1,164 @@
 {
   "id": "p8",
-  "base_title": "Octopus Odyssey",
+  "base_title": "Eight Legged Race",
   "type": "patrol",
   "meta": {
-    "title": "Octopus Odyssey",
+    "title": "Eight Legged Race",
     "description": "",
     "instructions": "",
-    "tags": []
+    "tags": [
+      "#teamwork"
+    ]
   },
   "tags": [
-    "patrol"
+    "#teamwork"
   ],
-  "scoring_model": {
+  "scoring": {
     "method": "points_desc",
-    "inputs": [
+    "components": [
       {
         "id": "patrol_flag",
         "label": "Patrol Flag?",
+        "type": "number",
+        "kind": "points",
+        "weight": 1,
         "audience": "judge",
         "sortOrder": 1,
         "config": {
           "min": 0,
-          "max": 5,
-          "defaultValue": 0
-        },
-        "type": "number",
-        "kind": "points",
-        "weight": 1
+          "max": 0,
+          "placeholder": ""
+        }
       },
       {
         "id": "patrol_yell",
         "label": "Patrol Yell?",
+        "type": "number",
+        "kind": "points",
+        "weight": 1,
         "audience": "judge",
         "sortOrder": 2,
         "config": {
           "min": 0,
-          "max": 5,
-          "defaultValue": 0
-        },
-        "type": "number",
-        "kind": "points",
-        "weight": 1
+          "max": 0,
+          "placeholder": ""
+        }
       },
       {
         "id": "patrol_spirit",
         "label": "Patrol Spirit",
+        "type": "number",
+        "kind": "points",
+        "weight": 1,
         "audience": "judge",
         "sortOrder": 3,
         "config": {
           "min": 0,
-          "max": 5,
-          "defaultValue": 0
-        },
-        "type": "number",
-        "kind": "points",
-        "weight": 1
+          "max": 0,
+          "placeholder": ""
+        }
       },
       {
         "id": "patrol_sprirt",
         "label": "Patrol Sprirt",
-        "audience": "judge",
-        "sortOrder": 900,
-        "config": {},
         "type": "number",
         "kind": "points",
-        "weight": 1
+        "weight": 1,
+        "audience": "judge",
+        "sortOrder": 900,
+        "config": {
+          "min": 0,
+          "max": 0,
+          "placeholder": ""
+        }
       },
       {
         "id": "unscoutlike",
         "label": "Un-Scout-like Behavior (Penalty)",
+        "type": "number",
+        "kind": "points",
+        "weight": -1,
         "audience": "judge",
         "sortOrder": 998,
         "config": {
           "min": 0,
-          "max": 100,
-          "defaultValue": 0
-        },
-        "type": "number",
-        "kind": "penalty",
-        "weight": -1
+          "max": 0,
+          "placeholder": ""
+        }
       },
       {
         "id": "judge_notes",
         "label": "Judge Notes / Comments",
+        "type": "textarea",
+        "kind": "points",
+        "weight": 0,
         "audience": "judge",
         "sortOrder": 999,
         "config": {
-          "placeholder": "Optional notes on performance..."
-        },
-        "type": "textarea",
-        "kind": "metric",
-        "weight": 0
+          "min": 0,
+          "max": 0,
+          "placeholder": ""
+        }
       }
     ]
   },
-  "variants": [],
-  "content": {
-    "tags": []
-  }
+  "scoring_model": {
+    "inputs": [
+      {
+        "id": "patrol_flag",
+        "label": "Patrol Flag?",
+        "type": "number",
+        "weight": 1,
+        "max_points": 0,
+        "placeholder": "",
+        "sortOrder": 1
+      },
+      {
+        "id": "patrol_yell",
+        "label": "Patrol Yell?",
+        "type": "number",
+        "weight": 1,
+        "max_points": 0,
+        "placeholder": "",
+        "sortOrder": 2
+      },
+      {
+        "id": "patrol_spirit",
+        "label": "Patrol Spirit",
+        "type": "number",
+        "weight": 1,
+        "max_points": 0,
+        "placeholder": "",
+        "sortOrder": 3
+      },
+      {
+        "id": "patrol_sprirt",
+        "label": "Patrol Sprirt",
+        "type": "number",
+        "weight": 1,
+        "max_points": 0,
+        "placeholder": "",
+        "sortOrder": 900
+      },
+      {
+        "id": "unscoutlike",
+        "label": "Un-Scout-like Behavior (Penalty)",
+        "type": "number",
+        "weight": -1,
+        "max_points": 0,
+        "placeholder": "",
+        "sortOrder": 998
+      },
+      {
+        "id": "judge_notes",
+        "label": "Judge Notes / Comments",
+        "type": "textarea",
+        "weight": 0,
+        "max_points": 0,
+        "placeholder": "",
+        "sortOrder": 999
+      }
+    ]
+  },
+  "variants": []
 }

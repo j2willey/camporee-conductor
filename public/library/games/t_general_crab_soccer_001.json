@@ -6,51 +6,56 @@
     "title": "Crab Soccer",
     "description": "",
     "instructions": "",
-    "tags": []
+    "tags": [
+      "#sports"
+    ]
   },
   "tags": [
-    "troop"
+    "#sports"
   ],
-  "scoring_model": {
+  "scoring": {
     "method": "points_desc",
-    "inputs": [
+    "components": [
       {
         "id": "points",
         "label": "Points",
-        "audience": "judge",
-        "sortOrder": 900,
-        "config": {},
         "type": "number",
         "kind": "points",
-        "weight": 1
+        "weight": 1,
+        "audience": "judge",
+        "sortOrder": 900,
+        "config": {
+          "min": 0,
+          "max": 0,
+          "placeholder": ""
+        }
       },
       {
         "id": "bracket_result",
         "label": "Match Result",
         "type": "text",
-        "kind": "info",
+        "kind": "points",
         "weight": 0,
         "audience": "judge",
-        "required": true,
+        "sortOrder": 0,
         "config": {
-          "placeholder": "Place:  1, 2, 3, 4....."
+          "min": 0,
+          "max": 0,
+          "placeholder": ""
         }
       },
       {
         "id": "final_rank",
         "label": "Final Ranking",
         "type": "select",
-        "kind": "info",
+        "kind": "points",
         "weight": 0,
-        "audience": "admin",
+        "audience": "judge",
+        "sortOrder": 0,
         "config": {
-          "options": [
-            "1st Place",
-            "2nd Place",
-            "3rd Place",
-            "4th Place",
-            "Participant"
-          ]
+          "min": 0,
+          "max": 0,
+          "placeholder": ""
         }
       },
       {
@@ -59,15 +64,55 @@
         "type": "number",
         "kind": "points",
         "weight": 1,
-        "audience": "admin",
+        "audience": "judge",
+        "sortOrder": 0,
         "config": {
-          "placeholder": "e.g., 100, 90, 80..."
+          "min": 0,
+          "max": 0,
+          "placeholder": ""
         }
       }
     ]
   },
-  "variants": [],
-  "content": {
-    "tags": []
-  }
+  "scoring_model": {
+    "inputs": [
+      {
+        "id": "points",
+        "label": "Points",
+        "type": "number",
+        "weight": 1,
+        "max_points": 0,
+        "placeholder": "",
+        "sortOrder": 900
+      },
+      {
+        "id": "bracket_result",
+        "label": "Match Result",
+        "type": "text",
+        "weight": 0,
+        "max_points": 0,
+        "placeholder": "",
+        "sortOrder": 0
+      },
+      {
+        "id": "final_rank",
+        "label": "Final Ranking",
+        "type": "select",
+        "weight": 0,
+        "max_points": 0,
+        "placeholder": "",
+        "sortOrder": 0
+      },
+      {
+        "id": "overall_points",
+        "label": "Overall Points",
+        "type": "number",
+        "weight": 1,
+        "max_points": 0,
+        "placeholder": "",
+        "sortOrder": 0
+      }
+    ]
+  },
+  "variants": []
 }
