@@ -1,0 +1,48 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://localhost:3000/schemas/definitions/content.json",
+    "title": "Game Content Meta Data",
+    "type": "object",
+    "required": [
+        "title"
+    ],
+    "properties": {
+        "camporee_uuid": {
+            "type": "string",
+            "format": "uuid"
+        },
+        "game_uuid": {
+            "type": "string",
+            "format": "uuid"
+        },
+        "title": {
+            "type": "string",
+            "description": "The specific title of this game instance"
+        },
+        "description": {
+            "type": "string"
+        },
+        "story": {
+            "type": "string"
+        },
+        "instructions": {
+            "type": "string"
+        },
+        "rules": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "supplies": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "marketing_image_url": {
+            "type": "string",
+            "format": "uri"
+        }
+    }
+}

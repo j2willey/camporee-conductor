@@ -1,0 +1,69 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://localhost:3000/schemas/library-game.json",
+    "title": "Library Game Definition",
+    "description": "Defines a generic game concept in the Library, including variants.",
+    "type": "object",
+    "required": [
+        "library_uuid",
+        "library_title",
+        "type",
+        "content",
+        "scoring_model"
+    ],
+    "properties": {
+        "library_uuid": {
+            "type": "string",
+            "format": "uuid"
+        },
+        "library_title": {
+            "type": "string"
+        },
+        "type": {
+            "type": "string",
+            "enum": [
+                "patrol",
+                "troop",
+                "exhibition"
+            ]
+        },
+        "tags": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "content": {
+            "$ref": "definitions/content.json",
+            "description": "Generic content metadata for the unthemed game"
+        },
+        "scoring_model": {
+            "$ref": "definitions/scoring.json"
+        },
+        "variants": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": [
+                    "library_uuid",
+                    "title",
+                    "content"
+                ],
+                "properties": {
+                    "library_uuid": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Unique ID for this variant version"
+                    },
+                    "title": {
+                        "type": "string",
+                        "description": "Name of the variant (e.g. 'Space Theme')"
+                    },
+                    "content": {
+                        "$ref": "definitions/content.json"
+                    }
+                }
+            }
+        }
+    }
+}

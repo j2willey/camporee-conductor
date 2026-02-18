@@ -1,0 +1,113 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://localhost:3000/schemas/definitions/scoring.json",
+    "title": "Scoring Model",
+    "type": "object",
+    "required": [
+        "method",
+        "inputs"
+    ],
+    "properties": {
+        "camporee_uuid": {
+            "type": "string",
+            "format": "uuid"
+        },
+        "game_uuid": {
+            "type": "string",
+            "format": "uuid"
+        },
+        "method": {
+            "type": "string",
+            "enum": [
+                "points_desc",
+                "points_asc",
+                "timed_asc",
+                "timed_desc"
+            ]
+        },
+        "inputs": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": [
+                    "id",
+                    "label",
+                    "type"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "label": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "number",
+                            "stopwatch",
+                            "text",
+                            "textarea",
+                            "range",
+                            "select",
+                            "checkbox"
+                        ]
+                    },
+                    "kind": {
+                        "type": "string",
+                        "enum": [
+                            "points",
+                            "penalty",
+                            "metric",
+                            "info"
+                        ],
+                        "default": "points"
+                    },
+                    "audience": {
+                        "type": "string",
+                        "enum": [
+                            "judge",
+                            "admin"
+                        ],
+                        "default": "judge"
+                    },
+                    "weight": {
+                        "type": "number",
+                        "default": 1.0
+                    },
+                    "sortOrder": {
+                        "type": "integer",
+                        "default": 900
+                    },
+                    "config": {
+                        "type": "object",
+                        "properties": {
+                            "min": {
+                                "type": "number"
+                            },
+                            "max": {
+                                "type": "number"
+                            },
+                            "defaultValue": {
+                                "type": [
+                                    "number",
+                                    "string",
+                                    "boolean"
+                                ]
+                            },
+                            "placeholder": {
+                                "type": "string"
+                            },
+                            "options": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
