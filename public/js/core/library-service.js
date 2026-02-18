@@ -18,7 +18,12 @@ export class LibraryService {
                 console.error(`LibraryService: Failed to fetch catalog. HTTP ${response.status}`);
                 throw new Error(`Catalog not found at ${this.baseUrl}catalog.json`);
             }
-            return await response.json();
+            const data = await response.json();
+            // Normalize: Ensure we always return { games: [] }
+            if (Array.isArray(data)) {
+                return { games: data };
+            }
+            return data;
         } catch (error) {
             console.error('LibraryService Error (getCatalog):', error);
             throw error;

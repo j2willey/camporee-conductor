@@ -74,8 +74,14 @@ const curator = {
     activeTemplatePath: null,
     catalog: [],
     data: null,
+    originalData: null,
     presets: JSON.parse(JSON.stringify(SYSTEM_PRESETS)),
     api: new ApiClient(),
+
+    isDirty: function () {
+        if (!this.data) return false;
+        return JSON.stringify(this.data) !== this.originalData;
+    },
 
     init: async function () {
         console.log("Curator App Initialized");
@@ -146,9 +152,7 @@ const curator = {
     },
 
     newTemplate: function () {
-        if (this.data && confirm("Discard changes to current template?")) {
-            // Proceed
-        } else if (this.data) {
+        if (this.data && this.isDirty() && !confirm("Discard changes to current template?")) {
             return;
         }
 
@@ -180,13 +184,14 @@ const curator = {
             tags: [],
             variants: []
         };
+        this.originalData = JSON.stringify(this.data);
         this.renderEditor();
         this.renderLibrary();
     },
 
     loadTemplate: async function (path) {
         if (this.activeTemplatePath === path) return;
-        if (this.activeTemplatePath && !confirm("Discard changes to current template?")) return;
+        if (this.activeTemplatePath && this.isDirty() && !confirm("Discard changes to current template?")) return;
 
         const libService = new LibraryService();
         try {
@@ -229,6 +234,7 @@ const curator = {
                 this.data.scoring = game.scoring;
             }
 
+            this.originalData = JSON.stringify(this.data);
             this.activeTemplatePath = path;
             this.renderEditor();
             this.renderLibrary();
@@ -279,15 +285,29 @@ const curator = {
         try {
             const result = await this.api.saveLibraryGame(payload);
             if (result.success) {
-                alert("Template Saved!");
+                // alert("Template Saved!"); // Disabled per user request
                 this.activeTemplatePath = path;
                 this.catalog = result.catalog;
+
+                // Update originalData to reflect saved state
+                // Since saving might normalize things server-side, it's safer to re-fetch, 
+                // but for now, assuming client state is correct:
+                this.originalData = JSON.stringify(this.data);
+
                 this.renderLibrary();
+                this.updateSaveButton();
             } else {
                 alert("Error: " + result.error);
             }
         } catch (e) {
             alert("Save Failed: " + e.message);
+        }
+    },
+
+    updateSaveButton: function () {
+        const btn = document.getElementById("saveTemplateBtn");
+        if (btn) {
+            btn.disabled = !this.isDirty();
         }
     },
 
@@ -305,7 +325,7 @@ const curator = {
                     <i class="fas fa-edit"></i> ${this.activeTemplatePath || "New Template"}
                 </h4>
                 <div>
-                     <button class="btn btn-success" onclick="curator.saveTemplate()">
+                     <button class="btn btn-success" id="saveTemplateBtn" onclick="curator.saveTemplate()" disabled>
                         <i class="fas fa-save"></i> Save Template
                      </button>
                 </div>
@@ -376,25 +396,26 @@ const curator = {
         // Bind events
         const titleInput = document.getElementById("gameTitle");
         titleInput.value = data.content.title;
-        titleInput.oninput = (e) => data.content.title = e.target.value;
+        titleInput.oninput = (e) => { data.content.title = e.target.value; this.updateSaveButton(); };
 
         const instructionsInput = document.getElementById("gameInstructions");
         instructionsInput.value = data.content.instructions;
-        instructionsInput.oninput = (e) => data.content.instructions = e.target.value;
+        instructionsInput.oninput = (e) => { data.content.instructions = e.target.value; this.updateSaveButton(); };
 
         const tagsInput = document.getElementById("gameTags");
         tagsInput.value = data.tags.join(" ");
-        tagsInput.onchange = (e) => data.tags = e.target.value.split(/[ ,]+/).filter(t => t);
+        tagsInput.oninput = (e) => { data.tags = e.target.value.split(/[ ,]+/).filter(t => t); this.updateSaveButton(); };
 
         const typeInput = document.getElementById("gameType");
         typeInput.value = data.type;
-        typeInput.onchange = (e) => data.type = e.target.value;
+        typeInput.onchange = (e) => { data.type = e.target.value; this.updateSaveButton(); };
 
         const methodInput = document.getElementById("gameScoringMethod");
         methodInput.value = data.scoring.method;
-        methodInput.onchange = (e) => data.scoring.method = e.target.value;
+        methodInput.onchange = (e) => { data.scoring.method = e.target.value; this.updateSaveButton(); };
 
         this.renderScoringInputs(data.scoring.components, "game");
+        this.updateSaveButton();
     },
 
     injectModals: function () {
@@ -466,7 +487,7 @@ const curator = {
                 card.dataset.index = index;
 
                 const isSelect = comp.type === "select";
-                
+
                 // HTML Generation for the component card
                 card.innerHTML = `
                   <div class="card-body p-3 d-flex align-items-start">
@@ -493,8 +514,8 @@ const curator = {
                             <select class="form-select form-select-sm" 
                                     onchange="curator.updateComponent(${index}, 'type', this.value)">
                                 ${["number", "stopwatch", "text", "textarea", "checkbox", "select"]
-                                    .map(t => `<option value="${t}" ${comp.type === t ? "selected" : ""}>${t}</option>`)
-                                    .join("")}
+                        .map(t => `<option value="${t}" ${comp.type === t ? "selected" : ""}>${t}</option>`)
+                        .join("")}
                             </select>
                         </div>
                         <div class="col-6">
@@ -502,8 +523,8 @@ const curator = {
                             <select class="form-select form-select-sm" 
                                     onchange="curator.handleKindChange(${index}, this.value)">
                                 ${["points", "penalty", "metric", "info"]
-                                    .map(k => `<option value="${k}" ${comp.kind === k ? "selected" : ""}>${k}</option>`)
-                                    .join("")}
+                        .map(k => `<option value="${k}" ${comp.kind === k ? "selected" : ""}>${k}</option>`)
+                        .join("")}
                             </select>
                         </div>
                       </div>
@@ -512,13 +533,13 @@ const curator = {
                           <label class="form-label small text-muted fw-bold mb-1">
                             ${isSelect ? "Options" : "Limits & Weight"}
                           </label>
-                          ${isSelect ? 
-                              `<input type="text" class="form-control form-control-sm" 
+                          ${isSelect ?
+                        `<input type="text" class="form-control form-control-sm" 
                                       placeholder="Option A, Option B..." 
                                       value="${(comp.config?.options || []).join(", ")}" 
-                                      onchange="curator.updateConfig(${index}, 'options', this.value.split(',').map(s=>s.trim()))">` 
-                              : 
-                              `<div class="input-group input-group-sm">
+                                      onchange="curator.updateConfig(${index}, 'options', this.value.split(',').map(s=>s.trim()))">`
+                        :
+                        `<div class="input-group input-group-sm">
                                 <span class="input-group-text text-muted">Min</span>
                                 <input type="number" class="form-control" 
                                        value="${comp.config?.min || ""}" 
@@ -560,15 +581,15 @@ const curator = {
                     e.dataTransfer.effectAllowed = "move";
                     card.classList.add("opacity-50");
                 });
-                
+
                 card.addEventListener("dragend", () => {
                     card.classList.remove("opacity-50");
                 });
-                
+
                 card.addEventListener("dragover", e => {
                     e.preventDefault();
                 });
-                
+
                 card.addEventListener("drop", e => {
                     e.preventDefault();
                     const srcIndex = parseInt(e.dataTransfer.getData("text/plain"));
@@ -596,12 +617,13 @@ const curator = {
             config: { min: 0, max: 10, placeholder: "" }
         });
         this.renderScoringInputs(this.data.scoring.components);
+        this.updateSaveButton();
     },
 
     updateComponent: function (index, field, value) {
         if (!this.data) return;
         const comp = this.data.scoring.components[index];
-        
+
         if (field === "weight") {
             comp.weight = parseFloat(value);
         } else {
@@ -611,30 +633,34 @@ const curator = {
         if (field === "type") {
             this.renderScoringInputs(this.data.scoring.components);
         }
+        this.updateSaveButton();
     },
 
     updateConfig: function (index, key, value) {
         if (!this.data) return;
         const comp = this.data.scoring.components[index];
         if (!comp.config) comp.config = {};
-        
+
         if (key === "min" || key === "max") {
             comp.config[key] = parseInt(value);
         } else {
             comp.config[key] = value;
         }
+        this.updateSaveButton();
     },
 
     handleKindChange: function (index, value) {
         if (!this.data) return;
         this.data.scoring.components[index].kind = value;
         this.renderScoringInputs(this.data.scoring.components);
+        this.updateSaveButton();
     },
 
     deleteComponent: function (index) {
         if (confirm("Remove this field?") && this.data) {
             this.data.scoring.components.splice(index, 1);
             this.renderScoringInputs(this.data.scoring.components);
+            this.updateSaveButton();
         }
     },
 
@@ -645,6 +671,7 @@ const curator = {
         copy.label += " (Copy)";
         this.data.scoring.components.splice(index + 1, 0, copy);
         this.renderScoringInputs(this.data.scoring.components);
+        this.updateSaveButton();
     },
 
     moveComponent: function (srcIndex, destIndex) {
@@ -653,28 +680,30 @@ const curator = {
         const [moved] = list.splice(srcIndex, 1);
         list.splice(destIndex, 0, moved);
         this.renderScoringInputs(list);
+        this.updateSaveButton();
     },
 
     openPresetModal: function () {
         const select = document.getElementById("presetSelect");
-        select.innerHTML = this.presets.map(p => 
+        select.innerHTML = this.presets.map(p =>
             `<option value="${p.id}">${p.label}</option>`
         ).join("");
-        
+
         new bootstrap.Modal(document.getElementById("presetModal")).show();
     },
 
     confirmInsertPreset: function () {
         const presetId = document.getElementById("presetSelect").value;
         const preset = this.presets.find(p => p.id === presetId);
-        
+
         if (preset && this.data) {
             const copy = JSON.parse(JSON.stringify(preset));
             copy.id = `preset_${Date.now()}`;
             this.data.scoring.components.push(copy);
             this.renderScoringInputs(this.data.scoring.components);
+            this.updateSaveButton();
         }
-        
+
         bootstrap.Modal.getInstance(document.getElementById("presetModal")).hide();
     },
 
@@ -682,13 +711,13 @@ const curator = {
         if (!this.data) return;
         const normalized = normalizeGameDefinition(this.data);
         const html = normalized.fields.map(f => generateFieldHTML(f)).join("");
-        
+
         const modalBody = document.getElementById("previewModalBody");
         const modalTitle = document.getElementById("previewModalTitle");
-        
+
         if (modalBody) modalBody.innerHTML = html;
         if (modalTitle) modalTitle.innerText = "Preview: " + (this.data.content.title || "Game");
-        
+
         if (window.bootstrap) {
             new bootstrap.Modal(document.getElementById("previewModal")).show();
         }
