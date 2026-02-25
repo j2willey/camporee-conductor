@@ -3,6 +3,9 @@ import bodyParser from 'body-parser';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 // --- CONFIGURATION ---
 const __filename = fileURLToPath(import.meta.url);
@@ -25,17 +28,22 @@ app.use((req, res, next) => {
     next();
 });
 
+const WORKSPACE_PATH = process.env.WORKSPACE_PATH || path.join(__dirname, 'data', 'workspaces');
+const LIBRARY_PATH = process.env.LIBRARY_PATH || path.join(__dirname, 'data', 'library');
+
 // Important: { index: false } prevents Express from automatically serving
 // 'index.html' (the Collator App) when you hit '/', allowing the route below to handle it.
 app.use(express.static('public', { index: false }));
 
+// Map the legacy /library/games path to the new separated silo
+app.use('/library/games', express.static(LIBRARY_PATH));
+
 app.set('view engine', 'ejs');
 
 // Ensure root storage directory exists
-const STORAGE_ROOT = path.join(__dirname, 'camporees');
-if (!fs.existsSync(STORAGE_ROOT)) {
-    console.log(`Creating storage root at: ${STORAGE_ROOT}`);
-    fs.mkdirSync(STORAGE_ROOT);
+if (!fs.existsSync(WORKSPACE_PATH)) {
+    console.log(`Creating workspaces root at: ${WORKSPACE_PATH}`);
+    fs.mkdirSync(WORKSPACE_PATH, { recursive: true });
 }
 
 // --- FRONTEND ROUTES ---
@@ -68,11 +76,11 @@ app.get('/api/status', (req, res) => {
 app.get('/api/camporees', (req, res) => {
     try {
         const camporees = [];
-        const entries = fs.readdirSync(STORAGE_ROOT, { withFileTypes: true });
+        const entries = fs.readdirSync(WORKSPACE_PATH, { withFileTypes: true });
 
         entries.forEach(entry => {
             if (entry.isDirectory()) {
-                const metaPath = path.join(STORAGE_ROOT, entry.name, 'camporee.json');
+                const metaPath = path.join(WORKSPACE_PATH, entry.name, 'camporee.json');
 
                 // Only include if a valid manifest exists
                 if (fs.existsSync(metaPath)) {
@@ -111,7 +119,7 @@ app.get('/api/camporee/:id', (req, res) => {
             return res.status(400).json({ error: "Invalid ID format" });
         }
 
-        const dir = path.join(STORAGE_ROOT, id);
+        const dir = path.join(WORKSPACE_PATH, id);
         const metaPath = path.join(dir, 'camporee.json');
 
         if (!fs.existsSync(metaPath)) {
@@ -166,7 +174,7 @@ app.get('/api/camporee/:id/meta', (req, res) => {
         const id = req.params.id;
         if (!/^[a-zA-Z0-9_-]+$/.test(id)) return res.status(400).json({ error: "Invalid ID" });
 
-        const metaPath = path.join(STORAGE_ROOT, id, 'camporee.json');
+        const metaPath = path.join(WORKSPACE_PATH, id, 'camporee.json');
 
         if (fs.existsSync(metaPath)) {
             const data = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
@@ -191,7 +199,7 @@ app.post('/api/camporee/:id', (req, res) => {
 
         if (!/^[a-zA-Z0-9_-]+$/.test(id)) return res.status(400).json({ error: "Invalid ID" });
 
-        const dir = path.join(STORAGE_ROOT, id);
+        const dir = path.join(WORKSPACE_PATH, id);
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
         // 1. Save Presets
@@ -320,5 +328,5 @@ app.post('/api/library/save', async (req, res) => {
 // --- START SERVER ---
 app.listen(PORT, () => {
     console.log(`Composer Server running at http://localhost:${PORT}`);
-    console.log(`Storage Root: ${STORAGE_ROOT}`);
+    console.log(`Storage Root: ${WORKSPACE_PATH}`);
 });

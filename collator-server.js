@@ -5,7 +5,10 @@ import { fileURLToPath } from 'url';
 import fs from 'fs';
 import multer from 'multer';
 import AdmZip from 'adm-zip';
+import dotenv from 'dotenv';
 import { normalizeGameDefinition } from './public/js/core/schema.js';
+
+dotenv.config();
 
 // --- CONFIGURATION & PATHS ---
 const __filename = fileURLToPath(import.meta.url);
@@ -15,9 +18,10 @@ const PORT = 3000;
 
 // Directory Structure
 const DATA_DIR = path.join(__dirname, 'data');
-const ACTIVE_DIR = path.join(__dirname, 'camporee', 'active');
+const ACTIVE_DIR = process.env.EVENT_PATH || path.join(__dirname, 'data', 'active-event');
 const ARCHIVE_DIR = path.join(__dirname, 'data', 'archive');
 const UPLOAD_TEMP = path.join(__dirname, 'temp_uploads');
+const LIBRARY_PATH = process.env.LIBRARY_PATH || path.join(__dirname, 'data', 'library');
 
 // Ensure all directories exist
 [DATA_DIR, ACTIVE_DIR, ARCHIVE_DIR, UPLOAD_TEMP].forEach(dir => {
@@ -273,6 +277,8 @@ function getNextEntityId(type) {
 // --- MIDDLEWARE ---
 app.use(express.json());
 app.use(express.static('public', { index: false }));
+// Map the legacy /library/games path to the new separated silo
+app.use('/library/games', express.static(LIBRARY_PATH));
 
 // Middleware: Force setup if no camporee is loaded
 const requireConfig = (req, res, next) => {
@@ -454,9 +460,9 @@ app.post('/api/score', (req, res) => {
                     if ((judge_name && existingJudge.name !== judge_name) ||
                         (judge_unit && existingJudge.unit !== judge_unit)) {
                         db.prepare('UPDATE judges SET name = ?, unit = ? WHERE id = ?')
-                          .run(judge_name || existingJudge.name,
-                               judge_unit || existingJudge.unit,
-                               judgeId);
+                            .run(judge_name || existingJudge.name,
+                                judge_unit || existingJudge.unit,
+                                judgeId);
                     }
                 } else if (judge_name) {
                     const insertJudge = db.prepare('INSERT INTO judges (name, email, unit) VALUES (?, ?, ?)');
