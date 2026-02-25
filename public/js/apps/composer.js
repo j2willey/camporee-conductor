@@ -16,7 +16,7 @@ const SYSTEM_PRESETS = [
 const composer = {
     serverMode: false,
     cachedCamporee: null,
-    api: new ApiClient(),
+    api: new ApiClient('/composer/api'),
     data: {
         meta: {
             camporeeId: null,
@@ -506,8 +506,8 @@ const composer = {
 
         if (listEl) {
             listEl.innerHTML = "";
-            if (catalog && catalog.games) {
-                catalog.games.forEach(game => {
+            if (catalog && catalog.components) {
+                catalog.components.forEach(game => {
                     const li = document.createElement("li");
                     li.className = "library-item px-3 py-2 border-bottom";
                     const tagsHtml = (game.tags || []).map(t =>
@@ -533,7 +533,7 @@ const composer = {
                     li.onclick = () => console.log("Selected Library Game:", game.id, game.path);
                     listEl.appendChild(li);
                 });
-                if (statusEl) statusEl.innerText = `${catalog.games.length} templates available`;
+                if (statusEl) statusEl.innerText = `${catalog.components.length} templates available`;
             } else {
                 if (statusEl) statusEl.innerText = "Catalog empty";
             }

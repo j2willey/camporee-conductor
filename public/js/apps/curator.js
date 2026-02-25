@@ -76,7 +76,7 @@ const curator = {
     data: null,
     originalData: null,
     presets: JSON.parse(JSON.stringify(SYSTEM_PRESETS)),
-    api: new ApiClient(),
+    api: new ApiClient('/composer/api'),
 
     generateUUID: function () {
         return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
@@ -104,7 +104,7 @@ const curator = {
         const libService = new LibraryService();
         try {
             const catalogData = await libService.getCatalog();
-            this.catalog = catalogData.games || [];
+            this.catalog = catalogData.components || [];
             this.renderLibrary();
         } catch (e) {
             console.error("Failed to load catalog:", e);

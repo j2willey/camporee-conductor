@@ -15,6 +15,9 @@ services:
     volumes:
       - ./data/active-event:/app/data/active-event
       - ./data/library:/app/data/library
+      - ./src:/app/src
+      - ./views:/app/views
+      - ./public:/app/public
     restart: unless-stopped
 
   # 2. THE COMPOSER & CURATOR (Builder/Library) - Port 3001
@@ -31,5 +34,7 @@ services:
     volumes:
       - ./data/workspaces:/app/data/workspaces
       - ./data/library:/app/data/library
-      - ./public:/app/public # Hot reloading for frontend
+      - ./src:/app/src
+      - ./views:/app/views
+      - ./public:/app/public # Hot reloading for frontend and backend
     restart: unless-stopped

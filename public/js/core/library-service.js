@@ -4,24 +4,25 @@
  */
 export class LibraryService {
     constructor(baseUrl = '/library/games/') {
-        this.baseUrl = baseUrl;
+        const prefix = window.API_BASE || '';
+        this.baseUrl = prefix + baseUrl;
     }
 
     /**
-     * Fetches the main catalog.json file.
+     * Fetches the main library-catalog.json file.
      * @returns {Promise<Object>} The catalog data.
      */
     async getCatalog() {
         try {
-            const response = await fetch(`${this.baseUrl}catalog.json`);
+            const response = await fetch(`${this.baseUrl}library-catalog.json`);
             if (!response.ok) {
                 console.error(`LibraryService: Failed to fetch catalog. HTTP ${response.status}`);
-                throw new Error(`Catalog not found at ${this.baseUrl}catalog.json`);
+                throw new Error(`Catalog not found at ${this.baseUrl}library-catalog.json`);
             }
             const data = await response.json();
-            // Normalize: Ensure we always return { games: [] }
+            // Normalize: Ensure we always return { components: [] }
             if (Array.isArray(data)) {
-                return { games: data };
+                return { components: data };
             }
             return data;
         } catch (error) {
