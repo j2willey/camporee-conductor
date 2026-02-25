@@ -1,21 +1,21 @@
 {
-  "id": "p5",
-  "base_title": "Mix Make Pancake",
+  "library_uuid": "0be7c6e4-b6e2-4736-b771-c29c04a6093f",
+  "library_title": "Mix Make Pancake",
   "type": "patrol",
-  "meta": {
-    "title": "Mix Make Pancake",
-    "description": "",
-    "instructions": "",
-    "tags": [
-      "#cooking"
-    ]
-  },
   "tags": [
     "#cooking"
   ],
-  "scoring": {
+  "content": {
+    "title": "Mix Make Pancake",
+    "description": "",
+    "story": "",
+    "instructions": "",
+    "rules": [],
+    "supplies": []
+  },
+  "scoring_model": {
     "method": "points_desc",
-    "components": [
+    "inputs": [
       {
         "id": "patrol_flag",
         "label": "Patrol Flag?",
@@ -211,136 +211,6 @@
           "max": 0,
           "placeholder": ""
         }
-      }
-    ]
-  },
-  "scoring_model": {
-    "inputs": [
-      {
-        "id": "patrol_flag",
-        "label": "Patrol Flag?",
-        "type": "number",
-        "weight": 1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 1
-      },
-      {
-        "id": "patrol_yell",
-        "label": "Patrol Yell?",
-        "type": "number",
-        "weight": 1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 2
-      },
-      {
-        "id": "patrol_spirit",
-        "label": "Patrol Spirit",
-        "type": "number",
-        "weight": 1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 3
-      },
-      {
-        "id": "mix_batter",
-        "label": "Mix batter",
-        "type": "number",
-        "weight": 1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 900
-      },
-      {
-        "id": "prep_skillet",
-        "label": "prep skillet",
-        "type": "number",
-        "weight": 1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 900
-      },
-      {
-        "id": "batter_into_skillet",
-        "label": "batter into skillet",
-        "type": "number",
-        "weight": 1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 900
-      },
-      {
-        "id": "pancake_resembles_fish",
-        "label": "Pancake resembles Fish",
-        "type": "number",
-        "weight": 1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 900
-      },
-      {
-        "id": "fully_cook_pancake",
-        "label": "Fully Cook Pancake",
-        "type": "number",
-        "weight": 1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 900
-      },
-      {
-        "id": "catch_eat",
-        "label": "Catch & Eat....",
-        "type": "number",
-        "weight": 1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 900
-      },
-      {
-        "id": "wash_and_clean_up",
-        "label": "Wash and Clean up",
-        "type": "number",
-        "weight": 1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 900
-      },
-      {
-        "id": "sum",
-        "label": "SUM",
-        "type": "number",
-        "weight": 1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 900
-      },
-      {
-        "id": "timed",
-        "label": "Time\nmm:ss",
-        "type": "stopwatch",
-        "weight": 1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 900
-      },
-      {
-        "id": "unscoutlike",
-        "label": "Un-Scout-like Behavior (Penalty)",
-        "type": "number",
-        "weight": -1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 998
-      },
-      {
-        "id": "judge_notes",
-        "label": "Judge Notes / Comments",
-        "type": "textarea",
-        "weight": 0,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 999
       }
     ]
   },

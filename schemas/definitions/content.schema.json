@@ -1,32 +1,21 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "$id": "https://localhost:3000/schemas/definitions/content.json",
-    "title": "Game Content Meta Data",
+    "title": "Game Content Narrative",
+    "description": "Heavy narrative text and logistics for human consumption",
     "type": "object",
-    "required": [
-        "title"
-    ],
     "properties": {
-        "camporee_uuid": {
+        "legend": {
             "type": "string",
-            "format": "uuid"
+            "description": "Thematic setting/story"
         },
-        "game_uuid": {
+        "quest": {
             "type": "string",
-            "format": "uuid"
+            "description": "Primary objective"
         },
-        "title": {
+        "briefing": {
             "type": "string",
-            "description": "The specific title of this game instance"
-        },
-        "description": {
-            "type": "string"
-        },
-        "story": {
-            "type": "string"
-        },
-        "instructions": {
-            "type": "string"
+            "description": "Instructions for competitors"
         },
         "rules": {
             "type": "array",
@@ -34,15 +23,46 @@
                 "type": "string"
             }
         },
-        "supplies": {
-            "type": "array",
-            "items": {
-                "type": "string"
-            }
+        "scoring_overview": {
+            "type": "string"
+        },
+        "judging_notes": {
+            "type": "string"
         },
         "marketing_image_url": {
             "type": "string",
             "format": "uri"
+        },
+        "logistics": {
+            "type": "object",
+            "properties": {
+                "staffing": {
+                    "type": "string"
+                },
+                "setup": {
+                    "type": "string"
+                },
+                "reset": {
+                    "type": "string"
+                },
+                "supplies": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "item": {
+                                "type": "string"
+                            },
+                            "qty": {
+                                "type": "string"
+                            },
+                            "source": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

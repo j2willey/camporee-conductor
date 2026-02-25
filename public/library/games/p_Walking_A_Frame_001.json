@@ -1,23 +1,22 @@
 {
-  "id": "p20",
-  "base_title": "Walking A Frame",
+  "library_uuid": "ce2f000f-8bbd-465d-8cb4-32b8a05c9b44",
+  "library_title": "Walking A Frame",
   "type": "patrol",
-  "meta": {
-    "title": "Walking A Frame",
-    "description": "",
-    "instructions": "",
-    "tags": [
-      "#lashings",
-      "#teamwork"
-    ]
-  },
   "tags": [
     "#lashings",
     "#teamwork"
   ],
-  "scoring": {
+  "content": {
+    "title": "Walking A Frame",
+    "description": "",
+    "story": "",
+    "instructions": "",
+    "rules": [],
+    "supplies": []
+  },
+  "scoring_model": {
     "method": "points_desc",
-    "components": [
+    "inputs": [
       {
         "id": "patrol_flag",
         "label": "Patrol Flag?",
@@ -115,73 +114,6 @@
           "max": 0,
           "placeholder": ""
         }
-      }
-    ]
-  },
-  "scoring_model": {
-    "inputs": [
-      {
-        "id": "patrol_flag",
-        "label": "Patrol Flag?",
-        "type": "number",
-        "weight": 1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 1
-      },
-      {
-        "id": "patrol_yell",
-        "label": "Patrol Yell?",
-        "type": "number",
-        "weight": 1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 2
-      },
-      {
-        "id": "patrol_spirit",
-        "label": "Patrol Spirit",
-        "type": "number",
-        "weight": 1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 3
-      },
-      {
-        "id": "patrol_sprirt",
-        "label": "Patrol Sprirt",
-        "type": "number",
-        "weight": 1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 900
-      },
-      {
-        "id": "time_in_seconds",
-        "label": "Time in Seconds",
-        "type": "stopwatch",
-        "weight": 1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 900
-      },
-      {
-        "id": "unscoutlike",
-        "label": "Un-Scout-like Behavior (Penalty)",
-        "type": "number",
-        "weight": -1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 998
-      },
-      {
-        "id": "judge_notes",
-        "label": "Judge Notes / Comments",
-        "type": "textarea",
-        "weight": 0,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 999
       }
     ]
   },

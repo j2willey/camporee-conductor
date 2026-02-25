@@ -1,21 +1,21 @@
 {
-  "id": "t10",
-  "base_title": "Land Skis x4",
+  "library_uuid": "2afbfcff-884f-4222-ba44-54e818c50e4b",
+  "library_title": "Land Skis x4",
   "type": "troop",
-  "meta": {
-    "title": "Land Skis x4",
-    "description": "",
-    "instructions": "",
-    "tags": [
-      "#sports"
-    ]
-  },
   "tags": [
     "#sports"
   ],
-  "scoring": {
+  "content": {
+    "title": "Land Skis x4",
+    "description": "",
+    "story": "",
+    "instructions": "",
+    "rules": [],
+    "supplies": []
+  },
+  "scoring_model": {
     "method": "points_desc",
-    "components": [
+    "inputs": [
       {
         "id": "points",
         "label": "Time",
@@ -37,7 +37,7 @@
         "kind": "points",
         "weight": 0,
         "audience": "judge",
-        "sortOrder": 0,
+        "sortOrder": 900,
         "config": {
           "min": 0,
           "max": 0,
@@ -51,7 +51,7 @@
         "kind": "points",
         "weight": 0,
         "audience": "judge",
-        "sortOrder": 0,
+        "sortOrder": 900,
         "config": {
           "min": 0,
           "max": 0,
@@ -65,52 +65,12 @@
         "kind": "points",
         "weight": 1,
         "audience": "judge",
-        "sortOrder": 0,
+        "sortOrder": 900,
         "config": {
           "min": 0,
           "max": 0,
           "placeholder": ""
         }
-      }
-    ]
-  },
-  "scoring_model": {
-    "inputs": [
-      {
-        "id": "points",
-        "label": "Time",
-        "type": "stopwatch",
-        "weight": 0,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 900
-      },
-      {
-        "id": "bracket_result",
-        "label": "Match Result",
-        "type": "text",
-        "weight": 0,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 0
-      },
-      {
-        "id": "final_rank",
-        "label": "Final Ranking",
-        "type": "select",
-        "weight": 0,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 0
-      },
-      {
-        "id": "overall_points",
-        "label": "Overall Points",
-        "type": "number",
-        "weight": 1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 0
       }
     ]
   },

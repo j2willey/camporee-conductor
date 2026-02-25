@@ -1,21 +1,21 @@
 {
-  "id": "p2",
-  "base_title": "First Aid Code",
+  "library_uuid": "8d0a0d37-2756-42c4-8ab6-33b93c0a7fd3",
+  "library_title": "First Aid Code",
   "type": "patrol",
-  "meta": {
-    "title": "First Aid Code",
-    "description": "",
-    "instructions": "",
-    "tags": [
-      "#firstAid"
-    ]
-  },
   "tags": [
     "#firstAid"
   ],
-  "scoring": {
+  "content": {
+    "title": "First Aid Code",
+    "description": "",
+    "story": "",
+    "instructions": "",
+    "rules": [],
+    "supplies": []
+  },
+  "scoring_model": {
     "method": "points_desc",
-    "components": [
+    "inputs": [
       {
         "id": "patrol_flag",
         "label": "Patrol Flag?",
@@ -99,64 +99,6 @@
           "max": 0,
           "placeholder": ""
         }
-      }
-    ]
-  },
-  "scoring_model": {
-    "inputs": [
-      {
-        "id": "patrol_flag",
-        "label": "Patrol Flag?",
-        "type": "number",
-        "weight": 1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 1
-      },
-      {
-        "id": "patrol_yell",
-        "label": "Patrol Yell?",
-        "type": "number",
-        "weight": 1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 2
-      },
-      {
-        "id": "patrol_spirit",
-        "label": "Patrol Spirit",
-        "type": "number",
-        "weight": 1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 3
-      },
-      {
-        "id": "time",
-        "label": "Time",
-        "type": "stopwatch",
-        "weight": 1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 900
-      },
-      {
-        "id": "unscoutlike",
-        "label": "Un-Scout-like Behavior (Penalty)",
-        "type": "number",
-        "weight": -1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 998
-      },
-      {
-        "id": "judge_notes",
-        "label": "Judge Notes / Comments",
-        "type": "textarea",
-        "weight": 0,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 999
       }
     ]
   },

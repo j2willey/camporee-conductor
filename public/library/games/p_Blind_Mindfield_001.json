@@ -1,21 +1,21 @@
 {
-  "id": "p18",
-  "base_title": "Blind Mindfield",
+  "library_uuid": "7d3d60b3-da16-4a51-89f8-d4112fe3ae31",
+  "library_title": "Blind Mindfield",
   "type": "patrol",
-  "meta": {
-    "title": "Blind Mindfield",
-    "description": "",
-    "instructions": "",
-    "tags": [
-      "#teamwork"
-    ]
-  },
   "tags": [
     "#teamwork"
   ],
-  "scoring": {
+  "content": {
+    "title": "Blind Mindfield",
+    "description": "",
+    "story": "",
+    "instructions": "",
+    "rules": [],
+    "supplies": []
+  },
+  "scoring_model": {
     "method": "points_desc",
-    "components": [
+    "inputs": [
       {
         "id": "patrol_flag",
         "label": "Patrol Flag?",
@@ -127,82 +127,6 @@
           "max": 0,
           "placeholder": ""
         }
-      }
-    ]
-  },
-  "scoring_model": {
-    "inputs": [
-      {
-        "id": "patrol_flag",
-        "label": "Patrol Flag?",
-        "type": "number",
-        "weight": 1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 1
-      },
-      {
-        "id": "patrol_yell",
-        "label": "Patrol Yell?",
-        "type": "number",
-        "weight": 1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 2
-      },
-      {
-        "id": "patrol_spirit",
-        "label": "Patrol Spirit",
-        "type": "number",
-        "weight": 1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 3
-      },
-      {
-        "id": "patrol_sprirt",
-        "label": "Patrol Sprirt",
-        "type": "number",
-        "weight": 1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 900
-      },
-      {
-        "id": "scouts_moving",
-        "label": "Scouts Moving",
-        "type": "number",
-        "weight": 1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 900
-      },
-      {
-        "id": "hits",
-        "label": "Hits",
-        "type": "number",
-        "weight": 1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 900
-      },
-      {
-        "id": "unscoutlike",
-        "label": "Un-Scout-like Behavior (Penalty)",
-        "type": "number",
-        "weight": -1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 998
-      },
-      {
-        "id": "judge_notes",
-        "label": "Judge Notes / Comments",
-        "type": "textarea",
-        "weight": 0,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 999
       }
     ]
   },

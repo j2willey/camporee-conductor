@@ -1,16 +1,18 @@
 {
-  "id": "e1",
-  "base_title": "Exhibition Game",
+  "library_uuid": "def4f470-09e4-4441-a274-736bd13329be",
+  "library_title": "Exhibition Game",
   "type": "exhibition",
-  "meta": {
-    "title": "Exhibition Game",
-    "description": "",
-    "instructions": "",
-    "tags": []
-  },
   "tags": [
     "exhibition"
   ],
+  "content": {
+    "title": "Exhibition Game",
+    "description": "",
+    "story": "",
+    "instructions": "",
+    "rules": [],
+    "supplies": []
+  },
   "scoring_model": {
     "method": "points_desc",
     "inputs": [
@@ -26,8 +28,5 @@
       }
     ]
   },
-  "variants": [],
-  "content": {
-    "tags": []
-  }
+  "variants": []
 }

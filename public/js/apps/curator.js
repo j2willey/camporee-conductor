@@ -78,6 +78,14 @@ const curator = {
     presets: JSON.parse(JSON.stringify(SYSTEM_PRESETS)),
     api: new ApiClient(),
 
+    generateUUID: function () {
+        return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+            const r = Math.random() * 16 | 0;
+            const v = c === "x" ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    },
+
     isDirty: function () {
         if (!this.data) return false;
         return JSON.stringify(this.data) !== this.originalData;
@@ -158,30 +166,41 @@ const curator = {
 
         this.activeTemplatePath = null;
         this.data = {
-            id: `tpl_${Date.now()}`,
+            id: this.generateUUID(),
+            library_title: "New Template",
+            game_title: "New Template",
             type: "patrol",
-            enabled: true,
-            bracketMode: false,
+            category: "Teamwork",
             content: {
-                title: "New Template",
-                story: "",
-                instructions: ""
+                legend: "",
+                quest: "",
+                briefing: "",
+                rules: [],
+                scoring_overview: "",
+                judging_notes: "",
+                logistics: {
+                    staffing: "",
+                    setup: "",
+                    reset: "",
+                    supplies: []
+                }
             },
-            scoring: {
+            tags: [],
+            scoring_model: {
                 method: "points_desc",
-                components: [
+                inputs: [
                     {
                         id: "score_1",
+                        label: "Points",
                         type: "number",
                         kind: "points",
-                        label: "Points",
                         weight: 1,
                         audience: "judge",
-                        sortOrder: 0
+                        sortOrder: 0,
+                        config: { min: 0, max: 10, placeholder: "" }
                     }
                 ]
             },
-            tags: [],
             variants: []
         };
         this.originalData = JSON.stringify(this.data);
@@ -197,42 +216,49 @@ const curator = {
         try {
             const game = await libService.getGame(path);
 
-            // Normalize data structure
+            // Normalize data structure (Hybrid Schema)
+            // Handle legacy fields by mapping them to new structure
             this.data = {
-                id: game.id || `tpl_${Date.now()}`,
+                id: game.id || game.library_uuid || this.generateUUID(),
+                library_title: game.library_title || game.base_title || game.title || "Untitled",
+                game_title: game.game_title || game.title || game.content?.title || game.library_title || "Untitled",
                 type: game.type || "patrol",
-                enabled: true,
-                bracketMode: !!game.bracketMode,
-                match_label: game.match_label || "",
+                category: game.category || "Teamwork",
                 content: {
-                    title: game.base_title || game.content?.title || game.meta?.title || "Untitled",
-                    story: game.meta?.description || game.content?.story || "",
-                    instructions: game.meta?.instructions || game.content?.instructions || ""
+                    legend: game.content?.legend || game.story || game.meta?.story || "",
+                    quest: game.content?.quest || game.description || "",
+                    briefing: game.content?.briefing || game.instructions || game.meta?.instructions || "",
+                    rules: game.content?.rules || game.rules || [],
+                    scoring_overview: game.content?.scoring_overview || "",
+                    judging_notes: game.content?.judging_notes || "",
+                    logistics: {
+                        staffing: game.content?.logistics?.staffing || "",
+                        setup: game.content?.logistics?.setup || "",
+                        reset: game.content?.logistics?.reset || "",
+                        supplies: game.content?.logistics?.supplies || game.supplies || []
+                    }
                 },
                 tags: game.tags || game.meta?.tags || [],
-                scoring: game.scoring_model ? {
-                    method: "points_desc",
-                    components: (game.scoring_model.inputs || []).map(input => ({
+                scoring_model: {
+                    method: game.scoring_model?.method || game.scoring?.method || "points_desc",
+                    inputs: (game.scoring_model?.inputs || game.scoring?.components || []).map(input => ({
                         id: input.id || `f_${Math.random().toString(36).substr(2)}`,
                         label: input.label,
                         type: input.type === "timer" ? "stopwatch" : (input.type || "number"),
-                        kind: input.type === "timer" ? "metric" : (input.type === "header" ? "info" : "points"),
+                        kind: input.type === "timer" ? "metric" : (input.type === "header" ? "info" : (input.kind || "points")),
                         weight: input.weight !== undefined ? input.weight : 1,
-                        audience: "judge",
+                        audience: input.audience || "judge",
                         sortOrder: input.sortOrder || 0,
                         config: {
-                            min: 0,
-                            max: input.max_points || 0,
-                            placeholder: input.placeholder || ""
+                            min: input.config?.min || 0,
+                            max: input.config?.max || input.max_points || 0,
+                            placeholder: input.config?.placeholder || input.placeholder || "",
+                            options: input.config?.options || []
                         }
                     }))
-                } : (game.scoring || { method: "points_desc", components: [] }),
+                },
                 variants: game.variants || []
             };
-
-            if (game.scoring && !game.scoring_model) {
-                this.data.scoring = game.scoring;
-            }
 
             this.originalData = JSON.stringify(this.data);
             this.activeTemplatePath = path;
@@ -258,29 +284,28 @@ const curator = {
             path = filename.endsWith(".json") ? filename : `${filename}.json`;
         }
 
+        // Hybrid Schema Payload
         const payload = {
             path: path,
             data: {
                 id: this.data.id,
-                base_title: this.data.content.title,
+                library_title: this.data.library_title,
+                game_title: this.data.game_title,
                 type: this.data.type,
-                meta: {
-                    title: this.data.content.title,
-                    description: this.data.content.story,
-                    instructions: this.data.content.instructions,
-                    tags: this.data.tags
-                },
+                category: this.data.category,
                 tags: this.data.tags,
-                scoring: this.data.scoring,
+                content: this.data.content, // Save nested content object directly
                 scoring_model: {
-                    inputs: this.data.scoring.components.map(comp => ({
+                    method: this.data.scoring_model.method,
+                    inputs: this.data.scoring_model.inputs.map(comp => ({
                         id: comp.id,
                         label: comp.label,
                         type: comp.type,
+                        kind: comp.kind,
                         weight: comp.weight,
-                        max_points: comp.config ? comp.config.max : 0,
-                        placeholder: comp.config ? comp.config.placeholder : "",
-                        sortOrder: comp.sortOrder || 0
+                        audience: comp.audience,
+                        sortOrder: comp.sortOrder,
+                        config: comp.config
                     }))
                 },
                 variants: this.data.variants
@@ -290,15 +315,9 @@ const curator = {
         try {
             const result = await this.api.saveLibraryGame(payload);
             if (result.success) {
-                // alert("Template Saved!"); // Disabled per user request
                 this.activeTemplatePath = path;
                 this.catalog = result.catalog;
-
-                // Update originalData to reflect saved state
-                // Since saving might normalize things server-side, it's safer to re-fetch, 
-                // but for now, assuming client state is correct:
                 this.originalData = JSON.stringify(this.data);
-
                 this.renderLibrary();
                 this.updateSaveButton();
             } else {
@@ -327,100 +346,261 @@ const curator = {
         container.innerHTML = `
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h4 class="mb-0">
-                    <i class="fas fa-edit"></i> ${this.activeTemplatePath || "New Template"}
+                    <i class="fas fa-edit"></i> <span id="headerTitle">${data.library_title || "New Template"}</span>
                 </h4>
                 <div>
                      <button class="btn btn-success" id="saveTemplateBtn" onclick="curator.saveTemplate()" disabled>
-                        <i class="fas fa-save"></i> Save Template
+                        <i class="fas fa-save"></i> Save Game
                      </button>
                 </div>
             </div>
 
-            <div class="card mb-4">
-                <div class="card-header bg-light"><h5 class="mb-0">Metadata</h5></div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-8 mb-3">
-                            <label class="form-label">Title</label>
-                            <input type="text" class="form-control" id="gameTitle">
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Type</label>
-                            <select class="form-select" id="gameType">
-                                <option value="patrol">Patrol Competition</option>
-                                <option value="troop">Troop Competition</option>
-                                <option value="exhibition">Exhibition / Individual</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="row border-bottom mb-3 pb-3">
-                        <div class="col-12">
-                            <label class="form-label text-muted">Instructions</label>
-                            <textarea class="form-control" rows="1" id="gameInstructions" 
-                                      placeholder="Judge-facing instructions..."></textarea>
-                        </div>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-12">
-                             <label class="form-label">Tags</label>
-                             <input type="text" class="form-control" id="gameTags" placeholder="#tag1 #tag2">
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <ul class="nav nav-tabs mb-3" id="editorTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="meta-tab" data-bs-toggle="tab" data-bs-target="#meta" type="button" role="tab">Metadata</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="content-tab" data-bs-toggle="tab" data-bs-target="#content" type="button" role="tab">Game Guide</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="scoring-tab" data-bs-toggle="tab" data-bs-target="#scoring" type="button" role="tab">Scoring</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                     <button class="nav-link" id="logistics-tab" data-bs-toggle="tab" data-bs-target="#logistics" type="button" role="tab">Logistics</button>
+                </li>
+            </ul>
 
-            <div class="card">
-                <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Scoring Model</h5>
-                    <div class="d-flex align-items-center gap-3">
-                        <select class="form-select form-select-sm d-inline-block w-auto" id="gameScoringMethod">
-                            <option value="points_desc">Highest Points</option>
-                            <option value="timed_asc">Lowest Time</option>
-                        </select>
-                        <button class="btn btn-sm btn-outline-secondary" onclick="curator.renderPreview()">
-                            <i class="fas fa-eye"></i> Preview
-                        </button>
+            <div class="tab-content" id="editorTabsContent">
+                <!-- METADATA TAB -->
+                <div class="tab-pane fade show active" id="meta" role="tabpanel">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Game ID (e.g. p10)</label>
+                                    <input type="text" class="form-control" id="gameId" value="${data.id || ""}">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label" title="Original unthemed name in catalog">Library Title <i class="fas fa-info-circle text-muted"></i></label>
+                                    <input type="text" class="form-control" id="libraryTitle" value="${data.library_title || ""}">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label" title="Themed display name for this instance">Game Title <i class="fas fa-info-circle text-muted"></i></label>
+                                    <input type="text" class="form-control fw-bold" id="gameTitle" value="${data.game_title || ""}">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Type</label>
+                                    <select class="form-select" id="gameType">
+                                        <option value="patrol" ${data.type === 'patrol' ? 'selected' : ''}>Patrol Competition</option>
+                                        <option value="troop" ${data.type === 'troop' ? 'selected' : ''}>Troop Competition</option>
+                                        <option value="exhibition" ${data.type === 'exhibition' ? 'selected' : ''}>Exhibition / Individual</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Category</label>
+                                    <input type="text" class="form-control" id="gameCategory" list="categoryOptions" value="${data.category || ""}">
+                                    <datalist id="categoryOptions">
+                                        <option value="Fire Building">
+                                        <option value="Cooking">
+                                        <option value="Knots/Lashing">
+                                        <option value="First Aid">
+                                        <option value="Teamwork">
+                                        <option value="Sports">
+                                    </datalist>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Tags</label>
+                                <input type="text" class="form-control" id="gameTags" placeholder="#tag1 #tag2" value="${(data.tags || []).join(" ")}">
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="card-body bg-light">
-                    <div id="scoring-editor" class="d-flex flex-column gap-3"></div>
-                    <div class="mt-4 text-center">
-                         <div class="btn-group shadow-sm">
-                            <button class="btn btn-primary" onclick="curator.addGenericField('game')">
-                                <i class="fas fa-plus-circle"></i> Add Field
+
+                <!-- GAME GUIDE TAB (Content) -->
+                <div class="tab-pane fade" id="content" role="tabpanel">
+                     <div class="card">
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">Quest (Objective)</label>
+                                <input type="text" class="form-control" id="gameQuest" placeholder="e.g. Boil water within 10 minutes" value="${data.content.quest || ""}">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Legend (Thematic Story)</label>
+                                <textarea class="form-control" rows="3" id="gameLegend" placeholder="Read this to the patrol...">${data.content.legend || ""}</textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Briefing (Instructions)</label>
+                                <textarea class="form-control" rows="4" id="gameBriefing" placeholder="Specific instructions...">${data.content.briefing || ""}</textarea>
+                            </div>
+                            
+                            <hr>
+                            <label class="form-label fw-bold">Rules</label>
+                            <div id="rules-editor" class="list-editor mb-2"></div>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="curator.addListItem('rules')">
+                                <i class="fas fa-plus"></i> Add Rule
                             </button>
-                            <button class="btn btn-outline-primary" onclick="curator.openPresetModal('game')">
-                                <i class="fas fa-magic"></i> Add Preset
-                            </button>
-                         </div>
+                        </div>
                     </div>
                 </div>
+
+                <!-- SCORING TAB -->
+                <div class="tab-pane fade" id="scoring" role="tabpanel">
+                    <div class="card mb-3">
+                        <div class="card-body">
+                             <div class="mb-3">
+                                <label class="form-label">Scoring Overview (Text)</label>
+                                <textarea class="form-control" rows="2" id="gameScoringOverview" placeholder="General explanation...">${data.content.scoring_overview || ""}</textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Judging Notes (Tips)</label>
+                                <textarea class="form-control" rows="2" id="gameJudgingNotes" placeholder="Tips for the judge...">${data.content.judging_notes || ""}</textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Scoring Model</h5>
+                            <div class="d-flex align-items-center gap-3">
+                                <select class="form-select form-select-sm d-inline-block w-auto" id="gameScoringMethod">
+                                    <option value="points_desc" ${data.scoring_model.method === 'points_desc' ? 'selected' : ''}>Highest Points</option>
+                                    <option value="timed_asc" ${data.scoring_model.method === 'timed_asc' ? 'selected' : ''}>Lowest Time</option>
+                                </select>
+                                <button class="btn btn-sm btn-outline-secondary" onclick="curator.renderPreview()">
+                                    <i class="fas fa-eye"></i> Preview
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body bg-light">
+                            <div id="scoring-editor" class="d-flex flex-column gap-3"></div>
+                            <div class="mt-4 text-center">
+                                <div class="btn-group shadow-sm">
+                                    <button class="btn btn-primary" onclick="curator.addGenericField('game')">
+                                        <i class="fas fa-plus-circle"></i> Add Field
+                                    </button>
+                                    <button class="btn btn-outline-primary" onclick="curator.openPresetModal('game')">
+                                        <i class="fas fa-magic"></i> Add Preset
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LOGISTICS TAB -->
+                 <div class="tab-pane fade" id="logistics" role="tabpanel">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Staffing Requirements</label>
+                                    <textarea class="form-control" rows="2" id="gameStaffing">${data.content.logistics.staffing || ""}</textarea>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Reset Instructions</label>
+                                    <textarea class="form-control" rows="2" id="gameReset">${data.content.logistics.reset || ""}</textarea>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Setup Instructions</label>
+                                <textarea class="form-control" rows="3" id="gameSetup">${data.content.logistics.setup || ""}</textarea>
+                            </div>
+                            <hr>
+                            <label class="form-label fw-bold">Supplies</label>
+                            <div class="alert alert-warning small">TODO: Implement structured supply list editor. For now, this is read-only in this view.</div>
+                            <!-- Placeholder for supply list editor -->
+                        </div>
+                    </div>
+                 </div>
             </div>
         `;
 
         // Bind events
-        const titleInput = document.getElementById("gameTitle");
-        titleInput.value = data.content.title;
-        titleInput.oninput = (e) => { data.content.title = e.target.value; this.updateSaveButton(); };
+        document.getElementById("gameId").oninput = (e) => { this.data.id = e.target.value; this.updateSaveButton(); };
+        document.getElementById("libraryTitle").oninput = (e) => {
+            this.data.title = e.target.value;
+            document.getElementById("headerTitle").innerText = e.target.value || "New Template";
+            this.updateSaveButton();
+        };
+        document.getElementById("gameTitle").oninput = (e) => {
+            this.data.game_title = e.target.value;
+            this.updateSaveButton();
+        };
 
-        const instructionsInput = document.getElementById("gameInstructions");
-        instructionsInput.value = data.content.instructions;
-        instructionsInput.oninput = (e) => { data.content.instructions = e.target.value; this.updateSaveButton(); };
+        document.getElementById("gameType").onchange = (e) => { this.data.type = e.target.value; this.updateSaveButton(); };
+        document.getElementById("gameCategory").oninput = (e) => { this.data.category = e.target.value; this.updateSaveButton(); };
 
-        const tagsInput = document.getElementById("gameTags");
-        tagsInput.value = data.tags.join(" ");
-        tagsInput.oninput = (e) => { data.tags = e.target.value.split(/[ ,]+/).filter(t => t); this.updateSaveButton(); };
+        document.getElementById("gameTags").oninput = (e) => {
+            this.data.tags = e.target.value.split(/[ ,]+/).filter(t => t);
+            this.updateSaveButton();
+        };
 
-        const typeInput = document.getElementById("gameType");
-        typeInput.value = data.type;
-        typeInput.onchange = (e) => { data.type = e.target.value; this.updateSaveButton(); };
+        document.getElementById("gameScoringMethod").onchange = (e) => {
+            this.data.scoring_model.method = e.target.value;
+            this.updateSaveButton();
+        };
 
-        const methodInput = document.getElementById("gameScoringMethod");
-        methodInput.value = data.scoring.method;
-        methodInput.onchange = (e) => { data.scoring.method = e.target.value; this.updateSaveButton(); };
+        // Content bindings
+        document.getElementById("gameQuest").oninput = (e) => { this.data.content.quest = e.target.value; this.updateSaveButton(); };
+        document.getElementById("gameLegend").oninput = (e) => { this.data.content.legend = e.target.value; this.updateSaveButton(); };
+        document.getElementById("gameBriefing").oninput = (e) => { this.data.content.briefing = e.target.value; this.updateSaveButton(); };
+        document.getElementById("gameScoringOverview").oninput = (e) => { this.data.content.scoring_overview = e.target.value; this.updateSaveButton(); };
+        document.getElementById("gameJudgingNotes").oninput = (e) => { this.data.content.judging_notes = e.target.value; this.updateSaveButton(); };
 
-        this.renderScoringInputs(data.scoring.components, "game");
+        // Logistics bindings
+        document.getElementById("gameStaffing").oninput = (e) => { this.data.content.logistics.staffing = e.target.value; this.updateSaveButton(); };
+        document.getElementById("gameReset").oninput = (e) => { this.data.content.logistics.reset = e.target.value; this.updateSaveButton(); };
+        document.getElementById("gameSetup").oninput = (e) => { this.data.content.logistics.setup = e.target.value; this.updateSaveButton(); };
+
+        this.renderScoringInputs(data.scoring_model.inputs, "game");
+        this.renderListEditor('rules', data.content.rules);
+        // this.renderListEditor('supplies', data.content.supplies); // TODO: Structured supplies
+
         this.updateSaveButton();
+    },
+
+    renderListEditor: function (type, items) {
+        const container = document.getElementById(`${type}-editor`);
+        if (!container) return;
+
+        container.innerHTML = "";
+        (items || []).forEach((item, index) => {
+            const row = document.createElement("div");
+            row.className = "input-group input-group-sm mb-1";
+            row.innerHTML = `
+                <input type="text" class="form-control" value="${item.replace(/"/g, '&quot;')}" 
+                       oninput="curator.updateListItem('${type}', ${index}, this.value)">
+                <button class="btn btn-outline-danger" onclick="curator.deleteListItem('${type}', ${index})">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            container.appendChild(row);
+        });
+    },
+
+    addListItem: function (type) {
+        if (!this.data.content[type]) this.data.content[type] = [];
+        this.data.content[type].push("");
+        this.renderListEditor(type, this.data.content[type]);
+        this.updateSaveButton();
+    },
+
+    updateListItem: function (type, index, value) {
+        if (this.data.content[type]) {
+            this.data.content[type][index] = value;
+            this.updateSaveButton();
+        }
+    },
+
+    deleteListItem: function (type, index) {
+        if (this.data.content[type]) {
+            this.data.content[type].splice(index, 1);
+            this.renderListEditor(type, this.data.content[type]);
+            this.updateSaveButton();
+        }
     },
 
     injectModals: function () {
@@ -612,7 +792,7 @@ const curator = {
 
     addGenericField: function () {
         if (!this.data) return;
-        this.data.scoring.components.push({
+        this.data.scoring_model.inputs.push({
             id: `field_${Date.now()}`,
             label: "New Field",
             type: "number",
@@ -621,13 +801,13 @@ const curator = {
             audience: "judge",
             config: { min: 0, max: 10, placeholder: "" }
         });
-        this.renderScoringInputs(this.data.scoring.components);
+        this.renderScoringInputs(this.data.scoring_model.inputs);
         this.updateSaveButton();
     },
 
     updateComponent: function (index, field, value) {
         if (!this.data) return;
-        const comp = this.data.scoring.components[index];
+        const comp = this.data.scoring_model.inputs[index];
 
         if (field === "weight") {
             comp.weight = parseFloat(value);
@@ -636,14 +816,14 @@ const curator = {
         }
 
         if (field === "type") {
-            this.renderScoringInputs(this.data.scoring.components);
+            this.renderScoringInputs(this.data.scoring_model.inputs);
         }
         this.updateSaveButton();
     },
 
     updateConfig: function (index, key, value) {
         if (!this.data) return;
-        const comp = this.data.scoring.components[index];
+        const comp = this.data.scoring_model.inputs[index];
         if (!comp.config) comp.config = {};
 
         if (key === "min" || key === "max") {
@@ -656,32 +836,32 @@ const curator = {
 
     handleKindChange: function (index, value) {
         if (!this.data) return;
-        this.data.scoring.components[index].kind = value;
-        this.renderScoringInputs(this.data.scoring.components);
+        this.data.scoring_model.inputs[index].kind = value;
+        this.renderScoringInputs(this.data.scoring_model.inputs);
         this.updateSaveButton();
     },
 
     deleteComponent: function (index) {
         if (confirm("Remove this field?") && this.data) {
-            this.data.scoring.components.splice(index, 1);
-            this.renderScoringInputs(this.data.scoring.components);
+            this.data.scoring_model.inputs.splice(index, 1);
+            this.renderScoringInputs(this.data.scoring_model.inputs);
             this.updateSaveButton();
         }
     },
 
     duplicateComponent: function (index) {
         if (!this.data) return;
-        const copy = JSON.parse(JSON.stringify(this.data.scoring.components[index]));
+        const copy = JSON.parse(JSON.stringify(this.data.scoring_model.inputs[index]));
         copy.id = `copy_${Date.now()}`;
         copy.label += " (Copy)";
-        this.data.scoring.components.splice(index + 1, 0, copy);
-        this.renderScoringInputs(this.data.scoring.components);
+        this.data.scoring_model.inputs.splice(index + 1, 0, copy);
+        this.renderScoringInputs(this.data.scoring_model.inputs);
         this.updateSaveButton();
     },
 
     moveComponent: function (srcIndex, destIndex) {
         if (!this.data) return;
-        const list = this.data.scoring.components;
+        const list = this.data.scoring_model.inputs;
         const [moved] = list.splice(srcIndex, 1);
         list.splice(destIndex, 0, moved);
         this.renderScoringInputs(list);
@@ -704,8 +884,8 @@ const curator = {
         if (preset && this.data) {
             const copy = JSON.parse(JSON.stringify(preset));
             copy.id = `preset_${Date.now()}`;
-            this.data.scoring.components.push(copy);
-            this.renderScoringInputs(this.data.scoring.components);
+            this.data.scoring_model.inputs.push(copy);
+            this.renderScoringInputs(this.data.scoring_model.inputs);
             this.updateSaveButton();
         }
 

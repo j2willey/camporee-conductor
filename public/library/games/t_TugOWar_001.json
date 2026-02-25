@@ -1,95 +1,63 @@
 {
-  "id": "t11",
-  "base_title": "TugOWar",
+  "library_uuid": "d4dd08c4-3fdb-4e00-a5f6-081905cdbe27",
+  "library_title": "TugOWar",
   "type": "troop",
-  "meta": {
-    "title": "TugOWar",
-    "description": "",
-    "instructions": "",
-    "tags": [
-      "#sports",
-      "#tugowar"
-    ]
-  },
   "tags": [
     "#sports",
     "#tugowar"
   ],
-  "scoring": {
-    "method": "points_desc",
-    "components": [
-      {
-        "id": "bracket_result",
-        "label": "Match Result",
-        "type": "text",
-        "kind": "points",
-        "weight": 0,
-        "audience": "judge",
-        "sortOrder": 0,
-        "config": {
-          "min": 0,
-          "max": 0,
-          "placeholder": ""
-        }
-      },
-      {
-        "id": "final_rank",
-        "label": "Final Ranking",
-        "type": "select",
-        "kind": "points",
-        "weight": 0,
-        "audience": "judge",
-        "sortOrder": 0,
-        "config": {
-          "min": 0,
-          "max": 0,
-          "placeholder": ""
-        }
-      },
-      {
-        "id": "overall_points",
-        "label": "Overall Points",
-        "type": "number",
-        "kind": "points",
-        "weight": 1,
-        "audience": "judge",
-        "sortOrder": 0,
-        "config": {
-          "min": 0,
-          "max": 0,
-          "placeholder": ""
-        }
-      }
-    ]
+  "content": {
+    "title": "TugOWar",
+    "description": "",
+    "story": "",
+    "instructions": "",
+    "rules": [],
+    "supplies": []
   },
   "scoring_model": {
+    "method": "points_desc",
     "inputs": [
       {
         "id": "bracket_result",
         "label": "Match Result",
         "type": "text",
+        "kind": "points",
         "weight": 0,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 0
+        "audience": "judge",
+        "sortOrder": 900,
+        "config": {
+          "min": 0,
+          "max": 0,
+          "placeholder": ""
+        }
       },
       {
         "id": "final_rank",
         "label": "Final Ranking",
         "type": "select",
+        "kind": "points",
         "weight": 0,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 0
+        "audience": "judge",
+        "sortOrder": 900,
+        "config": {
+          "min": 0,
+          "max": 0,
+          "placeholder": ""
+        }
       },
       {
         "id": "overall_points",
         "label": "Overall Points",
         "type": "number",
+        "kind": "points",
         "weight": 1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 0
+        "audience": "judge",
+        "sortOrder": 900,
+        "config": {
+          "min": 0,
+          "max": 0,
+          "placeholder": ""
+        }
       }
     ]
   },

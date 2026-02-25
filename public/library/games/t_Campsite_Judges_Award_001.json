@@ -1,21 +1,21 @@
 {
-  "id": "t8",
-  "base_title": "Campsite Judges Award",
+  "library_uuid": "1a103b5d-5062-4010-bb09-68b6640f3897",
+  "library_title": "Campsite Judges Award",
   "type": "troop",
-  "meta": {
-    "title": "Campsite Judges Award",
-    "description": "",
-    "instructions": "",
-    "tags": [
-      "#campsite"
-    ]
-  },
   "tags": [
     "#campsite"
   ],
-  "scoring": {
+  "content": {
+    "title": "Campsite Judges Award",
+    "description": "",
+    "story": "",
+    "instructions": "",
+    "rules": [],
+    "supplies": []
+  },
+  "scoring_model": {
     "method": "points_desc",
-    "components": [
+    "inputs": [
       {
         "id": "points",
         "label": "Points",
@@ -29,19 +29,6 @@
           "max": 0,
           "placeholder": ""
         }
-      }
-    ]
-  },
-  "scoring_model": {
-    "inputs": [
-      {
-        "id": "points",
-        "label": "Points",
-        "type": "number",
-        "weight": 1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 900
       }
     ]
   },

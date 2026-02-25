@@ -1,20 +1,19 @@
 {
-  "id": "p10",
-  "base_title": "Ladder Lashing",
+  "library_uuid": "352f9977-2232-4aad-bd71-63c108d50c86",
+  "library_title": "Ladder Lashing",
   "type": "patrol",
-  "meta": {
-    "title": "Ladder Lashing",
-    "description": "",
-    "instructions": "",
-    "tags": [
-      "#lashing",
-      "#pioneering"
-    ]
-  },
   "tags": [
     "patrol",
     "knots"
   ],
+  "content": {
+    "title": "Ladder Lashing",
+    "description": "",
+    "story": "",
+    "instructions": "",
+    "rules": [],
+    "supplies": []
+  },
   "scoring_model": {
     "method": "points_desc",
     "inputs": [
@@ -82,7 +81,7 @@
       },
       {
         "id": "proper_lashings_2_ea_20_pt",
-        "label": "Proper lashings\n(2 ea \u00d7 20 pt)",
+        "label": "Proper lashings\n(2 ea × 20 pt)",
         "audience": "judge",
         "sortOrder": 900,
         "config": {},
@@ -188,11 +187,5 @@
       }
     ]
   },
-  "variants": [],
-  "content": {
-    "tags": [
-      "#lashing",
-      "#pioneering"
-    ]
-  }
+  "variants": []
 }

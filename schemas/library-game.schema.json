@@ -17,6 +17,18 @@
             "format": "uuid"
         },
         "library_title": {
+            "type": "string",
+            "description": "The original generic title of the game in the library"
+        },
+        "game_title": {
+            "type": "string",
+            "description": "The themed or display title for this specific game instance"
+        },
+        "id": {
+            "type": "string",
+            "description": "Short identifier (e.g., p10)"
+        },
+        "category": {
             "type": "string"
         },
         "type": {

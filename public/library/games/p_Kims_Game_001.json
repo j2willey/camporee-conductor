@@ -1,23 +1,22 @@
 {
-  "id": "p13",
-  "base_title": "Kims Game",
+  "library_uuid": "101b1e1b-3957-4f3e-a3fd-abcabb53f4b4",
+  "library_title": "Kims Game",
   "type": "patrol",
-  "meta": {
-    "title": "Kims Game",
-    "description": "",
-    "instructions": "",
-    "tags": [
-      "#observation",
-      "#KimsGame"
-    ]
-  },
   "tags": [
     "#observation",
     "#KimsGame"
   ],
-  "scoring": {
+  "content": {
+    "title": "Kims Game",
+    "description": "",
+    "story": "",
+    "instructions": "",
+    "rules": [],
+    "supplies": []
+  },
+  "scoring_model": {
     "method": "points_desc",
-    "components": [
+    "inputs": [
       {
         "id": "patrol_flag",
         "label": "Patrol Flag?",
@@ -129,82 +128,6 @@
           "max": 0,
           "placeholder": ""
         }
-      }
-    ]
-  },
-  "scoring_model": {
-    "inputs": [
-      {
-        "id": "patrol_flag",
-        "label": "Patrol Flag?",
-        "type": "number",
-        "weight": 1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 1
-      },
-      {
-        "id": "patrol_yell",
-        "label": "Patrol Yell?",
-        "type": "number",
-        "weight": 1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 2
-      },
-      {
-        "id": "patrol_spirit",
-        "label": "Patrol Spirit",
-        "type": "number",
-        "weight": 1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 3
-      },
-      {
-        "id": "Teamwork",
-        "label": "Teamwork",
-        "type": "number",
-        "weight": 1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 900
-      },
-      {
-        "id": "finder_name",
-        "label": "Finder Name",
-        "type": "text",
-        "weight": 0,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 15
-      },
-      {
-        "id": "finds",
-        "label": "finds",
-        "type": "number",
-        "weight": 1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 900
-      },
-      {
-        "id": "unscoutlike",
-        "label": "Un-Scout-like Behavior (Penalty)",
-        "type": "number",
-        "weight": -1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 998
-      },
-      {
-        "id": "judge_notes",
-        "label": "Judge Notes / Comments",
-        "type": "textarea",
-        "weight": 0,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 999
       }
     ]
   },

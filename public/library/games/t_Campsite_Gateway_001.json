@@ -1,21 +1,21 @@
 {
-  "id": "t6",
-  "base_title": "Campsite Gateway",
+  "library_uuid": "0d322643-077f-454f-aef4-a98b7b55a284",
+  "library_title": "Campsite Gateway",
   "type": "troop",
-  "meta": {
-    "title": "Campsite Gateway",
-    "description": "",
-    "instructions": "",
-    "tags": [
-      "#campsite"
-    ]
-  },
   "tags": [
     "#campsite"
   ],
-  "scoring": {
+  "content": {
+    "title": "Campsite Gateway",
+    "description": "",
+    "story": "",
+    "instructions": "",
+    "rules": [],
+    "supplies": []
+  },
+  "scoring_model": {
     "method": "points_desc",
-    "components": [
+    "inputs": [
       {
         "id": "points",
         "label": "Points",
@@ -29,19 +29,6 @@
           "max": 0,
           "placeholder": ""
         }
-      }
-    ]
-  },
-  "scoring_model": {
-    "inputs": [
-      {
-        "id": "points",
-        "label": "Points",
-        "type": "number",
-        "weight": 1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 900
       }
     ]
   },

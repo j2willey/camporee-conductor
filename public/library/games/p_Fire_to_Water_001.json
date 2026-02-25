@@ -1,20 +1,19 @@
 {
-  "id": "p1",
-  "base_title": "Fire to Water",
+  "library_uuid": "4a646fa0-bb68-4905-bf6c-33590139f45b",
+  "library_title": "Fire to Water",
   "type": "patrol",
-  "meta": {
-    "title": "Fire to Water",
-    "description": "",
-    "instructions": "",
-    "tags": [
-      "#fire",
-      "#teamwork"
-    ]
-  },
   "tags": [
     "#fire",
     "#teamwork"
   ],
+  "content": {
+    "title": "Fire to Water",
+    "description": "",
+    "story": "",
+    "instructions": "",
+    "rules": [],
+    "supplies": []
+  },
   "scoring_model": {
     "inputs": [
       {

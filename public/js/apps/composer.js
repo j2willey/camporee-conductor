@@ -465,26 +465,41 @@ const composer = {
         const id = `game_${Date.now()}`;
         const newGame = {
             id: id,
+            library_uuid: null, // "Bespoke" game
+            library_title: type === "patrol" ? "New Game" : "New Event",
+            game_title: type === "patrol" ? "New Game" : "New Event",
             type: type,
             enabled: true,
             bracketMode: false,
             match_label: "",
+            tags: [],
             content: {
-                title: type === "patrol" ? "New Game" : "New Event",
+                camporee_uuid: this.data.meta.camporeeId,
+                game_uuid: id,
+                description: "",
                 story: "",
-                instructions: ""
+                instructions: "",
+                rules: [],
+                supplies: []
             },
-            scoring: {
+            scoring_model: {
+                camporee_uuid: this.data.meta.camporeeId,
+                game_uuid: id,
                 method: "points_desc",
-                components: [
+                inputs: [
                     {
                         id: "score_1",
+                        label: "Points",
                         type: "number",
                         kind: "points",
-                        label: "Points",
                         weight: 1,
                         audience: "judge",
-                        sortOrder: 0
+                        sortOrder: 0,
+                        config: {
+                            min: 0,
+                            max: 10,
+                            placeholder: ""
+                        }
                     }
                 ]
             }
@@ -502,10 +517,10 @@ const composer = {
 
         const copy = JSON.parse(JSON.stringify(original));
         copy.id = `game_${Date.now()}`;
-        copy.content.title += " (Copy)";
+        copy.game_title += " (Copy)";
 
-        if (copy.scoring.components) {
-            copy.scoring.components.forEach(c => {
+        if (copy.scoring_model.inputs) {
+            copy.scoring_model.inputs.forEach(c => {
                 c.id = `${c.kind}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
             });
         }
@@ -551,7 +566,7 @@ const composer = {
                     li.innerHTML = `
                         <div class="d-flex justify-content-between align-items-start">
                             <div class="flex-grow-1">
-                                <span class="item-title d-block fw-bold">${game.title}</span>
+                                <span class="item-title d-block fw-bold">${game.library_title || game.title || game.game_title || "Untitled"}</span>
                                 <div class="item-tags mt-1">${tagsHtml}</div>
                             </div>
                             <div class="btn-group">
@@ -583,32 +598,43 @@ const composer = {
 
             const newGame = {
                 id: newId,
-                library_ref_id: template.id,
-                enabled: true,
+                library_uuid: template.library_uuid || template.id,
+                library_title: template.library_title || template.base_title || template.content?.title || "Untitled",
+                game_title: template.game_title || template.content?.title || template.base_title || "Untitled Game",
                 type: template.type || (path.includes("troop") ? "troop" : "patrol"),
+                enabled: true,
+                category: template.category || "Teamwork",
                 sortOrder: (this.data.games.length + 1) * 10,
-                schemaVersion: "2.9",
+                tags: template.tags || [],
                 content: {
-                    title: template.meta?.title || template.base_title || "Untitled Game",
-                    story: template.meta?.description || "",
-                    instructions: template.meta?.instructions || ""
+                    camporee_uuid: this.data.meta.camporeeId,
+                    game_uuid: newId,
+                    legend: template.content?.legend || template.content?.story || "",
+                    quest: template.content?.quest || template.content?.description || "",
+                    briefing: template.content?.briefing || template.content?.instructions || "",
+                    rules: template.content?.rules || [],
+                    scoring_overview: template.content?.scoring_overview || "",
+                    judging_notes: template.content?.judging_notes || "",
+                    logistics: {
+                        staffing: template.content?.logistics?.staffing || "",
+                        setup: template.content?.logistics?.setup || "",
+                        reset: template.content?.logistics?.reset || "",
+                        supplies: template.content?.logistics?.supplies || template.content?.supplies || []
+                    }
                 },
-                tags: template.tags || template.meta?.tags || [],
-                scoring: {
-                    method: "points_desc",
-                    components: (template.scoring_model?.inputs || []).map(input => ({
+                scoring_model: {
+                    camporee_uuid: this.data.meta.camporeeId,
+                    game_uuid: newId,
+                    method: template.scoring_model?.method || "points_desc",
+                    inputs: (template.scoring_model?.inputs || []).map(input => ({
                         id: input.id || this.generateUUID(),
                         label: input.label || "New Field",
                         type: input.type === "timer" ? "stopwatch" : (input.type || "number"),
-                        kind: input.type === "timer" ? "metric" : "points",
+                        kind: input.kind || "points",
                         weight: input.weight !== undefined ? input.weight : 1,
-                        audience: "judge",
+                        audience: input.audience || "judge",
                         sortOrder: input.sortOrder || 0,
-                        config: {
-                            min: 0,
-                            max: input.max_points || 0,
-                            placeholder: input.placeholder || ""
-                        }
+                        config: input.config || { min: 0, max: 0, placeholder: "" }
                     }))
                 },
                 match_label: "",
@@ -690,7 +716,7 @@ const composer = {
     < div class="me-3 text-muted" style = "cursor: grab;" > <i class="fas fa-grip-vertical"></i></div >
                 <div class="flex-grow-1 text-truncate">
                     <strong>${game.content.title}</strong><br>
-                    <small class="text-muted">${game.id}</small>
+                    <small class="text-muted">${game.content.game_uuid || game.id}</small>
                 </div>
                 <div class="d-flex align-items-center gap-1">
                     <i class="fas fa-circle ${statusClass} me-2" style="font-size: 0.5rem;"></i>
@@ -862,9 +888,9 @@ const composer = {
         };
 
         const methodEl = document.getElementById("gameScoringMethod");
-        methodEl.value = game.scoring.method || "points_desc";
+        methodEl.value = game.scoring_model.method || "points_desc";
         methodEl.onchange = (e) => {
-            game.scoring.method = e.target.value;
+            game.scoring_model.method = e.target.value;
         };
 
         document.getElementById("gameEnabled").onchange = (e) => {
@@ -872,7 +898,7 @@ const composer = {
             this.renderGameLists();
         };
 
-        this.renderScoringInputs(game.scoring.components, game.id, "game");
+        this.renderScoringInputs(game.scoring_model.inputs, game.id, "game");
     },
 
     updateGameField: function (field, value) {
@@ -913,23 +939,23 @@ const composer = {
 
         if (isEnabled) {
             ["bracket_result", "final_rank", "overall_points"].forEach(pid => {
-                if (!game.scoring.components.find(c => c.id === pid)) {
+                if (!game.scoring_model.inputs.find(c => c.id === pid)) {
                     let preset = this.presets.find(p => p.id === pid) ||
                         SYSTEM_PRESETS.find(p => p.id === pid);
                     if (preset) {
                         const copy = JSON.parse(JSON.stringify(preset));
                         if (pid === "bracket_result") {
                             copy.audience = "judge";
-                            game.scoring.components.unshift(copy);
+                            game.scoring_model.inputs.unshift(copy);
                         } else {
                             copy.audience = "admin";
-                            game.scoring.components.push(copy);
+                            game.scoring_model.inputs.push(copy);
                         }
                     }
                 }
             });
         }
-        this.renderScoringInputs(game.scoring.components, game.id, "game");
+        this.renderScoringInputs(game.scoring_model.inputs, game.id, "game");
     },
 
     renderPresetManager: function () {
@@ -1085,8 +1111,8 @@ const composer = {
         } else {
             const game = this.data.games.find(g => g.id === contextId);
             if (!game) return;
-            if (!game.scoring.components) game.scoring.components = [];
-            list = game.scoring.components;
+            if (!game.scoring_model.inputs) game.scoring_model.inputs = [];
+            list = game.scoring_model.inputs;
         }
 
         list.push({
@@ -1109,7 +1135,7 @@ const composer = {
         } else {
             const game = this.data.games.find(g => g.id === contextId);
             if (!game) return;
-            list = game.scoring.components;
+            list = game.scoring_model.inputs;
         }
 
         const comp = list[index];
@@ -1131,7 +1157,7 @@ const composer = {
         } else {
             const game = this.data.games.find(g => g.id === contextId);
             if (!game) return;
-            list = game.scoring.components;
+            list = game.scoring_model.inputs;
         }
 
         if (!list[index].config) list[index].config = {};
@@ -1150,7 +1176,7 @@ const composer = {
         } else {
             const game = this.data.games.find(g => g.id === contextId);
             if (!game) return;
-            list = game.scoring.components;
+            list = game.scoring_model.inputs;
         }
         list[index].kind = value;
         this.renderScoringInputs(list, contextId, contextType);
@@ -1165,7 +1191,7 @@ const composer = {
         } else {
             const game = this.data.games.find(g => g.id === contextId);
             if (!game) return;
-            list = game.scoring.components;
+            list = game.scoring_model.inputs;
         }
 
         list.splice(index, 1);
@@ -1179,7 +1205,7 @@ const composer = {
         } else {
             const game = this.data.games.find(g => g.id === contextId);
             if (!game) return;
-            list = game.scoring.components;
+            list = game.scoring_model.inputs;
         }
 
         const copy = JSON.parse(JSON.stringify(list[index]));
@@ -1197,7 +1223,7 @@ const composer = {
         } else {
             const game = this.data.games.find(g => g.id === contextId);
             if (!game) return;
-            list = game.scoring.components;
+            list = game.scoring_model.inputs;
         }
 
         const [moved] = list.splice(srcIndex, 1);
@@ -1226,10 +1252,10 @@ const composer = {
             const copy = JSON.parse(JSON.stringify(preset));
             copy.id = `preset_${Date.now()}`;
 
-            if (!game.scoring.components) game.scoring.components = [];
-            game.scoring.components.push(copy);
+            if (!game.scoring_model.inputs) game.scoring_model.inputs = [];
+            game.scoring_model.inputs.push(copy);
 
-            this.renderScoringInputs(game.scoring.components, game.id, "game");
+            this.renderScoringInputs(game.scoring_model.inputs, game.id, "game");
         }
         bootstrap.Modal.getInstance(document.getElementById("presetModal")).hide();
     },
@@ -1281,7 +1307,7 @@ const composer = {
                 sortOrder: g.sortOrder,
                 schemaVersion: "2.9",
                 content: g.content,
-                scoring: g.scoring,
+                scoring_model: g.scoring_model,
                 match_label: g.match_label || ""
             };
             if (g.bracketMode) gameFile.bracketMode = true;
@@ -1326,7 +1352,19 @@ const composer = {
                         g.sortOrder = entry.order * 10;
                     }
 
-                    if (!g.scoring.components) g.scoring.components = [];
+                    if (!g.scoring_model) {
+                        // Fallback/Migration for old camporees
+                        if (g.scoring) {
+                            g.scoring_model = {
+                                method: g.scoring_model.method || "points_desc",
+                                inputs: g.scoring_model.inputs || []
+                            };
+                            delete g.scoring;
+                        } else {
+                            g.scoring_model = { method: "points_desc", inputs: [] };
+                        }
+                    }
+                    if (!g.scoring_model.inputs) g.scoring_model.inputs = [];
                     if (!g.type) g.type = "patrol";
                     g.bracketMode = !!g.bracketMode;
                     g.match_label = g.match_label || "";

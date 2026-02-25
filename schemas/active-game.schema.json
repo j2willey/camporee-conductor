@@ -21,6 +21,17 @@
       "type": "string",
       "description": "The original generic title of the game"
     },
+    "game_title": {
+      "type": "string",
+      "description": "The themed or display title for this specific game instance in the Camporee"
+    },
+    "id": {
+      "type": "string",
+      "description": "Short identifier (e.g., p10) used within the Camporee"
+    },
+    "category": {
+      "type": "string"
+    },
     "type": {
       "type": "string",
       "enum": [

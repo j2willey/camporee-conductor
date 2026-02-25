@@ -1,21 +1,21 @@
 {
-  "id": "t9",
-  "base_title": "Crab Soccer",
+  "library_uuid": "dbede393-159e-455b-ad35-05c4923dbf69",
+  "library_title": "Crab Soccer",
   "type": "troop",
-  "meta": {
-    "title": "Crab Soccer",
-    "description": "",
-    "instructions": "",
-    "tags": [
-      "#sports"
-    ]
-  },
   "tags": [
     "#sports"
   ],
-  "scoring": {
+  "content": {
+    "title": "Crab Soccer",
+    "description": "",
+    "story": "",
+    "instructions": "",
+    "rules": [],
+    "supplies": []
+  },
+  "scoring_model": {
     "method": "points_desc",
-    "components": [
+    "inputs": [
       {
         "id": "points",
         "label": "Points",
@@ -37,7 +37,7 @@
         "kind": "points",
         "weight": 0,
         "audience": "judge",
-        "sortOrder": 0,
+        "sortOrder": 900,
         "config": {
           "min": 0,
           "max": 0,
@@ -51,7 +51,7 @@
         "kind": "points",
         "weight": 0,
         "audience": "judge",
-        "sortOrder": 0,
+        "sortOrder": 900,
         "config": {
           "min": 0,
           "max": 0,
@@ -65,52 +65,12 @@
         "kind": "points",
         "weight": 1,
         "audience": "judge",
-        "sortOrder": 0,
+        "sortOrder": 900,
         "config": {
           "min": 0,
           "max": 0,
           "placeholder": ""
         }
-      }
-    ]
-  },
-  "scoring_model": {
-    "inputs": [
-      {
-        "id": "points",
-        "label": "Points",
-        "type": "number",
-        "weight": 1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 900
-      },
-      {
-        "id": "bracket_result",
-        "label": "Match Result",
-        "type": "text",
-        "weight": 0,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 0
-      },
-      {
-        "id": "final_rank",
-        "label": "Final Ranking",
-        "type": "select",
-        "weight": 0,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 0
-      },
-      {
-        "id": "overall_points",
-        "label": "Overall Points",
-        "type": "number",
-        "weight": 1,
-        "max_points": 0,
-        "placeholder": "",
-        "sortOrder": 0
       }
     ]
   },

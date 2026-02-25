@@ -299,7 +299,8 @@ app.post('/api/library/save', async (req, res) => {
         const newEntry = {
             path: gamePath,
             id: data.id,
-            title: data.meta?.title || data.base_title || data.content?.title || 'Untitled',
+            library_title: data.library_title || data.meta?.title || data.base_title || data.content?.title || 'Untitled',
+            game_title: data.game_title || data.meta?.title || data.base_title || data.content?.title || 'Untitled',
             tags: data.meta?.tags || data.tags || [],
             type: data.type || 'patrol'
         };
