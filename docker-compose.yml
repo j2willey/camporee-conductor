@@ -2,36 +2,34 @@ version: '3.8'
 
 services:
   # 1. THE COLLATOR (Scorer) - Port 3000
-  app:
-    container_name: camporee-collator-app
-    build:
-      context: .
-      dockerfile: Dockerfile  # Standard build
+  collator:
+    container_name: camporee-collator
+    build: .
     ports:
       - "3000:3000"
+    environment:
+      - PORT=3000
+      - ACTIVE_SERVICES=collator     # <--- Identity Assignment
+      - EVENT_PATH=/app/data/active-event
+      - LIBRARY_PATH=/app/data/library
     volumes:
-      - ./camporee:/app/camporee
-      - ./data:/app/data
-      - .:/app               # <--- Maps your current folder to the container
-      - /app/node_modules    # <--- Preserves the container's installed dependencies
+      - ./data/active-event:/app/data/active-event
+      - ./data/library:/app/data/library
     restart: unless-stopped
 
-  # 2. THE COMPOSER (Builder) - Port 3001
+  # 2. THE COMPOSER & CURATOR (Builder/Library) - Port 3001
   composer:
-    container_name: camporee-collator-composer
-    build:
-      context: .
-      dockerfile: Dockerfile.composer # Minification build
+    container_name: camporee-composer
+    build: .
     ports:
-      - "3001:3001"
+      - "3001:3001"  
+    environment:
+      - PORT=3001
+      - ACTIVE_SERVICES=curator,composer  # <--- Identity Assignment
+      - WORKSPACE_PATH=/app/data/workspaces
+      - LIBRARY_PATH=/app/data/library
     volumes:
-      # Map the host 'camporee' folder to the container's 'camporees' folder
-      - ./camporee:/app/camporees
-      # Map the public library to persist template edits
-      - ./public/library:/app/public/library
-      - ./public:/app/public # Enable hot reloading for frontend code
-
-      # COMMENTED OUT: We do NOT map '.' to '/app' here.
-      # If we did, we would overwrite the minified code with our raw source code.
-      # - .:/app
+      - ./data/workspaces:/app/data/workspaces
+      - ./data/library:/app/data/library
+      - ./public:/app/public # Hot reloading for frontend
     restart: unless-stopped
