@@ -12,6 +12,7 @@ data/*
 *.log
 *.xlsx
 scratch/
+SCHEMA.md
 
 # Environment Variables (Secrets)
 .env
