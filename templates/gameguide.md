@@ -1,5 +1,8 @@
 # {{game_title}}
-<span style="font-size: 0.8em; color: gray;">ID: {{id}} | Category: {{category}} | Type: {{type}}</span>
+<span style="font-size: 0.8em; color: gray;">
+ID: {{id}} | Category: {{category}} | Type: {{type}}<br>
+Tags: {{#each tags}}#{{this}} {{/each}}
+</span>
 
 ---
 

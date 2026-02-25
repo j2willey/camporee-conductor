@@ -352,7 +352,7 @@ const curator = {
                      <button class="btn btn-success w-100" id="saveTemplateBtn" onclick="curator.saveTemplate()" disabled>
                         <i class="fas fa-save"></i> Save Game
                      </button>
-                     <button class="btn btn-outline-primary btn-sm w-100 d-none" id="previewBtnTop" onclick="curator.renderPreview()">
+                     <button class="btn btn-outline-primary btn-sm w-100 d-none" id="previewBtnTop" onclick="curator.renderGuidePreview()">
                          <i class="fas fa-eye"></i> Preview Guide
                      </button>
                 </div>
@@ -520,10 +520,15 @@ const curator = {
                     <div class="card">
                         <div class="card-header bg-light d-flex justify-content-between align-items-center">
                             <h5 class="mb-0">Scoring Model</h5>
-                            <select class="form-select form-select-sm d-inline-block w-auto" id="gameScoringMethod">
-                                <option value="points_desc" ${data.scoring_model.method === 'points_desc' ? 'selected' : ''}>Highest Points</option>
-                                <option value="timed_asc" ${data.scoring_model.method === 'timed_asc' ? 'selected' : ''}>Lowest Time</option>
-                            </select>
+                            <div class="d-flex align-items-center gap-2">
+                                <select class="form-select form-select-sm d-inline-block w-auto" id="gameScoringMethod">
+                                    <option value="points_desc" ${data.scoring_model.method === 'points_desc' ? 'selected' : ''}>Highest Points</option>
+                                    <option value="timed_asc" ${data.scoring_model.method === 'timed_asc' ? 'selected' : ''}>Lowest Time</option>
+                                </select>
+                                <button class="btn btn-sm btn-outline-secondary" onclick="curator.renderScoringPreview()">
+                                    <i class="fas fa-eye"></i> Preview
+                                </button>
+                            </div>
                         </div>
                         <div class="card-body bg-light">
                             <div id="scoring-editor" class="d-flex flex-column gap-3"></div>
@@ -679,7 +684,8 @@ const curator = {
                         </div>
                         <div class="modal-body" id="previewModalBody"></div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="button" class="btn btn-primary d-none" id="previewPrintBtn" onclick="curator.printPreview()"><i class="fas fa-print"></i> Print</button>
+                            <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
                         </div>
                     </div>
                 </div>
@@ -935,7 +941,7 @@ const curator = {
         bootstrap.Modal.getInstance(document.getElementById("presetModal")).hide();
     },
 
-    renderPreview: function () {
+    renderScoringPreview: function () {
         if (!this.data) return;
         const normalized = normalizeGameDefinition(this.data);
         const html = normalized.fields.map(f => generateFieldHTML(f)).join("");
@@ -944,11 +950,71 @@ const curator = {
         const modalTitle = document.getElementById("previewModalTitle");
 
         if (modalBody) modalBody.innerHTML = html;
-        if (modalTitle) modalTitle.innerText = "Preview: " + (this.data.game_title || "Game");
+        if (modalTitle) modalTitle.innerText = "Scoring Preview: " + (this.data.game_title || "Game");
+
+        const printBtn = document.getElementById("previewPrintBtn");
+        if (printBtn) printBtn.classList.add("d-none"); // Hide print for scoring preview
 
         if (window.bootstrap) {
             new bootstrap.Modal(document.getElementById("previewModal")).show();
         }
+    },
+
+    renderGuidePreview: async function () {
+        if (!this.data) return;
+        try {
+            // Fetch the template if not cached
+            if (!this._gameGuideTemplate) {
+                const res = await fetch('/api/template/gameguide');
+                if (!res.ok) throw new Error("Could not fetch gameguide template");
+                this._gameGuideTemplate = await res.text();
+            }
+
+            // Compile with Handlebars
+            const template = Handlebars.compile(this._gameGuideTemplate);
+            const markdown = template(this.data);
+
+            // Convert to HTML with Marked
+            const html = marked.parse(markdown);
+
+            const modalBody = document.getElementById("previewModalBody");
+            const modalTitle = document.getElementById("previewModalTitle");
+
+            if (modalBody) modalBody.innerHTML = html;
+            if (modalTitle) modalTitle.innerText = "Guide Preview: " + (this.data.game_title || "Game");
+
+            const printBtn = document.getElementById("previewPrintBtn");
+            if (printBtn) printBtn.classList.remove("d-none"); // Show print button
+
+            if (window.bootstrap) {
+                new bootstrap.Modal(document.getElementById("previewModal")).show();
+            }
+        } catch (err) {
+            console.error("Preview render failed:", err);
+            alert("Failed to render preview. Check console for details.");
+        }
+    },
+
+    printPreview: function () {
+        const modalBody = document.getElementById("previewModalBody");
+        if (!modalBody) return;
+
+        // Open a new window and print the contents
+        const printWindow = window.open('', '', 'height=800,width=800');
+        printWindow.document.write('<html><head><title>Print Guide</title>');
+        // minimal styles
+        printWindow.document.write('<style>body { font-family: sans-serif; padding: 20px; line-height: 1.6; } h1,h2 { color: #333; border-bottom: 1px solid #ddd; padding-bottom: 5px; } blockquote { background: #f9f9f9; padding: 10px; border-left: 5px solid #ccc; } table { border-collapse: collapse; width: 100%; margin-bottom: 20px; } th, td { border: 1px solid #ddd; padding: 8px; text-align: left; } th { background-color: #f2f2f2; }</style>');
+        printWindow.document.write('</head><body>');
+        printWindow.document.write(modalBody.innerHTML);
+        printWindow.document.write('</body></html>');
+        printWindow.document.close();
+        printWindow.focus();
+
+        // Let it load styles then print
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 250);
     }
 };
 
