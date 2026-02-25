@@ -13,8 +13,8 @@ services:
       - EVENT_PATH=/app/data/active-event
       - LIBRARY_PATH=/app/data/library
     volumes:
-      - ./data/active-event:/app/data/active-event
-      - ./data/library:/app/data/library
+      - ./data/collator:/app/data
+      - ./data/curator:/app/data/library
       - ./src:/app/src
       - ./views:/app/views
       - ./public:/app/public
@@ -32,8 +32,8 @@ services:
       - WORKSPACE_PATH=/app/data/workspaces
       - LIBRARY_PATH=/app/data/library
     volumes:
-      - ./data/workspaces:/app/data/workspaces
-      - ./data/library:/app/data/library
+      - ./data/composer:/app/data/workspaces
+      - ./data/curator:/app/data/library
       - ./src:/app/src
       - ./views:/app/views
       - ./public:/app/public # Hot reloading for frontend and backend
