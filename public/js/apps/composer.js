@@ -48,7 +48,7 @@ const composer = {
         }
 
         this.serverMode = await this.api.getStatus();
-        this.setupDynamicTabs();
+        this.showPane('meta-pane', document.getElementById('btn-meta'));
         this.injectModals();
         this.bindGlobalEvents();
 
@@ -243,69 +243,20 @@ const composer = {
         }
     },
 
-    setupDynamicTabs: function () {
-        const navTabs = document.querySelector(".nav-tabs");
-        const tabContent = document.querySelector(".tab-content");
-        if (!navTabs || !tabContent) return;
+    showPane: function (paneId, btnElem) {
+        document.querySelectorAll('.editor-pane').forEach(el => el.classList.add('d-none'));
+        const pane = document.getElementById(paneId);
+        if (pane) pane.classList.remove('d-none');
 
-        let libTab = document.getElementById("library-tab") ||
-            navTabs.children[1]?.querySelector("button");
-        let libPane = document.getElementById("library-pane") ||
-            tabContent.children[1];
-
-        if (libTab && libTab.innerText.includes("Library")) {
-            libTab.id = "patrol-tab";
-            libTab.innerText = "Patrol Games";
-            libTab.setAttribute("data-bs-target", "#patrol-pane");
-
-            libPane.id = "patrol-pane";
-            libPane.innerHTML = `
-                <div id="patrolList" class="list-group p-3"></div>
-                <div class="p-3">
-                    <button class="btn btn-primary w-100" onclick="composer.addGame('patrol')">
-                        <i class="fas fa-plus-circle"></i> Add Patrol Game
-                    </button>
-                </div>`;
-
-            if (!document.getElementById("troop-tab")) {
-                const patrolItem = document.getElementById("patrol-tab")?.parentElement;
-                if (patrolItem) {
-                    const li = document.createElement("li");
-                    li.className = "nav-item";
-                    li.innerHTML = '<button class="nav-link" id="troop-tab" data-bs-toggle="tab" data-bs-target="#troop-pane" type="button">Troop Events</button>';
-                    navTabs.insertBefore(li, patrolItem.nextSibling);
-                }
-
-                const patrolPane = document.getElementById("patrol-pane");
-                if (patrolPane) {
-                    const pane = document.createElement("div");
-                    pane.className = "tab-pane fade";
-                    pane.id = "troop-pane";
-                    pane.innerHTML = `
-                        <div id="troopList" class="list-group p-3"></div>
-                        <div class="p-3">
-                            <button class="btn btn-success w-100" onclick="composer.addGame('troop')">
-                                <i class="fas fa-calendar-plus"></i> Add Troop Event
-                            </button>
-                        </div>`;
-                    tabContent.insertBefore(pane, patrolPane.nextSibling);
-                }
-            }
+        if (btnElem) {
+            document.querySelectorAll('.nav-pane-btn').forEach(b => b.classList.remove('active'));
+            btnElem.classList.add('active');
+        } else {
+            document.querySelectorAll('.nav-pane-btn').forEach(b => b.classList.remove('active'));
         }
 
-        if (!document.getElementById("presets-tab")) {
-            const li = document.createElement("li");
-            li.className = "nav-item";
-            li.innerHTML = '<button class="nav-link" id="presets-tab" data-bs-toggle="tab" data-bs-target="#presets-pane" type="button">Presets</button>';
-            navTabs.appendChild(li);
-
-            const pane = document.createElement("div");
-            pane.className = "tab-pane fade";
-            pane.id = "presets-pane";
-            pane.innerHTML = '<div id="presets-container" class="p-3"></div>';
-            tabContent.appendChild(pane);
-
-            document.getElementById("presets-tab").addEventListener("shown.bs.tab", () => this.renderPresetManager());
+        if (paneId === 'presets-pane') {
+            this.renderPresetManager();
         }
     },
 
@@ -713,10 +664,10 @@ const composer = {
             };
 
             item.innerHTML = `
-    < div class="me-3 text-muted" style = "cursor: grab;" > <i class="fas fa-grip-vertical"></i></div >
+                <div class="me-3 text-muted" style="cursor: grab;"><i class="fas fa-grip-vertical"></i></div>
                 <div class="flex-grow-1 text-truncate">
-                    <strong>${game.content.title}</strong><br>
-                    <small class="text-muted">${game.content.game_uuid || game.id}</small>
+                    <strong>${game.game_title || game.content?.title || "Untitled Game"}</strong><br>
+                    <small class="text-muted">${game.content?.game_uuid || game.id}</small>
                 </div>
                 <div class="d-flex align-items-center gap-1">
                     <i class="fas fa-circle ${statusClass} me-2" style="font-size: 0.5rem;"></i>
@@ -752,15 +703,37 @@ const composer = {
 
         if (!game.type) game.type = "patrol";
 
-        const editorTab = document.querySelector("#editor-tab");
-        if (editorTab && window.bootstrap) {
-            new bootstrap.Tab(editorTab).show();
-        }
+        this.showPane('editor-pane');
 
         const container = document.getElementById("editor-container");
         container.innerHTML = `
-    < div class="card mb-4" >
-                <div class="card-header bg-light"><h5 class="mb-0">Game Metadata</h5></div>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0">
+            <i class="fas fa-edit"></i> <span id="headerTitle">${game.game_title || "Game Editor"}</span>
+        </h4>
+        <div class="d-flex flex-column align-items-end gap-2">
+             <button class="btn btn-outline-primary btn-sm w-100 d-none" id="previewBtnTop" onclick="composer.renderGuidePreview('${id}')">
+                 <i class="fas fa-eye"></i> Preview Guide
+             </button>
+        </div>
+    </div>
+
+    <ul class="nav nav-tabs mb-3" id="editorTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="meta-tab" data-bs-toggle="tab" data-bs-target="#meta" type="button" role="tab">Metadata</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="content-tab" data-bs-toggle="tab" data-bs-target="#content" type="button" role="tab">Game Guide</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="scoring-tab" data-bs-toggle="tab" data-bs-target="#scoring" type="button" role="tab">Scoring</button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="editorTabsContent">
+        <!-- METADATA TAB -->
+        <div class="tab-pane fade show active" id="meta" role="tabpanel">
+            <div class="card mb-4">
                 <div class="card-body">
                     <div class="row">
                         <div class="col-12 mb-3">
@@ -780,15 +753,8 @@ const composer = {
                             <input type="text" class="form-control fw-bold" id="gameTitle">
                         </div>
                     </div>
-                    <div class="row border-bottom mb-3 pb-3">
-                        <div class="col-12">
-                            <label class="form-label text-muted">Instructions</label>
-                            <textarea class="form-control" rows="1" id="gameInstructions" 
-                                      placeholder="Judge-facing instructions..."></textarea>
-                        </div>
-                    </div>
                     <div class="row">
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-5 mb-3">
                             <label class="form-label">Type</label>
                             <select class="form-select" id="gameType">
                                 <option value="patrol">Patrol Competition</option>
@@ -796,18 +762,118 @@ const composer = {
                                 <option value="exhibition">Exhibition / Individual</option>
                             </select>
                         </div>
-                        <div class="col-md-8 mb-3">
-                            <label class="form-label">Premise</label>
-                            <input type="text" class="form-control" id="gameStory">
-                        </div>
-                        <div class="col-12 mb-3">
+                        <div class="col-md-7 mb-3">
                             <label class="form-label">Tags <small class="text-muted">(space or comma separated)</small></label>
                             <input type="text" class="form-control" id="gameTags" placeholder="#fire #knots #teamwork">
                         </div>
                     </div>
-                    <div class="row border-top pt-3">
-                         <div class="col-md-3 d-flex align-items-center">
-                            <div class="form-check form-switch">
+                </div>
+            </div>
+        </div>
+
+        <!-- GAME GUIDE TAB (Content) -->
+        <div class="tab-pane fade" id="content" role="tabpanel">
+            <div class="accordion accordion-flush border rounded mb-3 bg-white" id="gameGuideAccordion">
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingNarrative">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseNarrative">
+                            <i class="fas fa-fw fa-book-open me-2 text-primary"></i> Narrative & Lore
+                        </button>
+                    </h2>
+                    <div id="collapseNarrative" class="accordion-collapse collapse show" data-bs-parent="#gameGuideAccordion">
+                        <div class="accordion-body bg-light pb-1">
+                            <div class="mb-3">
+                                <label class="form-label">Quest (Objective)</label>
+                                <input type="text" class="form-control" id="gameQuest" placeholder="e.g. Boil water within 10 minutes" value="${game.content.quest || ""}">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Legend (Thematic Story)</label>
+                                <textarea class="form-control" rows="6" id="gameLegend" placeholder="Read this to the patrol...">${game.content.legend || ""}</textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Briefing (Instructions)</label>
+                                <textarea class="form-control" rows="6" id="gameBriefing" placeholder="Specific instructions...">${game.content.briefing || ""}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingRules">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseRules">
+                            <i class="fas fa-fw fa-gavel me-2 text-primary"></i> Rules
+                        </button>
+                    </h2>
+                    <div id="collapseRules" class="accordion-collapse collapse" data-bs-parent="#gameGuideAccordion">
+                        <div class="accordion-body bg-light pb-1">
+                            <div id="rules-editor" class="list-editor mb-2"></div>
+                            <button class="btn btn-sm btn-outline-secondary mb-3" onclick="composer.addListItem('rules')">
+                                <i class="fas fa-plus"></i> Add Rule
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingJudging">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseJudging">
+                            <i class="fas fa-fw fa-clipboard-check me-2 text-primary"></i> Scoring Notes & Criteria
+                        </button>
+                    </h2>
+                    <div id="collapseJudging" class="accordion-collapse collapse" data-bs-parent="#gameGuideAccordion">
+                        <div class="accordion-body bg-light pb-1">
+                            <div class="mb-3">
+                                <label class="form-label">Scoring Overview (Text)</label>
+                                <textarea class="form-control" rows="6" id="gameScoringOverview" placeholder="General explanation...">${game.content.scoring_overview || ""}</textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Judging Notes (Tips)</label>
+                                <textarea class="form-control" rows="6" id="gameJudgingNotes" placeholder="Tips for the judge...">${game.content.judging_notes || ""}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingLogistics">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseLogistics">
+                            <i class="fas fa-fw fa-boxes me-2 text-primary"></i> Logistics & Setup
+                        </button>
+                    </h2>
+                    <div id="collapseLogistics" class="accordion-collapse collapse" data-bs-parent="#gameGuideAccordion">
+                        <div class="accordion-body bg-light pb-1">
+                            <div class="mb-3">
+                                <label class="form-label">Staffing Requirements</label>
+                                <textarea class="form-control" rows="6" id="gameStaffing">${game.content.logistics?.staffing || ""}</textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Setup Instructions</label>
+                                <textarea class="form-control" rows="6" id="gameSetup">${game.content.logistics?.setup || ""}</textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Reset Instructions</label>
+                                <textarea class="form-control" rows="6" id="gameReset">${game.content.logistics?.reset || ""}</textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Supplies Needed (Text)</label>
+                                <textarea class="form-control" rows="6" id="gameSuppliesText" placeholder="List of supplies...">${game.content.logistics?.supplies_text || ""}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCORING TAB -->
+        <div class="tab-pane fade" id="scoring" role="tabpanel">
+            <div class="card mb-3">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Match Configuration</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 d-flex align-items-center">
+                            <div class="form-check form-switch text-success">
                                 <input class="form-check-input" type="checkbox" id="gameEnabled" ${game.enabled ? "checked" : ""}>
                                 <label class="form-check-label fw-bold">Enabled</label>
                             </div>
@@ -845,9 +911,8 @@ const composer = {
                             <option value="points_desc">Highest Points</option>
                             <option value="timed_asc">Lowest Time</option>
                         </select>
-                        <button class="btn btn-sm btn-outline-secondary" onclick="composer.renderPreview('${id}')" 
-                                title="Preview Form">
-                            <i class="fas fa-eye"></i>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="composer.renderScoringPreview('${id}')" title="Judge View">
+                            <i class="fas fa-mobile-alt"></i> Judge View
                         </button>
                     </div>
                 </div>
@@ -864,17 +929,34 @@ const composer = {
                          </div>
                     </div>
                 </div>
-            </div>`;
+            </div>
+        </div>
+    </div>`;
 
         // Bind Inputs
-        ["gameTitle", "gameStory", "gameInstructions", "gameMatchLabel"].forEach(fieldId => {
+        ["gameTitle", "gameMatchLabel", "gameQuest", "gameLegend", "gameBriefing", "gameScoringOverview", "gameJudgingNotes", "gameStaffing", "gameSetup", "gameReset", "gameSuppliesText"].forEach(fieldId => {
             const key = fieldId === "gameTitle" ? "game_title" :
-                fieldId === "gameStory" ? "story" :
-                    fieldId === "gameMatchLabel" ? "match_label" : "instructions";
+                fieldId === "gameMatchLabel" ? "match_label" :
+                    fieldId === "gameQuest" ? "quest" :
+                        fieldId === "gameLegend" ? "legend" :
+                            fieldId === "gameBriefing" ? "briefing" :
+                                fieldId === "gameScoringOverview" ? "scoring_overview" :
+                                    fieldId === "gameJudgingNotes" ? "judging_notes" :
+                                        fieldId === "gameStaffing" ? "staffing" :
+                                            fieldId === "gameSetup" ? "setup" :
+                                                fieldId === "gameReset" ? "reset" :
+                                                    fieldId === "gameSuppliesText" ? "supplies_text" : "instructions";
 
             const el = document.getElementById(fieldId);
             if (el) {
-                const val = (key === "match_label" || key === "game_title" ? game[key] : game.content[key]) || "";
+                let val = "";
+                if (key === "match_label" || key === "game_title") {
+                    val = game[key] || "";
+                } else if (["staffing", "setup", "reset", "supplies_text"].includes(key)) {
+                    val = game.content.logistics?.[key] || "";
+                } else {
+                    val = game.content[key] || "";
+                }
                 el.value = val;
                 el.oninput = (e) => this.updateGameField(key, e.target.value);
             }
@@ -906,6 +988,78 @@ const composer = {
         };
 
         this.renderScoringInputs(game.scoring_model.inputs, game.id, "game");
+        this.renderListEditor('rules', game.content.rules);
+
+        // UI Tabs toggle for preview button
+        const triggerTabs = document.querySelectorAll('#editorTabs button[data-bs-toggle="tab"]');
+        triggerTabs.forEach(tab => {
+            tab.addEventListener('shown.bs.tab', (event) => {
+                const previewBtn = document.getElementById("previewBtnTop");
+                if (previewBtn) {
+                    if (event.target.id === 'meta-tab') {
+                        previewBtn.classList.add('d-none');
+                    } else if (event.target.id === 'scoring-tab') {
+                        previewBtn.classList.remove('d-none');
+                        previewBtn.innerHTML = '<i class="fas fa-mobile-alt"></i> Judge View';
+                        previewBtn.onclick = () => composer.renderScoringPreview(id);
+                    } else {
+                        previewBtn.classList.remove('d-none');
+                        previewBtn.innerHTML = '<i class="fas fa-eye"></i> Preview Guide';
+                        previewBtn.onclick = () => composer.renderGuidePreview(id);
+                    }
+                }
+            });
+        });
+    },
+
+    renderListEditor: function (type, items) {
+        const container = document.getElementById(`${type}-editor`);
+        if (!container) return;
+
+        container.innerHTML = "";
+        (items || []).forEach((item, index) => {
+            const row = document.createElement("div");
+            row.className = "input-group input-group-sm mb-1";
+            row.innerHTML = `
+                <input type="text" class="form-control" value="${item.replace(/"/g, '&quot;')}" 
+                       oninput="composer.updateListItem('${type}', ${index}, this.value)">
+                <button class="btn btn-outline-danger" onclick="composer.deleteListItem('${type}', ${index})">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            container.appendChild(row);
+        });
+    },
+
+    addListItem: function (type) {
+        if (!this.activeGameId) return;
+        const game = this.data.games.find(g => g.id === this.activeGameId);
+        if (!game) return;
+
+        if (!game.content[type]) game.content[type] = [];
+        game.content[type].push("");
+        this.renderListEditor(type, game.content[type]);
+    },
+
+    updateListItem: function (type, index, value) {
+        if (!this.activeGameId) return;
+        const game = this.data.games.find(g => g.id === this.activeGameId);
+        if (!game) return;
+
+        if (game.content[type]) {
+            game.content[type][index] = value;
+        }
+    },
+
+    deleteListItem: function (type, index) {
+        if (!this.activeGameId) return;
+        const game = this.data.games.find(g => g.id === this.activeGameId);
+        if (!game) return;
+
+        if (game.content[type]) {
+            game.content[type].splice(index, 1);
+            this.renderListEditor(type, game.content[type]);
+        }
     },
 
     updateGameField: function (field, value) {
@@ -927,6 +1081,9 @@ const composer = {
             game.meta.tags = tags;
             if (game.content) game.content.tags = tags;
             game.tags = tags;
+        } else if (["staffing", "setup", "reset", "supplies_text"].includes(field)) {
+            if (!game.content.logistics) game.content.logistics = {};
+            game.content.logistics[field] = value;
         } else {
             game.content[field] = value;
         }
@@ -972,7 +1129,7 @@ const composer = {
         const container = document.getElementById("presets-container");
         if (container) {
             container.innerHTML = `
-                <div class="card">
+    < div class="card" >
                     <div class="card-header bg-light"><h5 class="mb-0">Preset Library</h5></div>
                     <div class="card-body bg-light">
                         <div id="preset-editor-list" class="d-flex flex-column gap-3"></div>
@@ -982,7 +1139,7 @@ const composer = {
                             </button>
                         </div>
                     </div>
-                </div>`;
+                </div > `;
             this.renderScoringInputs(this.presets, "global", "preset_manager");
         }
     },
@@ -1002,14 +1159,14 @@ const composer = {
                 else if (comp.kind === "info") borderClass = "border-secondary";
 
                 const card = document.createElement("div");
-                card.className = `card border-start border-4 shadow-sm ${borderClass}`;
+                card.className = `card border - start border - 4 shadow - sm ${borderClass} `;
                 card.draggable = true;
                 card.dataset.index = index;
 
                 const isSelect = comp.type === "select";
 
                 card.innerHTML = `
-                  <div class="card-body p-3 d-flex align-items-start">
+    < div class="card-body p-3 d-flex align-items-start" >
                     <div class="me-3 mt-4 text-muted" style="cursor: grab;"><i class="fas fa-grip-vertical fa-lg"></i></div>
                     <div class="flex-grow-1 me-4">
                       <label class="form-label small text-muted fw-bold mb-1">Label</label>
@@ -1085,7 +1242,7 @@ const composer = {
                         </button>
                       </div>
                     </div>
-                  </div>`;
+                  </div > `;
 
                 // Drag Events for Components
                 card.addEventListener("dragstart", (e) => {
@@ -1126,7 +1283,7 @@ const composer = {
         }
 
         list.push({
-            id: `field_${Date.now()}`,
+            id: `field_${Date.now()} `,
             label: "New Field",
             type: "number",
             kind: "points",
@@ -1219,7 +1376,7 @@ const composer = {
         }
 
         const copy = JSON.parse(JSON.stringify(list[index]));
-        copy.id = `copy_${Date.now()}`;
+        copy.id = `copy_${Date.now()} `;
         copy.label += " (Copy)";
         list.splice(index + 1, 0, copy);
 
@@ -1245,7 +1402,7 @@ const composer = {
         this.activeGameId = contextId;
         const select = document.getElementById("presetSelect");
         select.innerHTML = this.presets.map(p =>
-            `<option value="${p.id}">${p.label}</option>`
+            `< option value = "${p.id}" > ${p.label}</option > `
         ).join("");
 
         new bootstrap.Modal(document.getElementById("presetModal")).show();
@@ -1260,7 +1417,7 @@ const composer = {
             if (!game) return;
 
             const copy = JSON.parse(JSON.stringify(preset));
-            copy.id = `preset_${Date.now()}`;
+            copy.id = `preset_${Date.now()} `;
 
             if (!game.scoring_model.inputs) game.scoring_model.inputs = [];
             game.scoring_model.inputs.push(copy);
@@ -1270,22 +1427,83 @@ const composer = {
         bootstrap.Modal.getInstance(document.getElementById("presetModal")).hide();
     },
 
-    renderPreview: function (id) {
-        const game = this.data.games.find(g => g.id === id);
+    renderScoringPreview: function (id) {
+        const game = this.data.games.find(g => g.id === (id || this.activeGameId));
         if (!game) return;
 
         const normalized = normalizeGameDefinition(game);
         const html = normalized.fields.map(f => generateFieldHTML(f)).join("");
 
-        const body = document.getElementById("previewModalBody");
-        const title = document.getElementById("previewModalTitle");
+        const modalBody = document.getElementById("previewModalBody");
+        const modalTitle = document.getElementById("previewModalTitle");
+        const dialog = document.getElementById("previewModalDialog");
 
-        if (body) body.innerHTML = html;
-        if (title) title.innerText = "Preview: " + (game.content.title || "Game");
+        if (dialog) dialog.style.maxWidth = '400px';
+
+        if (modalBody) modalBody.innerHTML = `< div class="p-2" > ${html}</div > `;
+        if (modalTitle) modalTitle.innerText = "Judge View: " + (game.game_title || "Game");
+
+        const printBtn = document.getElementById("previewPrintBtn");
+        if (printBtn) printBtn.classList.add("d-none"); // Hide print for scoring preview
 
         if (window.bootstrap) {
             new bootstrap.Modal(document.getElementById("previewModal")).show();
         }
+    },
+
+    renderGuidePreview: async function (id) {
+        const game = this.data.games.find(g => g.id === (id || this.activeGameId));
+        if (!game) return;
+
+        try {
+            // Fetch the template if not cached
+            if (!this._gameGuideTemplate) {
+                const res = await fetch('/templates/gameguide.md');
+                if (!res.ok) throw new Error("Could not fetch gameguide template");
+                this._gameGuideTemplate = await res.text();
+            }
+
+            // Compile with Handlebars
+            const template = Handlebars.compile(this._gameGuideTemplate);
+            const markdown = template(game);
+
+            // Convert to HTML with Marked
+            const html = marked.parse(markdown);
+
+            const modalBody = document.getElementById("previewModalBody");
+            const modalTitle = document.getElementById("previewModalTitle");
+            const dialog = document.getElementById("previewModalDialog");
+
+            if (dialog) dialog.style.maxWidth = 'min(95vw, 8.5in)';
+
+            if (modalBody) modalBody.innerHTML = html;
+            if (modalTitle) modalTitle.innerText = "Guide Preview: " + (game.game_title || "Game");
+
+            const printBtn = document.getElementById("previewPrintBtn");
+            if (printBtn) printBtn.classList.remove("d-none"); // Show print button
+
+            if (window.bootstrap) {
+                new bootstrap.Modal(document.getElementById("previewModal")).show();
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Error rendering preview: " + e.message);
+        }
+    },
+
+    printPreview: function () {
+        const originalContents = document.body.innerHTML;
+        const modalBody = document.getElementById('previewModalBody').innerHTML;
+
+        document.body.innerHTML = `
+    < div style = "padding: 20px; max-width: 800px; margin: 0 auto; font-family: sans-serif;" >
+        ${modalBody}
+            </div >
+    `;
+
+        window.print();
+        document.body.innerHTML = originalContents;
+        window.location.reload(); // Reload to restore proper event bindings
     },
 
     exportCamporee: function () {
@@ -1417,7 +1635,7 @@ const composer = {
             reader.onload = (evt) => {
                 try {
                     const game = JSON.parse(evt.target.result);
-                    game.id = `import_${Date.now()}`;
+                    game.id = `import_${Date.now()} `;
                     game.content.title += " (Imported)";
                     this.data.games.push(game);
                     this.normalizeGameSortOrders();
@@ -1447,13 +1665,13 @@ const composer = {
 
                     const listEl = document.getElementById("importList");
                     listEl.innerHTML = this.pendingImportGames.map((g, i) => `
-                        <label class="list-group-item d-flex gap-2">
-                            <input class="form-check-input flex-shrink-0" type="checkbox" value="${i}" checked>
-                            <span>
-                                <strong>${g.content?.title || g.id}</strong><br>
-                                <small class="text-muted">${g.type || "patrol"}</small>
-                            </span>
-                        </label>`).join("");
+    < label class="list-group-item d-flex gap-2" >
+        <input class="form-check-input flex-shrink-0" type="checkbox" value="${i}" checked>
+            <span>
+                <strong>${g.content?.title || g.id}</strong><br>
+                    <small class="text-muted">${g.type || "patrol"}</small>
+            </span>
+        </label>`).join("");
 
                     new bootstrap.Modal(document.getElementById("importModal")).show();
                 });
@@ -1467,7 +1685,7 @@ const composer = {
         checkboxes.forEach(cb => {
             const index = parseInt(cb.value);
             const game = JSON.parse(JSON.stringify(this.pendingImportGames[index]));
-            game.id = `import_${Date.now()}_${cb.value}`;
+            game.id = `import_${Date.now()}_${cb.value} `;
             this.data.games.push(game);
         });
 

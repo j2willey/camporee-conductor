@@ -9,7 +9,8 @@
     </title>
 
     <link rel="stylesheet" href="/css/bootstrap.min.css">
-    <!-- Custom CSS -->
+
+    <!-- Firebase SDKs -->
     <link rel="stylesheet" href="/css/conductor.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
@@ -37,94 +38,143 @@
         </div>
     </nav>
 
-    <div id="composer-layout">
-        <aside id="library-sidebar">
-            <div class="sidebar-header p-3 border-bottom">
-                <h5 class="mb-0"><i class="fas fa-book"></i> Game Library</h5>
+    <div id="composer-layout" class="d-flex w-100">
+        <!-- Sidebar Navigation -->
+        <aside class="bg-light border-end d-flex flex-column h-100" style="width: 320px; flex-shrink: 0;">
+            <div class="p-3 border-bottom bg-white">
+                <h5 class="mb-0 fw-bold">Camporee Instance</h5>
             </div>
-            <ul id="library-list" class="list-unstyled p-0 mb-0"></ul>
-            <div id="library-status" class="p-3 text-muted small text-center">Loading Library...</div>
-        </aside>
+            <div class="flex-grow-1 overflow-auto p-2" id="navAccordion">
 
-        <main id="composer-main-pane">
-            <div class="container-fluid py-3">
-                <ul class="nav nav-tabs" id="composerTabs" role="tablist">
-                    <li class="nav-item">
-                        <button class="nav-link active" id="meta-tab" data-bs-toggle="tab" data-bs-target="#meta-pane"
-                            type="button">1. Camporee Info</button>
-                    </li>
-                    <li class="nav-item">
-                        <button class="nav-link" id="patrol-tab" data-bs-toggle="tab" data-bs-target="#patrol-pane"
-                            type="button">2. Patrol Games</button>
-                    </li>
-                    <li class="nav-item">
-                        <button class="nav-link" id="troop-tab" data-bs-toggle="tab" data-bs-target="#troop-pane"
-                            type="button">3. Troop Events</button>
-                    </li>
-                    <li class="nav-item">
-                        <button class="nav-link" id="presets-tab" data-bs-toggle="tab" data-bs-target="#presets-pane"
-                            type="button">4. Presets</button>
-                    </li>
-                    <li class="nav-item">
-                        <button class="nav-link" id="editor-tab" data-bs-toggle="tab" data-bs-target="#editor-pane"
-                            type="button" disabled>Game Editor</button>
-                    </li>
-                </ul>
+                <button class="btn btn-light w-100 text-start fw-bold p-2 mb-1 nav-pane-btn active" id="btn-meta"
+                    onclick="composer.showPane('meta-pane', this)">
+                    <i class="fas fa-info-circle fa-fw text-primary me-2"></i> Camporee Info
+                </button>
 
-                <div class="tab-content p-3 border border-top-0 bg-white shadow-sm">
-
-                    <div class="tab-pane fade show active" id="meta-pane">
-                        <h4>Event Details</h4>
-                        <p class="text-muted">Define the global settings for this specific event.</p>
-                        <form id="metaForm">
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Camporee Title</label>
-                                    <input type="text" class="form-control" id="metaTitle"
-                                        placeholder="e.g. [District] Camporee 2026">
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Theme</label>
-                                    <input type="text" class="form-control" id="metaTheme"
-                                        placeholder="e.g. Space Odyssey">
-                                </div>
+                <!-- Patrol Games -->
+                <div class="accordion-item bg-transparent border-0 mb-1">
+                    <button
+                        class="btn btn-light w-100 text-start fw-bold p-2 nav-pane-btn d-flex align-items-center justify-content-between"
+                        type="button" data-bs-toggle="collapse" data-bs-target="#collapsePatrol" id="btn-patrol">
+                        <span><i class="fas fa-users fa-fw text-primary me-2"></i> Patrol Games</span>
+                        <span class="badge bg-secondary rounded-pill" id="patrolCount">0</span>
+                    </button>
+                    <div id="collapsePatrol" class="collapse show">
+                        <div class="p-2 pb-0 pt-1">
+                            <div class="d-flex gap-1 mb-2">
+                                <button class="btn btn-sm btn-primary flex-grow-1" onclick="composer.addGame('patrol')"
+                                    title="New Patrol Game"><i class="fas fa-plus"></i></button>
+                                <button class="btn btn-sm btn-outline-primary flex-grow-1"
+                                    onclick="window.bootstrap.Modal.getOrCreateInstance(document.getElementById('libraryModal')).show()"
+                                    title="Import from Library"><i class="fas fa-file-import"></i></button>
                             </div>
-                        </form>
-                    </div>
-
-                    <div class="tab-pane fade" id="patrol-pane">
-                        <div id="patrolList" class="list-group p-3"></div>
-                        <div class="p-3">
-                            <button class="btn btn-primary w-100" onclick="composer.addGame('patrol')">
-                                <i class="fas fa-plus-circle"></i> Add Patrol Game
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="tab-pane fade" id="troop-pane">
-                        <div id="troopList" class="list-group p-3"></div>
-                        <div class="p-3">
-                            <button class="btn btn-success w-100" onclick="composer.addGame('troop')">
-                                <i class="fas fa-calendar-plus"></i> Add Troop Event
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="tab-pane fade" id="presets-pane">
-                        <div id="presets-container" class="p-3"></div>
-                    </div>
-
-                    <div class="tab-pane fade" id="editor-pane">
-                        <div id="editor-container">
-                            <p class="text-muted">Select a game from the list to edit it.</p>
+                            <div id="patrolList" class="list-group list-group-flush small rounded border bg-white">
+                            </div>
                         </div>
                     </div>
                 </div>
+
+                <!-- Troop Events -->
+                <div class="accordion-item bg-transparent border-0 mb-1">
+                    <button
+                        class="btn btn-light w-100 text-start fw-bold p-2 nav-pane-btn d-flex align-items-center justify-content-between"
+                        type="button" data-bs-toggle="collapse" data-bs-target="#collapseTroop" id="btn-troop">
+                        <span><i class="fas fa-campground fa-fw text-primary me-2"></i> Troop Events</span>
+                        <span class="badge bg-secondary rounded-pill" id="troopCount">0</span>
+                    </button>
+                    <div id="collapseTroop" class="collapse show">
+                        <div class="p-2 pb-0 pt-1">
+                            <div class="d-flex gap-1 mb-2">
+                                <button class="btn btn-sm btn-success flex-grow-1" onclick="composer.addGame('troop')"
+                                    title="New Troop Event"><i class="fas fa-plus"></i></button>
+                                <button class="btn btn-sm btn-outline-success flex-grow-1"
+                                    onclick="window.bootstrap.Modal.getOrCreateInstance(document.getElementById('libraryModal')).show()"
+                                    title="Import from Library"><i class="fas fa-file-import"></i></button>
+                            </div>
+                            <div id="troopList" class="list-group list-group-flush small rounded border bg-white"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <button class="btn btn-light w-100 text-start fw-bold p-2 nav-pane-btn" id="btn-presets"
+                        onclick="composer.showPane('presets-pane', this)">
+                        <i class="fas fa-sliders-h fa-fw text-primary me-2"></i> Scoring Presets
+                    </button>
+                </div>
+
             </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main id="composer-main-pane" class="flex-grow-1 bg-white p-4 h-100 overflow-auto">
+
+            <div id="welcome-pane" class="text-center text-muted mt-5 d-none editor-pane">
+                <h2><i class="fas fa-campground mb-3 fa-2x"></i></h2>
+                <h4>Select an item from the left</h4>
+            </div>
+
+            <!-- Meta Pane -->
+            <div id="meta-pane" class="editor-pane">
+                <h4>Event Details</h4>
+                <p class="text-muted">Define the global settings for this specific event.</p>
+                <form id="metaForm">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Camporee Title</label>
+                            <input type="text" class="form-control" id="metaTitle"
+                                placeholder="e.g. [District] Camporee 2026">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Theme</label>
+                            <input type="text" class="form-control" id="metaTheme" placeholder="e.g. Space Odyssey">
+                        </div>
+                    </div>
+                    <div class="row mt-4">
+                        <div class="col-12 text-center">
+                            <button type="button" class="btn btn-outline-primary"
+                                onclick="window.bootstrap.Modal.getOrCreateInstance(document.getElementById('libraryModal')).show()">
+                                <i class="fas fa-book"></i> Browse Library
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div id="presets-pane" class="editor-pane d-none">
+                <div id="presets-container"></div>
+            </div>
+
+            <div id="editor-pane" class="editor-pane d-none">
+                <div id="editor-container">
+                    <p class="text-muted">Select a game from the list to edit it.</p>
+                </div>
+            </div>
+
         </main>
     </div>
+
+    <!-- Library Modal -->
+    <div class="modal fade" id="libraryModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title"><i class="fas fa-book"></i> Game Library</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <ul id="library-list" class="list-unstyled p-0 mb-0"></ul>
+                </div>
+                <div class="modal-footer justify-content-between bg-light">
+                    <div id="library-status" class="text-muted small">Loading Library...</div>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="modal fade" id="previewModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-dialog modal-dialog-scrollable" id="previewModalDialog">
             <div class="modal-content">
                 <div class="modal-header bg-light">
                     <h5 class="modal-title" id="previewModalTitle">Game Preview</h5>
@@ -133,6 +183,8 @@
                 <div class="modal-body" id="previewModalBody">
                 </div>
                 <div class="modal-footer">
+                    <button type="button" class="btn btn-primary d-none" id="previewPrintBtn"
+                        onclick="composer.printPreview()"><i class="fas fa-print"></i> Print</button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
@@ -142,6 +194,8 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js"></script>
 
     <script type="module" src="/js/apps/composer.js"></script>
 </body>
