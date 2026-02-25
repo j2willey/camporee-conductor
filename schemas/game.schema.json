@@ -14,7 +14,14 @@
     "properties": {
         "library_uuid": {
             "type": "string",
-            "format": "uuid"
+            "anyOf": [
+                {
+                    "format": "uuid"
+                },
+                {
+                    "maxLength": 0
+                }
+            ]
         },
         "library_title": {
             "type": "string",

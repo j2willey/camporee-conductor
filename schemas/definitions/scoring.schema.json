@@ -59,7 +59,8 @@
                             "points",
                             "penalty",
                             "metric",
-                            "info"
+                            "info",
+                            "entryname"
                         ],
                         "default": "points"
                     },

@@ -228,12 +228,13 @@ app.post('/api/camporee/:id', (req, res) => {
             });
 
             const gameFile = {
+                library_uuid: game.library_uuid || "",
+                library_title: game.library_title || "",
                 id: game.id,
                 type: game.type,
                 sortOrder: game.sortOrder,
-                schemaVersion: "2.9",
                 content: game.content,
-                scoring: game.scoring,
+                scoring_model: game.scoring_model,
                 bracketMode: game.bracketMode || false,
                 match_label: game.match_label || ''
             };
