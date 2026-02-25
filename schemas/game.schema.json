@@ -1,8 +1,8 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema#",
-    "$id": "https://localhost:3000/schemas/library-game.json",
-    "title": "Library Game Definition",
-    "description": "Defines a generic game concept in the Library, including variants.",
+    "$id": "https://localhost:3000/schemas/game.json",
+    "title": "Game Definition",
+    "description": "Defines a game concept. Can be used as a Library template (with variants) or an Active Camporee instance.",
     "type": "object",
     "required": [
         "library_uuid",

@@ -676,7 +676,7 @@ const curator = {
                 </div>
             </div>`,
             `<div class="modal fade" id="previewModal" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-scrollable">
+                <div class="modal-dialog modal-dialog-scrollable" style="max-width: min(95vw, 8.5in);">
                     <div class="modal-content">
                         <div class="modal-header bg-light">
                             <h5 class="modal-title" id="previewModalTitle">Game Preview</h5>
