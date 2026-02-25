@@ -763,13 +763,21 @@ const composer = {
                 <div class="card-header bg-light"><h5 class="mb-0">Game Metadata</h5></div>
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-md-8 mb-3">
-                            <label class="form-label">Title</label>
-                            <input type="text" class="form-control" id="gameTitle">
+                        <div class="col-12 mb-3">
+                            <label class="form-label">Library UUID</label>
+                            <input type="text" class="form-control bg-light" id="libraryId" value="${game.library_uuid || game.id || ""}" disabled readonly>
                         </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">ID</label>
-                            <input type="text" class="form-control" id="gameId" readonly>
+                    </div>
+                    <div class="row">
+                        <div class="col-12 mb-3">
+                            <label class="form-label" title="Original unthemed name in catalog">Library Title <i class="fas fa-info-circle text-muted"></i></label>
+                            <input type="text" class="form-control bg-light" id="libraryTitle" value="${game.library_title || ""}" disabled readonly>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12 mb-3">
+                            <label class="form-label" title="Themed display name for this instance">Game Title <i class="fas fa-info-circle text-muted"></i></label>
+                            <input type="text" class="form-control fw-bold" id="gameTitle">
                         </div>
                     </div>
                     <div class="row border-bottom mb-3 pb-3">
@@ -859,15 +867,14 @@ const composer = {
             </div>`;
 
         // Bind Inputs
-        ["gameTitle", "gameId", "gameStory", "gameInstructions", "gameMatchLabel"].forEach(fieldId => {
-            const key = fieldId === "gameId" ? "id" :
-                fieldId === "gameTitle" ? "title" :
-                    fieldId === "gameStory" ? "story" :
-                        fieldId === "gameMatchLabel" ? "match_label" : "instructions";
+        ["gameTitle", "gameStory", "gameInstructions", "gameMatchLabel"].forEach(fieldId => {
+            const key = fieldId === "gameTitle" ? "game_title" :
+                fieldId === "gameStory" ? "story" :
+                    fieldId === "gameMatchLabel" ? "match_label" : "instructions";
 
             const el = document.getElementById(fieldId);
             if (el) {
-                const val = (key === "id" || key === "match_label" ? game[key] : game.content[key]) || "";
+                const val = (key === "match_label" || key === "game_title" ? game[key] : game.content[key]) || "";
                 el.value = val;
                 el.oninput = (e) => this.updateGameField(key, e.target.value);
             }
@@ -911,6 +918,9 @@ const composer = {
             this.activeGameId = value;
         } else if (field === "match_label") {
             game.match_label = value;
+        } else if (field === "game_title") {
+            game.game_title = value;
+            if (game.content) game.content.title = value; // Keep legacy sync for now just in case
         } else if (field === "tags") {
             const tags = value.split(/[ ,]+/).map(t => t.trim()).filter(t => t.length > 0);
             if (!game.meta) game.meta = {};
@@ -921,7 +931,7 @@ const composer = {
             game.content[field] = value;
         }
 
-        if (field === "title" || field === "id") {
+        if (field === "game_title" || field === "title" || field === "id") {
             this.renderGameLists();
         }
     },
