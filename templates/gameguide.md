@@ -1,4 +1,4 @@
-# GAME:# {{game_title}}
+# {{game_title}}
 <span style="font-size: 0.8em; color: gray;">ID: {{id}} | Category: {{category}} | Type: {{type}}</span>
 
 ---
@@ -44,11 +44,17 @@
 > *Equipment and course layout for the Quartermaster/Setup team.*
 
 ### Supplies List
+{{#if content.logistics.supplies_text}}
+{{content.logistics.supplies_text}}
+
+{{/if}}
+{{#if content.logistics.supplies}}
 | Item | Quantity | Source |
 | :--- | :--- | :--- |
 {{#each content.logistics.supplies}}
 | {{item}} | {{qty}} | {{source}} |
 {{/each}}
+{{/if}}
 
 ### Station Setup & Staffing
 * **Staffing:** {{content.logistics.staffing}}

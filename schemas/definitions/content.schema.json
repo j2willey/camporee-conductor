@@ -45,10 +45,18 @@
                 "reset": {
                     "type": "string"
                 },
+                "supplies_text": {
+                    "type": "string",
+                    "description": "Unstructured text representation of supplies needed"
+                },
                 "supplies": {
                     "type": "array",
                     "items": {
                         "type": "object",
+                        "required": [
+                            "item",
+                            "qty"
+                        ],
                         "properties": {
                             "item": {
                                 "type": "string"

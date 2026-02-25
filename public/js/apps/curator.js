@@ -436,11 +436,11 @@ const curator = {
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label">Legend (Thematic Story)</label>
-                                        <textarea class="form-control" rows="3" id="gameLegend" placeholder="Read this to the patrol...">${data.content.legend || ""}</textarea>
+                                        <textarea class="form-control" rows="6" id="gameLegend" placeholder="Read this to the patrol...">${data.content.legend || ""}</textarea>
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label">Briefing (Instructions)</label>
-                                        <textarea class="form-control" rows="4" id="gameBriefing" placeholder="Specific instructions...">${data.content.briefing || ""}</textarea>
+                                        <textarea class="form-control" rows="6" id="gameBriefing" placeholder="Specific instructions...">${data.content.briefing || ""}</textarea>
                                     </div>
                                 </div>
                             </div>
@@ -472,11 +472,11 @@ const curator = {
                                 <div class="accordion-body bg-light pb-1">
                                     <div class="mb-3">
                                         <label class="form-label">Scoring Overview (Text)</label>
-                                        <textarea class="form-control" rows="2" id="gameScoringOverview" placeholder="General explanation...">${data.content.scoring_overview || ""}</textarea>
+                                        <textarea class="form-control" rows="6" id="gameScoringOverview" placeholder="General explanation...">${data.content.scoring_overview || ""}</textarea>
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label">Judging Notes (Tips)</label>
-                                        <textarea class="form-control" rows="2" id="gameJudgingNotes" placeholder="Tips for the judge...">${data.content.judging_notes || ""}</textarea>
+                                        <textarea class="form-control" rows="6" id="gameJudgingNotes" placeholder="Tips for the judge...">${data.content.judging_notes || ""}</textarea>
                                     </div>
                                 </div>
                             </div>
@@ -490,22 +490,24 @@ const curator = {
                             </h2>
                             <div id="collapseLogistics" class="accordion-collapse collapse" data-bs-parent="#gameGuideAccordion">
                                 <div class="accordion-body bg-light pb-1">
-                                    <div class="row">
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label">Staffing Requirements</label>
-                                            <textarea class="form-control" rows="2" id="gameStaffing">${data.content.logistics.staffing || ""}</textarea>
-                                        </div>
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label">Reset Instructions</label>
-                                            <textarea class="form-control" rows="2" id="gameReset">${data.content.logistics.reset || ""}</textarea>
-                                        </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Staffing Requirements</label>
+                                        <textarea class="form-control" rows="6" id="gameStaffing">${data.content.logistics.staffing || ""}</textarea>
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label">Setup Instructions</label>
-                                        <textarea class="form-control" rows="3" id="gameSetup">${data.content.logistics.setup || ""}</textarea>
+                                        <textarea class="form-control" rows="6" id="gameSetup">${data.content.logistics.setup || ""}</textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Reset Instructions</label>
+                                        <textarea class="form-control" rows="6" id="gameReset">${data.content.logistics.reset || ""}</textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Supplies Needed (Text)</label>
+                                        <textarea class="form-control" rows="6" id="gameSuppliesText" placeholder="List of supplies...">${data.content.logistics.supplies_text || ""}</textarea>
                                     </div>
                                     <hr>
-                                    <label class="form-label fw-bold">Supplies</label>
+                                    <label class="form-label fw-bold">Itemized Supplies</label>
                                     <div class="alert alert-warning small">TODO: Implement structured supply list editor. For now, this is read-only in this view.</div>
                                 </div>
                             </div>
@@ -592,8 +594,9 @@ const curator = {
 
         // Logistics bindings
         document.getElementById("gameStaffing").oninput = (e) => { this.data.content.logistics.staffing = e.target.value; this.updateSaveButton(); };
-        document.getElementById("gameReset").oninput = (e) => { this.data.content.logistics.reset = e.target.value; this.updateSaveButton(); };
         document.getElementById("gameSetup").oninput = (e) => { this.data.content.logistics.setup = e.target.value; this.updateSaveButton(); };
+        document.getElementById("gameReset").oninput = (e) => { this.data.content.logistics.reset = e.target.value; this.updateSaveButton(); };
+        document.getElementById("gameSuppliesText").oninput = (e) => { this.data.content.logistics.supplies_text = e.target.value; this.updateSaveButton(); };
 
         this.renderScoringInputs(data.scoring_model.inputs, "game");
         this.renderListEditor('rules', data.content.rules);
