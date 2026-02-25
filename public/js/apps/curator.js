@@ -582,9 +582,14 @@ const curator = {
                 if (previewBtn) {
                     if (event.target.id === 'meta-tab') {
                         previewBtn.classList.add('d-none');
-                        // document.getElementById("preview-container").classList.add('d-none'); // Hide preview if open
+                    } else if (event.target.id === 'scoring-tab') {
+                        previewBtn.classList.remove('d-none');
+                        previewBtn.innerHTML = '<i class="fas fa-mobile-alt"></i> Judge View';
+                        previewBtn.onclick = () => curator.renderScoringPreview();
                     } else {
                         previewBtn.classList.remove('d-none');
+                        previewBtn.innerHTML = '<i class="fas fa-eye"></i> Preview Guide';
+                        previewBtn.onclick = () => curator.renderGuidePreview();
                     }
                 }
             });
@@ -676,7 +681,7 @@ const curator = {
                 </div>
             </div>`,
             `<div class="modal fade" id="previewModal" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-scrollable" style="max-width: min(95vw, 8.5in);">
+                <div class="modal-dialog modal-dialog-scrollable" id="previewModalDialog" style="max-width: min(95vw, 8.5in);">
                     <div class="modal-content">
                         <div class="modal-header bg-light">
                             <h5 class="modal-title" id="previewModalTitle">Game Preview</h5>
@@ -948,9 +953,12 @@ const curator = {
 
         const modalBody = document.getElementById("previewModalBody");
         const modalTitle = document.getElementById("previewModalTitle");
+        const dialog = document.getElementById("previewModalDialog");
 
-        if (modalBody) modalBody.innerHTML = html;
-        if (modalTitle) modalTitle.innerText = "Scoring Preview: " + (this.data.game_title || "Game");
+        if (dialog) dialog.style.maxWidth = '400px';
+
+        if (modalBody) modalBody.innerHTML = `<div class="p-2">${html}</div>`;
+        if (modalTitle) modalTitle.innerText = "Judge View: " + (this.data.game_title || "Game");
 
         const printBtn = document.getElementById("previewPrintBtn");
         if (printBtn) printBtn.classList.add("d-none"); // Hide print for scoring preview
@@ -979,6 +987,9 @@ const curator = {
 
             const modalBody = document.getElementById("previewModalBody");
             const modalTitle = document.getElementById("previewModalTitle");
+            const dialog = document.getElementById("previewModalDialog");
+
+            if (dialog) dialog.style.maxWidth = 'min(95vw, 8.5in)';
 
             if (modalBody) modalBody.innerHTML = html;
             if (modalTitle) modalTitle.innerText = "Guide Preview: " + (this.data.game_title || "Game");
