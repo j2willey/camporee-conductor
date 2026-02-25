@@ -81,32 +81,16 @@
 
                 <!-- Curator doesn't need tabs, just the editor -->
                 <div class="card shadow-sm">
-                    <div class="card-header bg-white">
-                        <ul class="nav nav-tabs card-header-tabs" id="curatorTabs" role="tablist">
-                            <li class="nav-item">
-                                <button class="nav-link active" id="editor-tab" data-bs-toggle="tab"
-                                    data-bs-target="#editor-pane" type="button">Template Editor</button>
-                            </li>
-                            <li class="nav-item">
-                                <button class="nav-link" id="preview-tab" data-bs-toggle="tab"
-                                    data-bs-target="#preview-pane" type="button">Live Preview</button>
-                            </li>
-                        </ul>
-                    </div>
                     <div class="card-body p-0">
-                        <div class="tab-content">
-                            <div class="tab-pane fade show active p-3" id="editor-pane">
-                                <div id="editor-container">
-                                    <div class="text-center py-5 text-muted">
-                                        <i class="fas fa-arrow-left fa-3x mb-3"></i>
-                                        <p>Select a template from the library to edit, or create a new one.</p>
-                                    </div>
+                        <div class="p-3">
+                            <div id="editor-container">
+                                <div class="text-center py-5 text-muted">
+                                    <i class="fas fa-arrow-left fa-3x mb-3"></i>
+                                    <p>Select a template from the library to edit, or create a new one.</p>
                                 </div>
                             </div>
-                            <div class="tab-pane fade p-3" id="preview-pane">
-                                <div id="preview-container" class="border p-4 rounded bg-light">
-                                    <p class="text-center text-muted">Select a template to preview.</p>
-                                </div>
+                            <div id="preview-container" class="mt-4 pt-4 border-top d-none">
+                                <p class="text-center text-muted">Select a template to preview.</p>
                             </div>
                         </div>
                     </div>

@@ -348,9 +348,12 @@ const curator = {
                 <h4 class="mb-0">
                     <i class="fas fa-edit"></i> <span id="headerTitle">${data.library_title || "New Template"}</span>
                 </h4>
-                <div>
-                     <button class="btn btn-success" id="saveTemplateBtn" onclick="curator.saveTemplate()" disabled>
+                <div class="d-flex flex-column align-items-end gap-2">
+                     <button class="btn btn-success w-100" id="saveTemplateBtn" onclick="curator.saveTemplate()" disabled>
                         <i class="fas fa-save"></i> Save Game
+                     </button>
+                     <button class="btn btn-outline-primary btn-sm w-100 d-none" id="previewBtnTop" onclick="curator.renderPreview()">
+                         <i class="fas fa-eye"></i> Preview Guide
                      </button>
                 </div>
             </div>
@@ -365,9 +368,6 @@ const curator = {
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="scoring-tab" data-bs-toggle="tab" data-bs-target="#scoring" type="button" role="tab">Scoring</button>
                 </li>
-                <li class="nav-item" role="presentation">
-                     <button class="nav-link" id="logistics-tab" data-bs-toggle="tab" data-bs-target="#logistics" type="button" role="tab">Logistics</button>
-                </li>
             </ul>
 
             <div class="tab-content" id="editorTabsContent">
@@ -377,7 +377,7 @@ const curator = {
                         <div class="card-body">
                             <div class="row">
                                 <div class="col-md-4 mb-3">
-                                    <label class="form-label">Game ID (e.g. p10)</label>
+                                    <label class="form-label">Game UUID</label>
                                     <input type="text" class="form-control" id="gameId" value="${data.id || ""}">
                                 </div>
                                 <div class="col-md-4 mb-3">
@@ -386,7 +386,7 @@ const curator = {
                                 </div>
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label" title="Themed display name for this instance">Game Title <i class="fas fa-info-circle text-muted"></i></label>
-                                    <input type="text" class="form-control fw-bold" id="gameTitle" value="${data.game_title || ""}">
+                                    <input type="text" class="form-control fw-bold bg-light" id="gameTitle" value="${data.game_title || ""}" disabled readonly>
                                 </div>
                             </div>
                             <div class="row">
@@ -421,58 +421,107 @@ const curator = {
 
                 <!-- GAME GUIDE TAB (Content) -->
                 <div class="tab-pane fade" id="content" role="tabpanel">
-                     <div class="card">
-                        <div class="card-body">
-                            <div class="mb-3">
-                                <label class="form-label">Quest (Objective)</label>
-                                <input type="text" class="form-control" id="gameQuest" placeholder="e.g. Boil water within 10 minutes" value="${data.content.quest || ""}">
+                     <div class="accordion accordion-flush border rounded mb-3" id="gameGuideAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingNarrative">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseNarrative">
+                                    <i class="fas fa-fw fa-book-open me-2 text-primary"></i> Narrative & Lore
+                                </button>
+                            </h2>
+                            <div id="collapseNarrative" class="accordion-collapse collapse show" data-bs-parent="#gameGuideAccordion">
+                                <div class="accordion-body bg-light pb-1">
+                                    <div class="mb-3">
+                                        <label class="form-label">Quest (Objective)</label>
+                                        <input type="text" class="form-control" id="gameQuest" placeholder="e.g. Boil water within 10 minutes" value="${data.content.quest || ""}">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Legend (Thematic Story)</label>
+                                        <textarea class="form-control" rows="3" id="gameLegend" placeholder="Read this to the patrol...">${data.content.legend || ""}</textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Briefing (Instructions)</label>
+                                        <textarea class="form-control" rows="4" id="gameBriefing" placeholder="Specific instructions...">${data.content.briefing || ""}</textarea>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label">Legend (Thematic Story)</label>
-                                <textarea class="form-control" rows="3" id="gameLegend" placeholder="Read this to the patrol...">${data.content.legend || ""}</textarea>
+                        </div>
+
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingRules">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseRules">
+                                    <i class="fas fa-fw fa-gavel me-2 text-primary"></i> Rules
+                                </button>
+                            </h2>
+                            <div id="collapseRules" class="accordion-collapse collapse" data-bs-parent="#gameGuideAccordion">
+                                <div class="accordion-body bg-light pb-1">
+                                    <div id="rules-editor" class="list-editor mb-2"></div>
+                                    <button class="btn btn-sm btn-outline-secondary mb-3" onclick="curator.addListItem('rules')">
+                                        <i class="fas fa-plus"></i> Add Rule
+                                    </button>
+                                </div>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label">Briefing (Instructions)</label>
-                                <textarea class="form-control" rows="4" id="gameBriefing" placeholder="Specific instructions...">${data.content.briefing || ""}</textarea>
+                        </div>
+
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingJudging">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseJudging">
+                                    <i class="fas fa-fw fa-clipboard-check me-2 text-primary"></i> Scoring Notes & Criteria
+                                </button>
+                            </h2>
+                            <div id="collapseJudging" class="accordion-collapse collapse" data-bs-parent="#gameGuideAccordion">
+                                <div class="accordion-body bg-light pb-1">
+                                    <div class="mb-3">
+                                        <label class="form-label">Scoring Overview (Text)</label>
+                                        <textarea class="form-control" rows="2" id="gameScoringOverview" placeholder="General explanation...">${data.content.scoring_overview || ""}</textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Judging Notes (Tips)</label>
+                                        <textarea class="form-control" rows="2" id="gameJudgingNotes" placeholder="Tips for the judge...">${data.content.judging_notes || ""}</textarea>
+                                    </div>
+                                </div>
                             </div>
-                            
-                            <hr>
-                            <label class="form-label fw-bold">Rules</label>
-                            <div id="rules-editor" class="list-editor mb-2"></div>
-                            <button class="btn btn-sm btn-outline-secondary" onclick="curator.addListItem('rules')">
-                                <i class="fas fa-plus"></i> Add Rule
-                            </button>
+                        </div>
+
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingLogistics">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseLogistics">
+                                    <i class="fas fa-fw fa-boxes me-2 text-primary"></i> Logistics & Setup
+                                </button>
+                            </h2>
+                            <div id="collapseLogistics" class="accordion-collapse collapse" data-bs-parent="#gameGuideAccordion">
+                                <div class="accordion-body bg-light pb-1">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Staffing Requirements</label>
+                                            <textarea class="form-control" rows="2" id="gameStaffing">${data.content.logistics.staffing || ""}</textarea>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Reset Instructions</label>
+                                            <textarea class="form-control" rows="2" id="gameReset">${data.content.logistics.reset || ""}</textarea>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Setup Instructions</label>
+                                        <textarea class="form-control" rows="3" id="gameSetup">${data.content.logistics.setup || ""}</textarea>
+                                    </div>
+                                    <hr>
+                                    <label class="form-label fw-bold">Supplies</label>
+                                    <div class="alert alert-warning small">TODO: Implement structured supply list editor. For now, this is read-only in this view.</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- SCORING TAB -->
                 <div class="tab-pane fade" id="scoring" role="tabpanel">
-                    <div class="card mb-3">
-                        <div class="card-body">
-                             <div class="mb-3">
-                                <label class="form-label">Scoring Overview (Text)</label>
-                                <textarea class="form-control" rows="2" id="gameScoringOverview" placeholder="General explanation...">${data.content.scoring_overview || ""}</textarea>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Judging Notes (Tips)</label>
-                                <textarea class="form-control" rows="2" id="gameJudgingNotes" placeholder="Tips for the judge...">${data.content.judging_notes || ""}</textarea>
-                            </div>
-                        </div>
-                    </div>
-
                     <div class="card">
                         <div class="card-header bg-light d-flex justify-content-between align-items-center">
                             <h5 class="mb-0">Scoring Model</h5>
-                            <div class="d-flex align-items-center gap-3">
-                                <select class="form-select form-select-sm d-inline-block w-auto" id="gameScoringMethod">
-                                    <option value="points_desc" ${data.scoring_model.method === 'points_desc' ? 'selected' : ''}>Highest Points</option>
-                                    <option value="timed_asc" ${data.scoring_model.method === 'timed_asc' ? 'selected' : ''}>Lowest Time</option>
-                                </select>
-                                <button class="btn btn-sm btn-outline-secondary" onclick="curator.renderPreview()">
-                                    <i class="fas fa-eye"></i> Preview
-                                </button>
-                            </div>
+                            <select class="form-select form-select-sm d-inline-block w-auto" id="gameScoringMethod">
+                                <option value="points_desc" ${data.scoring_model.method === 'points_desc' ? 'selected' : ''}>Highest Points</option>
+                                <option value="timed_asc" ${data.scoring_model.method === 'timed_asc' ? 'selected' : ''}>Lowest Time</option>
+                            </select>
                         </div>
                         <div class="card-body bg-light">
                             <div id="scoring-editor" class="d-flex flex-column gap-3"></div>
@@ -489,46 +538,21 @@ const curator = {
                         </div>
                     </div>
                 </div>
-
-                <!-- LOGISTICS TAB -->
-                 <div class="tab-pane fade" id="logistics" role="tabpanel">
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Staffing Requirements</label>
-                                    <textarea class="form-control" rows="2" id="gameStaffing">${data.content.logistics.staffing || ""}</textarea>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Reset Instructions</label>
-                                    <textarea class="form-control" rows="2" id="gameReset">${data.content.logistics.reset || ""}</textarea>
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Setup Instructions</label>
-                                <textarea class="form-control" rows="3" id="gameSetup">${data.content.logistics.setup || ""}</textarea>
-                            </div>
-                            <hr>
-                            <label class="form-label fw-bold">Supplies</label>
-                            <div class="alert alert-warning small">TODO: Implement structured supply list editor. For now, this is read-only in this view.</div>
-                            <!-- Placeholder for supply list editor -->
-                        </div>
-                    </div>
-                 </div>
             </div>
         `;
 
         // Bind events
         document.getElementById("gameId").oninput = (e) => { this.data.id = e.target.value; this.updateSaveButton(); };
         document.getElementById("libraryTitle").oninput = (e) => {
-            this.data.title = e.target.value;
-            document.getElementById("headerTitle").innerText = e.target.value || "New Template";
+            const val = e.target.value;
+            this.data.library_title = val;
+            this.data.game_title = val; // Mirror changes to Game Title
+            document.getElementById("gameTitle").value = val;
+            document.getElementById("headerTitle").innerText = val || "New Template";
             this.updateSaveButton();
         };
-        document.getElementById("gameTitle").oninput = (e) => {
-            this.data.game_title = e.target.value;
-            this.updateSaveButton();
-        };
+        // gameTitle is now disabled, no need for oninput
+
 
         document.getElementById("gameType").onchange = (e) => { this.data.type = e.target.value; this.updateSaveButton(); };
         document.getElementById("gameCategory").oninput = (e) => { this.data.category = e.target.value; this.updateSaveButton(); };
@@ -542,6 +566,22 @@ const curator = {
             this.data.scoring_model.method = e.target.value;
             this.updateSaveButton();
         };
+
+        // UI Tabs toggle for preview button
+        const triggerTabs = document.querySelectorAll('#editorTabs button[data-bs-toggle="tab"]');
+        triggerTabs.forEach(tab => {
+            tab.addEventListener('shown.bs.tab', (event) => {
+                const previewBtn = document.getElementById("previewBtnTop");
+                if (previewBtn) {
+                    if (event.target.id === 'meta-tab') {
+                        previewBtn.classList.add('d-none');
+                        // document.getElementById("preview-container").classList.add('d-none'); // Hide preview if open
+                    } else {
+                        previewBtn.classList.remove('d-none');
+                    }
+                }
+            });
+        });
 
         // Content bindings
         document.getElementById("gameQuest").oninput = (e) => { this.data.content.quest = e.target.value; this.updateSaveButton(); };
@@ -901,15 +941,10 @@ const curator = {
         const modalTitle = document.getElementById("previewModalTitle");
 
         if (modalBody) modalBody.innerHTML = html;
-        if (modalTitle) modalTitle.innerText = "Preview: " + (this.data.content.title || "Game");
+        if (modalTitle) modalTitle.innerText = "Preview: " + (this.data.game_title || "Game");
 
         if (window.bootstrap) {
             new bootstrap.Modal(document.getElementById("previewModal")).show();
-        }
-
-        const container = document.getElementById("preview-container");
-        if (container && container.offsetParent !== null) {
-            container.innerHTML = `<div class="card p-3">${html}</div>`;
         }
     }
 };
