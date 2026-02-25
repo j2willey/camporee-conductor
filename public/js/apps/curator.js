@@ -965,7 +965,7 @@ const curator = {
         try {
             // Fetch the template if not cached
             if (!this._gameGuideTemplate) {
-                const res = await fetch('/api/template/gameguide');
+                const res = await fetch('/templates/gameguide.md');
                 if (!res.ok) throw new Error("Could not fetch gameguide template");
                 this._gameGuideTemplate = await res.text();
             }

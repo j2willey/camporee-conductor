@@ -62,15 +62,7 @@ app.get('/api/status', (req, res) => {
 });
 
 /**
- * 2. GET GAMEGUIDE TEMPLATE
- * Used by the client to render markdown previews using Handlebars.
- */
-app.get('/api/template/gameguide', (req, res) => {
-    res.sendFile(path.join(__dirname, 'templates', 'gameguide.md'));
-});
-
-/**
- * 3. LIST CAMPOREES
+ * 2. LIST CAMPOREES
  * Scans the /camporees/ directory for valid projects.
  */
 app.get('/api/camporees', (req, res) => {
