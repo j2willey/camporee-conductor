@@ -270,7 +270,7 @@ async function toggleGameStatus(gameId, isFinal) {
     refreshCurrentView(); // Re-render to update badges/labels
 
     try {
-        await fetch('/api/admin/game-status', {
+        await fetch(window.API_BASE + '/api/admin/game-status', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ game_id: gameId, status })
@@ -959,7 +959,7 @@ async function updateEntityField(entityId, fieldId, value) {
     entity[fieldId] = value;
 
     try {
-        const response = await fetch('/api/entities/' + entityId, {
+        const response = await fetch(window.API_BASE + '/api/entities/' + entityId, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ [fieldId]: value })

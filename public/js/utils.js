@@ -77,7 +77,7 @@ function setupNavigation() {
 
     if (exportRawBtn) {
         // Raw Export: Database Dump (All Scores) - distinct from Awards CSV
-        exportRawBtn.onclick = () => window.location.href = '/api/export';
+        exportRawBtn.onclick = () => window.location.href = window.API_BASE + '/api/export';
     }
 
     if (clearScoresBtn) {
@@ -86,7 +86,7 @@ function setupNavigation() {
                 const check = prompt("Type 'SCORES' to confirm:");
                 if (check === 'SCORES') {
                     try {
-                        const res = await fetch('/api/admin/scores', { method: 'DELETE' });
+                        const res = await fetch(window.API_BASE + '/api/admin/scores', { method: 'DELETE' });
                         if (res.ok) {
                             localStorage.clear(); // Purge cache on this device
                             alert('Scores cleared.');
@@ -108,7 +108,7 @@ function setupNavigation() {
                 const check = prompt("Type 'RESET' to confirm:");
                 if (check === 'RESET') {
                     try {
-                        const res = await fetch('/api/admin/full-reset', { method: 'DELETE' });
+                        const res = await fetch(window.API_BASE + '/api/admin/full-reset', { method: 'DELETE' });
                         if (res.ok) {
                             localStorage.clear(); // Purge cache on this device
                             alert('Database has been fully reset.');
@@ -795,7 +795,7 @@ async function saveAwardsConfig() {
     };
 
     try {
-        await fetch('/api/admin/awards-config', {
+        await fetch(window.API_BASE + '/api/admin/awards-config', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ awards_config: config })

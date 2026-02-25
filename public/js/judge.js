@@ -1906,7 +1906,7 @@ async function refreshData() {
         }
 
         // 2. Fetch Entities
-        const eRes = await fetch('/api/entities?t=' + ts).catch(() => ({ ok: false }));
+        const eRes = await fetch(window.API_BASE + '/api/entities?t=' + ts).catch(() => ({ ok: false }));
         if (eRes.ok) {
             state.entities = await eRes.json();
             localStorage.setItem('camporee_entities', JSON.stringify(state.entities));
@@ -1967,7 +1967,7 @@ async function promptNewEntity(type) {
     const n = prompt(`Name for new ${type}:`); if(!n) return;
     const t = prompt("Troop Number:"); if(!t) return;
     try {
-        const r = await fetch('/api/entities', { method: 'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:n, type, troop_number:t}) });
+        const r = await fetch(window.API_BASE + '/api/entities', { method: 'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:n, type, troop_number:t}) });
         if(r.ok) {
             // SAFE PARSING: Chrome forgives empty JSON, Safari throws.
             if (r.status !== 204) {

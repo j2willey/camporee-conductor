@@ -300,7 +300,7 @@ async function addEntity(parentId) {
     };
 
     try {
-        const res = await fetch('/api/entities', {
+        const res = await fetch(window.API_BASE + '/api/entities', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -332,7 +332,7 @@ async function renderJudgesView() {
     container.innerHTML = '<p class="text-muted">Loading judges...</p>';
 
     try {
-        const res = await fetch('/api/admin/judges');
+        const res = await fetch(window.API_BASE + '/api/admin/judges');
         if (!res.ok) throw new Error('Failed to load judges');
         const judges = await res.json();
 
@@ -413,7 +413,7 @@ async function updateEntityField(entityId, fieldId, value) {
     entity[fieldId] = value;
 
     try {
-        const response = await fetch('/api/entities/' + entityId, {
+        const response = await fetch(window.API_BASE + '/api/entities/' + entityId, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ [fieldId]: value })

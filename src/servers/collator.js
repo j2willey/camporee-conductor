@@ -1,0 +1,847 @@
+import express from 'express';
+import Database from 'better-sqlite3';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs';
+import multer from 'multer';
+import AdmZip from 'adm-zip';
+import dotenv from 'dotenv';
+import { normalizeGameDefinition } from '../../public/js/core/schema.js';
+
+dotenv.config();
+
+// --- CONFIGURATION & PATHS ---
+const __filename = fileURLToPath(import.meta.url);
+// Since this file is in src/servers/, we need to go up one level to reach the project root
+const __dirname = path.join(path.dirname(__filename), '..', '..');
+const app = express();
+const PORT = 3000;
+
+// Directory Structure
+const DATA_DIR = path.join(__dirname, 'data');
+const ACTIVE_DIR = process.env.EVENT_PATH || path.join(__dirname, 'data', 'active-event');
+const ARCHIVE_DIR = path.join(__dirname, 'data', 'archive');
+const UPLOAD_TEMP = path.join(__dirname, 'temp_uploads');
+const LIBRARY_PATH = process.env.LIBRARY_PATH || path.join(__dirname, 'data', 'library');
+
+// Ensure all directories exist
+[DATA_DIR, ACTIVE_DIR, ARCHIVE_DIR, UPLOAD_TEMP].forEach(dir => {
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+    }
+});
+
+// Setup Upload handling
+const upload = multer({ dest: UPLOAD_TEMP });
+
+// --- DATABASE SETUP ---
+const db = new Database(path.join(DATA_DIR, 'camporee.db'));
+
+// Initialize Tables
+db.exec(`
+  CREATE TABLE IF NOT EXISTS entities (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    type TEXT CHECK(type IN ('patrol', 'troop')) NOT NULL,
+    troop_number TEXT NOT NULL,
+    parent_id TEXT,
+    manual_rank TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS judges (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    unit TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS scores (
+    uuid TEXT PRIMARY KEY,
+    game_id TEXT NOT NULL,
+    entity_id TEXT NOT NULL,
+    score_payload TEXT NOT NULL,
+    timestamp INTEGER NOT NULL,
+    judge_id INTEGER,
+    FOREIGN KEY(entity_id) REFERENCES entities(id),
+    FOREIGN KEY(judge_id) REFERENCES judges(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS game_status (
+    game_id TEXT PRIMARY KEY,
+    status TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS Matches (
+    id TEXT PRIMARY KEY,
+    tournament_id TEXT NOT NULL,
+    round_num INTEGER NOT NULL,
+    match_num INTEGER NOT NULL,
+    next_match_win_id TEXT,
+    next_match_lose_id TEXT,
+    status TEXT,
+    FOREIGN KEY(tournament_id) REFERENCES game_status(game_id)
+  );
+
+  CREATE TABLE IF NOT EXISTS Match_Participants (
+    match_id TEXT NOT NULL,
+    entity_id TEXT NOT NULL,
+    slot_index INTEGER,
+    score_value REAL,
+    time_value REAL,
+    PRIMARY KEY (match_id, entity_id),
+    FOREIGN KEY(match_id) REFERENCES Matches(id),
+    FOREIGN KEY(entity_id) REFERENCES entities(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS Event_Standings (
+    tournament_id TEXT NOT NULL,
+    entity_id TEXT NOT NULL,
+    computed_rank INTEGER,
+    official_rank INTEGER,
+    status TEXT,
+    secondary_metric REAL,
+    PRIMARY KEY (tournament_id, entity_id),
+    FOREIGN KEY(tournament_id) REFERENCES game_status(game_id),
+    FOREIGN KEY(entity_id) REFERENCES entities(id)
+  );
+`);
+
+// --- MIGRATIONS ---
+try {
+    db.exec("ALTER TABLE entities ADD COLUMN parent_id TEXT");
+} catch (e) {
+    // Column likely exists, ignore
+}
+
+try {
+    db.exec("ALTER TABLE entities ADD COLUMN manual_rank TEXT");
+} catch (e) {
+    // Column likely exists, ignore
+}
+
+// [Bracket Update] We drop the DB constraint so we can manage duplicates in Code
+try {
+    db.exec("DROP INDEX IF EXISTS idx_game_entity");
+} catch (e) {
+    console.log("Index already removed");
+}
+
+// --- HELPER FUNCTIONS ---
+
+function timeToSeconds(val) {
+    if (!val) return null;
+    if (typeof val === 'number') return val;
+    if (typeof val === 'string' && val.includes(':')) {
+        const [m, s] = val.split(':').map(Number);
+        return (m * 60) + s;
+    }
+    const n = parseFloat(val);
+    return isNaN(n) ? null : n;
+}
+
+/**
+ * Update Event_Standings for a given tournament (game_id)
+ */
+function updateStandings(tournamentId) {
+    const allGames = loadCamporeeData().games;
+    const gameDef = allGames.find(g => g.id === tournamentId);
+    if (!gameDef) return;
+
+    const isTimePriority = (gameDef.fields || []).some(f => f.type === 'timed' || f.type === 'stopwatch');
+
+    // Get all unique entities involved in this tournament
+    const entities = db.prepare(`
+        SELECT DISTINCT entity_id FROM Match_Participants
+        WHERE match_id IN (SELECT id FROM Matches WHERE tournament_id = ?)
+    `).all(tournamentId);
+
+    for (const { entity_id } of entities) {
+        const stats = db.prepare(`
+            SELECT AVG(score_value) as avg_score, MIN(time_value) as min_time, AVG(time_value) as avg_time
+            FROM Match_Participants
+            WHERE entity_id = ? AND match_id IN (SELECT id FROM Matches WHERE tournament_id = ?)
+        `).get(entity_id, tournamentId);
+
+        const secondary_metric = isTimePriority ? (stats.min_time || stats.avg_time) : stats.avg_score;
+
+        db.prepare(`
+            INSERT INTO Event_Standings (tournament_id, entity_id, secondary_metric)
+            VALUES (?, ?, ?)
+            ON CONFLICT(tournament_id, entity_id) DO UPDATE SET
+                secondary_metric = excluded.secondary_metric
+        `).run(tournamentId, entity_id, secondary_metric);
+    }
+}
+
+function getActiveMeta() {
+    const metaPath = path.join(ACTIVE_DIR, 'camporee.json');
+    if (!fs.existsSync(metaPath)) return null;
+    try {
+        return JSON.parse(fs.readFileSync(metaPath, 'utf8')).meta;
+    } catch (e) {
+        return null;
+    }
+}
+
+function archiveDatabase() {
+    const dbFile = path.join(DATA_DIR, 'camporee.db');
+    if (fs.existsSync(dbFile)) {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const backupName = `camporee_backup_${timestamp}.db`;
+
+        fs.copyFileSync(dbFile, path.join(ARCHIVE_DIR, backupName));
+
+        // Clear active tables to "reset" the event
+        db.exec("DELETE FROM scores; DELETE FROM judges; DELETE FROM game_status;");
+        console.log(`[System] Archived DB to ${backupName} and cleared active tables.`);
+    }
+}
+
+function installCartridge(zipPath) {
+    // 1. Wipe Active Directory
+    fs.rmSync(ACTIVE_DIR, { recursive: true, force: true });
+    fs.mkdirSync(ACTIVE_DIR, { recursive: true });
+
+    // 2. Extract New Cartridge
+    const zip = new AdmZip(zipPath);
+    zip.extractAllTo(ACTIVE_DIR, true);
+
+    // 3. Cleanup Zip
+    fs.unlinkSync(zipPath);
+    console.log("[System] New Camporee Cartridge Installed.");
+}
+
+function loadCamporeeData() {
+    const manifestPath = path.join(ACTIVE_DIR, 'camporee.json');
+    if (!fs.existsSync(manifestPath)) {
+        return { metadata: {}, games: [] };
+    }
+
+    try {
+        const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+        const games = [];
+
+        if (manifest.playlist) {
+            manifest.playlist.forEach(item => {
+                if (item.enabled) {
+                    const gamePath = path.join(ACTIVE_DIR, 'games', `${item.gameId}.json`);
+                    if (fs.existsSync(gamePath)) {
+                        const gameDef = JSON.parse(fs.readFileSync(gamePath, 'utf8'));
+                        const normalizedGame = normalizeGameDefinition(gameDef, item.order);
+
+                        // Ensure legacy 'name' property exists
+                        if (!gameDef.name && gameDef.content && gameDef.content.title) {
+                            gameDef.name = gameDef.content.title;
+                            normalizedGame.name = gameDef.content.title;
+                        }
+
+                        // Hydrate bracket configuration for the UI
+                        normalizedGame.bracketMode = !!gameDef.bracketMode;
+                        normalizedGame.match_label = gameDef.match_label || '';
+
+                        games.push(normalizedGame);
+                    }
+                }
+            });
+        }
+
+        games.sort((a, b) => a.sortOrder - b.sortOrder);
+        return {
+            metadata: manifest.meta,
+            games: games,
+            common_scoring: []
+        };
+
+    } catch (err) {
+        console.error("Error hydrating camporee data:", err);
+        return { metadata: {}, games: [] };
+    }
+}
+
+function getNextEntityId(type) {
+    const prefix = type === 'patrol' ? 'p' : 't';
+    const query = `
+        SELECT id FROM entities
+        WHERE type=? AND id LIKE '${prefix}%'
+        ORDER BY id DESC LIMIT 1
+    `;
+    const row = db.prepare(query).get(type);
+
+    let nextNum = type === 'patrol' ? 4300 : 1000;
+    if (row && row.id) {
+        const currentNum = parseInt(row.id.substring(1));
+        if (!isNaN(currentNum)) nextNum = currentNum + 1;
+    }
+    return `${prefix}${nextNum}`;
+}
+
+// --- MIDDLEWARE ---
+app.use(express.json());
+app.use(express.static('public', { index: false }));
+// Map the legacy /library/games path to the new separated silo
+app.use('/library/games', express.static(LIBRARY_PATH));
+
+// Middleware: Force setup if no camporee is loaded
+const requireConfig = (req, res, next) => {
+    const bypassRoutes = [
+        '/setup',
+        '/api/setup/upload',
+        '/api/setup/confirm',
+        '/setup/conflict'
+    ];
+
+    // Allow static resources and bypass routes
+    if (bypassRoutes.includes(req.path) ||
+        req.path.startsWith('/css/') ||
+        req.path.startsWith('/js/') ||
+        req.path.startsWith('/img/')) {
+        return next();
+    }
+
+    if (!getActiveMeta()) {
+        return res.redirect('/setup');
+    }
+    next();
+};
+app.use(requireConfig);
+
+// --- ROUTES ---
+
+app.get('/setup', (req, res) => {
+    res.send(`
+        <html>
+            <head><title>Setup</title><link rel="stylesheet" href="/css/bootstrap.min.css"></head>
+            <body class="bg-dark text-light d-flex align-items-center justify-content-center vh-100">
+                <div class="card bg-secondary text-white p-5 text-center" style="max-width: 500px;">
+                    <h1>Camporee Collator</h1>
+                    <p class="lead">System Ready. Load Cartridge.</p>
+                    <form action="/api/setup/upload" method="post" enctype="multipart/form-data">
+                        <input class="form-control mb-3" type="file" name="configZip" accept=".zip" required>
+                        <button type="submit" class="btn btn-primary w-100">Upload Configuration</button>
+                    </form>
+                </div>
+            </body>
+        </html>
+    `);
+});
+
+app.post('/api/setup/upload', upload.single('configZip'), (req, res) => {
+    if (!req.file) return res.redirect('/setup');
+
+    const zipPath = req.file.path;
+    const zip = new AdmZip(zipPath);
+    let newMeta = null;
+
+    try {
+        const metaEntry = zip.getEntry("camporee.json");
+        if (!metaEntry) throw new Error("Invalid Zip");
+        newMeta = JSON.parse(metaEntry.getData().toString('utf8')).meta;
+    } catch (e) {
+        fs.unlinkSync(zipPath);
+        return res.send("Error: Invalid Camporee Zip (Missing camporee.json)");
+    }
+
+    const currentMeta = getActiveMeta();
+    const pendingPath = path.join(UPLOAD_TEMP, 'pending_update.zip');
+
+    // Case 1: Brand New or UUID Mismatch -> Wipe & Install
+    if (!currentMeta || newMeta.camporeeId !== currentMeta.camporeeId) {
+        archiveDatabase();
+        installCartridge(zipPath);
+        return res.redirect('/admin.html');
+    }
+
+    // Case 2: Update Detected -> Ask User
+    fs.renameSync(zipPath, pendingPath);
+    res.redirect('/setup/conflict');
+});
+
+app.get('/setup/conflict', (req, res) => {
+    const meta = getActiveMeta();
+    res.send(`
+        <html>
+            <head><title>Update Detected</title><link rel="stylesheet" href="/css/bootstrap.min.css"></head>
+            <body class="bg-dark text-light d-flex align-items-center justify-content-center vh-100">
+                <div class="card bg-secondary text-white p-5 text-center">
+                    <h2 class="text-warning">Update Detected</h2>
+                    <p>Updating <strong>${meta.title}</strong>.</p>
+                    <div class="d-grid gap-3">
+                        <form action="/api/setup/confirm" method="post">
+                            <input type="hidden" name="action" value="update_keep">
+                            <button class="btn btn-success btn-lg w-100">Update Config (Keep Scores)</button>
+                        </form>
+                        <form action="/api/setup/confirm" method="post">
+                            <input type="hidden" name="action" value="update_wipe">
+                            <button class="btn btn-danger btn-lg w-100">Update & Reset Scores</button>
+                        </form>
+                        <a href="/admin.html" class="btn btn-outline-light">Cancel</a>
+                    </div>
+                </div>
+            </body>
+        </html>
+    `);
+});
+
+app.post('/api/setup/confirm', express.urlencoded({ extended: true }), (req, res) => {
+    const action = req.body.action;
+    const pendingPath = path.join(UPLOAD_TEMP, 'pending_update.zip');
+
+    if (!fs.existsSync(pendingPath)) return res.redirect('/setup');
+
+    if (action === 'update_wipe') archiveDatabase();
+
+    installCartridge(pendingPath);
+    res.redirect('/admin.html');
+});
+
+// --- CORE ROUTES ---
+
+app.get('/', (req, res) => {
+    const ua = req.headers['user-agent'] ? req.headers['user-agent'].toLowerCase() : '';
+    const isMobile = /mobile|android|iphone|ipad|ipod|blackberry|iemobile|kindle|silk-accelerated|(hpw|web)os|opera m(obi|ini)/i.test(ua);
+
+    if (isMobile) {
+        res.redirect('/judge.html');
+    } else {
+        res.redirect('/admin.html');
+    }
+});
+
+// 1. GET /games.json
+app.get('/games.json', (req, res) => {
+    const data = loadCamporeeData();
+    res.json(data);
+});
+
+// 2. GET /api/entities
+app.get('/api/entities', (req, res) => {
+    try {
+        const stmt = db.prepare('SELECT * FROM entities ORDER BY troop_number ASC, name ASC');
+        res.json(stmt.all());
+    } catch (err) {
+        console.error('Error fetching entities:', err);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+app.put('/api/entities/:id', (req, res) => {
+    const { id } = req.params;
+    const { manual_rank } = req.body;
+    try {
+        const stmt = db.prepare('UPDATE entities SET manual_rank = ? WHERE id = ?');
+        stmt.run(manual_rank, id);
+        res.json({ status: 'success' });
+    } catch (err) {
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+// 3. POST /api/score (SMART UPSERT)
+app.post('/api/score', (req, res) => {
+    let {
+        uuid, game_id, entity_id, score_payload,
+        timestamp, judge_name, judge_email, judge_unit
+    } = req.body;
+
+    if (!uuid || !game_id || !entity_id || !score_payload) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    try {
+        const transaction = db.transaction(() => {
+            // 1. Handle Judge Information
+            let judgeId = null;
+            if (judge_email) {
+                const getJudge = db.prepare('SELECT id, name, unit FROM judges WHERE email = ?');
+                const existingJudge = getJudge.get(judge_email);
+
+                if (existingJudge) {
+                    judgeId = existingJudge.id;
+                    // Update Judge info if it changed
+                    if ((judge_name && existingJudge.name !== judge_name) ||
+                        (judge_unit && existingJudge.unit !== judge_unit)) {
+                        db.prepare('UPDATE judges SET name = ?, unit = ? WHERE id = ?')
+                            .run(judge_name || existingJudge.name,
+                                judge_unit || existingJudge.unit,
+                                judgeId);
+                    }
+                } else if (judge_name) {
+                    const insertJudge = db.prepare('INSERT INTO judges (name, email, unit) VALUES (?, ?, ?)');
+                    const info = insertJudge.run(judge_name, judge_email, judge_unit || null);
+                    judgeId = info.lastInsertRowid;
+                }
+            }
+
+            // 2. CRITICAL LOGIC: Standard vs Bracket Mode
+            // This prevents "Standard" games from accumulating duplicate scores
+            const allGames = loadCamporeeData().games;
+            const gameDef = allGames.find(g => g.id === game_id);
+            const isBracket = gameDef ? gameDef.bracketMode : false;
+
+            if (!isBracket) {
+                // STANDARD MODE: Enforce Single Row (Update existing if found)
+                const checkSql = 'SELECT uuid FROM scores WHERE game_id = ? AND entity_id = ?';
+                const existing = db.prepare(checkSql).get(game_id, entity_id);
+
+                if (existing) {
+                    // Hijack the existing UUID to force an UPDATE instead of INSERT
+                    uuid = existing.uuid;
+                    console.log(`[Smart Upsert] Standard Game: Updating existing score ${uuid} for ${entity_id}`);
+                }
+            } else {
+                console.log(`[Smart Upsert] Bracket Game: Accepting new score ${uuid} for ${entity_id}`);
+            }
+
+            // 3. Upsert Command (Using ON CONFLICT to handle updates)
+            const insert = db.prepare(`
+              INSERT INTO scores (uuid, game_id, entity_id, score_payload, timestamp, judge_id)
+              VALUES (?, ?, ?, ?, ?, ?)
+              ON CONFLICT(uuid) DO UPDATE SET
+                score_payload = excluded.score_payload,
+                timestamp = excluded.timestamp,
+                judge_id = excluded.judge_id
+            `);
+
+            return insert.run(
+                uuid,
+                game_id,
+                entity_id,
+                JSON.stringify(score_payload),
+                timestamp,
+                judgeId
+            );
+        });
+
+        transaction();
+        res.status(201).json({ status: 'success' });
+
+    } catch (err) {
+        console.error('Insert error:', err);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+// --- ADMIN & EXPORT ROUTES ---
+
+app.get('/api/admin/all-data', (req, res) => {
+    try {
+        const query = `
+            SELECT
+                s.uuid, s.game_id, s.entity_id, s.timestamp,
+                e.name as entity_name, e.troop_number, e.type as entity_type,
+                s.score_payload
+            FROM scores s
+            JOIN entities e ON s.entity_id = e.id
+        `;
+        const rows = db.prepare(query).all();
+
+        const parsed = rows.map(r => ({
+            ...r,
+            score_payload: JSON.parse(r.score_payload)
+        }));
+
+        const stats = {};
+        parsed.forEach(r => {
+            stats[r.game_id] = (stats[r.game_id] || 0) + 1;
+        });
+
+        const statusMap = {};
+        const statuses = db.prepare('SELECT * FROM game_status').all();
+        for (const s of statuses) {
+            statusMap[s.game_id] = s.status;
+        }
+
+        res.json({
+            scores: parsed,
+            stats,
+            game_status: statusMap,
+            metadata: getActiveMeta()
+        });
+
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- BRACKET SYNC ---
+app.post('/api/bracket/sync', (req, res) => {
+    const { game_id, bracket_data } = req.body;
+    if (!game_id || !bracket_data) {
+        return res.status(400).json({ error: 'Missing game_id or bracket_data' });
+    }
+
+    try {
+        const allGames = loadCamporeeData().games;
+        const gameDef = allGames.find(g => g.id === game_id);
+        const timeFields = (gameDef?.fields || []).filter(f => f.type === 'timed' || f.type === 'stopwatch').map(f => f.id);
+        const scoreFields = (gameDef?.fields || []).filter(f => f.type === 'number').map(f => f.id);
+
+        db.transaction(() => {
+            // 0. Ensure game_status entry exists to satisfy foreign key (it may naturally be 'active' if not yet managed)
+            db.prepare(`
+                INSERT INTO game_status (game_id, status) VALUES (?, 'active')
+                ON CONFLICT(game_id) DO NOTHING
+            `).run(game_id);
+
+            // Merge Main and Consolation rounds into one processing list
+            const allRounds = [
+                ...(bracket_data.rounds || []),
+                ...(bracket_data.consolation_rounds || [])
+            ];
+
+            allRounds.forEach((round, rIdx) => {
+                (round.heats || []).forEach((heat, hIdx) => {
+                    // 1. Upsert Match
+                    db.prepare(`
+                        INSERT INTO Matches (id, tournament_id, round_num, match_num, status)
+                        VALUES (?, ?, ?, ?, ?)
+                        ON CONFLICT(id) DO UPDATE SET status=excluded.status
+                    `).run(heat.id, game_id, rIdx, hIdx, heat.complete ? 'complete' : 'active');
+
+                    // 2. Upsert Participants
+                    Object.entries(heat.results || {}).forEach(([eid, result]) => {
+                        let score_value = null;
+                        let time_value = null;
+
+                        timeFields.forEach(fid => {
+                            if (result[fid]) time_value = timeToSeconds(result[fid]);
+                        });
+                        scoreFields.forEach(fid => {
+                            if (result[fid]) score_value = parseFloat(result[fid]) || 0;
+                        });
+
+                        db.prepare(`
+                            INSERT INTO Match_Participants (match_id, entity_id, score_value, time_value)
+                            VALUES (?, ?, ?, ?)
+                            ON CONFLICT(match_id, entity_id) DO UPDATE SET
+                                score_value=excluded.score_value,
+                                time_value=excluded.time_value
+                        `).run(heat.id, eid, score_value, time_value);
+
+                        // If it's the final round and they have a rank, update Event_Standings
+                        if (round.isFinalRound && result.rank) {
+                            db.prepare(`
+                                INSERT INTO Event_Standings (tournament_id, entity_id, computed_rank, status)
+                                VALUES (?, ?, ?, ?)
+                                ON CONFLICT(tournament_id, entity_id) DO UPDATE SET
+                                    computed_rank=excluded.computed_rank,
+                                    status=excluded.status
+                            `).run(game_id, eid, parseInt(result.rank), 'placed');
+                        }
+                    });
+                });
+            });
+        })();
+
+        updateStandings(game_id);
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Bracket Sync Error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/admin/judges', (req, res) => {
+    try {
+        const judges = db.prepare('SELECT * FROM judges').all();
+        const scores = db.prepare('SELECT judge_id, game_id FROM scores WHERE judge_id IS NOT NULL').all();
+
+        const stats = {};
+        scores.forEach(s => {
+            if (!stats[s.judge_id]) {
+                stats[s.judge_id] = { count: 0, games: new Set() };
+            }
+            stats[s.judge_id].count++;
+            stats[s.judge_id].games.add(s.game_id);
+        });
+
+        const result = judges.map(j => {
+            const s = stats[j.id] || { count: 0, games: new Set() };
+            return {
+                ...j,
+                score_count: s.count,
+                games_judged: Array.from(s.games).sort()
+            };
+        });
+
+        res.json(result);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/export', (req, res) => {
+    try {
+        const query = `
+            SELECT
+                s.uuid, s.game_id, s.entity_id, s.timestamp,
+                e.name as entity_name, e.troop_number, e.type as entity_type,
+                s.score_payload
+            FROM scores s
+            JOIN entities e ON s.entity_id = e.id
+            ORDER BY s.timestamp DESC
+        `;
+        const rows = db.prepare(query).all();
+
+        if (rows.length === 0) return res.send("No scores to export.");
+
+        const fieldSet = new Set();
+        const parsedRows = rows.map(r => {
+            const payload = JSON.parse(r.score_payload);
+            Object.keys(payload).forEach(k => fieldSet.add(k));
+            return { ...r, payload };
+        });
+
+        const dynamicFields = Array.from(fieldSet).sort();
+        const headers = ['UUID', 'Game ID', 'Timestamp', 'Troop', 'Entity Name', 'Entity Type', ...dynamicFields];
+
+        let csv = headers.join(',') + '\n';
+
+        parsedRows.forEach(r => {
+            const line = [
+                r.uuid,
+                r.game_id,
+                new Date(r.timestamp).toISOString(),
+                r.troop_number,
+                `"${r.entity_name}"`,
+                r.entity_type,
+                ...dynamicFields.map(f => {
+                    const val = r.payload[f];
+                    return (val === undefined || val === null) ? '' : `"${String(val).replace(/"/g, '""')}"`;
+                })
+            ];
+            csv += line.join(',') + '\n';
+        });
+
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename=camporee_scores.csv');
+        res.send(csv);
+
+    } catch (err) {
+        res.status(500).send('Error generating export');
+    }
+});
+
+app.post('/api/admin/game-status', (req, res) => {
+    const { game_id, status } = req.body;
+    try {
+        const query = `
+            INSERT INTO game_status (game_id, status) VALUES (?, ?)
+            ON CONFLICT(game_id) DO UPDATE SET status=excluded.status
+        `;
+        db.prepare(query).run(game_id, status);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/admin/scores', (req, res) => {
+    try {
+        db.transaction(() => {
+            // Delete in order to satisfy foreign key constraints
+            db.prepare('DELETE FROM Match_Participants').run();
+            db.prepare('DELETE FROM Matches').run();
+            db.prepare('DELETE FROM Event_Standings').run();
+            db.prepare('DELETE FROM scores').run();
+            db.prepare('DELETE FROM judges').run();
+            db.prepare('DELETE FROM game_status').run();
+        })();
+        res.json({
+            success: true,
+            message: 'All scores and bracket data cleared.'
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/admin/full-reset', (req, res) => {
+    try {
+        db.transaction(() => {
+            db.prepare('DELETE FROM Match_Participants').run();
+            db.prepare('DELETE FROM Matches').run();
+            db.prepare('DELETE FROM Event_Standings').run();
+            db.prepare('DELETE FROM scores').run();
+            db.prepare('DELETE FROM entities').run();
+            db.prepare('DELETE FROM judges').run();
+            db.prepare('DELETE FROM game_status').run();
+        })();
+        res.json({ success: true, message: 'Everything deleted.' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/admin/awards-config', express.json(), (req, res) => {
+    const { awards_config } = req.body;
+    const manifestPath = path.join(ACTIVE_DIR, 'camporee.json');
+
+    if (!fs.existsSync(manifestPath)) {
+        return res.status(404).json({ error: 'Camporee manifest not found' });
+    }
+
+    try {
+        const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+        if (!manifest.meta) manifest.meta = {};
+
+        manifest.meta.awards_config = awards_config;
+
+        fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Error saving awards config:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.put('/api/scores/:uuid', (req, res) => {
+    const { uuid } = req.params;
+    const { score_payload } = req.body;
+
+    if (!score_payload) {
+        return res.status(400).json({ error: 'Missing score_payload' });
+    }
+
+    try {
+        const update = db.prepare('UPDATE scores SET score_payload = ? WHERE uuid = ?');
+        const info = update.run(JSON.stringify(score_payload), uuid);
+
+        if (info.changes === 0) {
+            return res.status(404).json({ error: 'Score not found' });
+        }
+        res.json({ status: 'updated' });
+
+    } catch (err) {
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+app.post('/api/entities', (req, res) => {
+    const { name, type, troop_number, parent_id } = req.body;
+
+    if (!name || !type || !troop_number) {
+        return res.status(400).json({ error: 'Missing fields' });
+    }
+
+    try {
+        const id = getNextEntityId(type);
+        const insert = db.prepare(
+            'INSERT INTO entities (id, name, type, troop_number, parent_id) VALUES (?, ?, ?, ?, ?)'
+        );
+        insert.run(id, name, type, troop_number, parent_id || null);
+
+        res.json({
+            id,
+            name,
+            type,
+            troop_number,
+            parent_id: parent_id || null
+        });
+
+    } catch (err) {
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+export default app;
