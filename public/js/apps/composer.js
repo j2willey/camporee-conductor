@@ -183,7 +183,11 @@ const composer = {
             this.renderGameLists();
             this.renderPresetManager();
 
-            bootstrap.Modal.getInstance(document.getElementById("serverLoadModal")).hide();
+            const loadModalEl = document.getElementById("serverLoadModal");
+            if (loadModalEl) {
+                const loadModal = bootstrap.Modal.getInstance(loadModalEl);
+                if (loadModal) loadModal.hide();
+            }
             alert("Loaded from Server!");
         } catch (e) {
             alert("Error: " + e.message);
@@ -677,19 +681,11 @@ const composer = {
                 <div class="d-flex align-items-center gap-1">
                     <i class="fas fa-circle ${statusClass} me-2" style="font-size: 0.5rem;"></i>
                     <button class="btn btn-sm btn-outline-secondary border-0" 
-                            onclick="event.stopPropagation(); composer.exportSingleGame('${game.id}')">
-                        <i class="fas fa-file-download"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-secondary border-0" 
-                            onclick="event.stopPropagation(); composer.duplicateGame('${game.id}')">
+                            onclick="event.stopPropagation(); composer.duplicateGame('${game.id}')" title="Copy">
                         <i class="fas fa-copy"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-primary border-0" 
-                            onclick="event.stopPropagation(); composer.renderPreview('${game.id}')">
-                        <i class="fas fa-eye"></i>
-                    </button>
                     <button class="btn btn-sm btn-outline-danger border-0" 
-                            onclick="event.stopPropagation(); composer.deleteGame('${game.id}')">
+                            onclick="event.stopPropagation(); composer.deleteGame('${game.id}')" title="Delete">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>`;
@@ -938,19 +934,17 @@ const composer = {
         </div>
     </div>`;
 
-        // Bind Inputs
-        ["gameTitle", "gameMatchLabel", "gameChallenge", "gameStory", "gameDescription", "gameTimeAndScoring", "gameScoringNotes", "gameStaffing", "gameSetup", "gameReset", "gameSuppliesText"].forEach(fieldId => {
+        if (this.markdownEditors) {
+            Object.values(this.markdownEditors).forEach(e => {
+                if (e.toTextArea) e.toTextArea();
+            });
+        }
+        this.markdownEditors = {};
+
+        // Bind standard text Inputs
+        ["gameTitle", "gameMatchLabel", "gameChallenge"].forEach(fieldId => {
             const key = fieldId === "gameTitle" ? "game_title" :
-                fieldId === "gameMatchLabel" ? "match_label" :
-                    fieldId === "gameChallenge" ? "challenge" :
-                        fieldId === "gameStory" ? "story" :
-                            fieldId === "gameDescription" ? "description" :
-                                fieldId === "gameTimeAndScoring" ? "time_and_scoring" :
-                                    fieldId === "gameScoringNotes" ? "scoring_notes" :
-                                        fieldId === "gameStaffing" ? "staffing" :
-                                            fieldId === "gameSetup" ? "setup" :
-                                                fieldId === "gameReset" ? "reset" :
-                                                    fieldId === "gameSuppliesText" ? "supplies_text" : "instructions";
+                fieldId === "gameMatchLabel" ? "match_label" : "challenge";
 
             const el = document.getElementById(fieldId);
             if (el) {
@@ -962,6 +956,92 @@ const composer = {
                 }
                 el.value = val;
                 el.oninput = (e) => this.updateGameField(key, e.target.value);
+            }
+        });
+
+        // Bind Markdown Editors
+        ["gameStory", "gameDescription", "gameTimeAndScoring", "gameScoringNotes", "gameStaffing", "gameSetup", "gameReset", "gameSuppliesText"].forEach(fieldId => {
+            const el = document.getElementById(fieldId);
+            if (el) {
+                const key = fieldId === "gameStory" ? "story" :
+                    fieldId === "gameDescription" ? "description" :
+                        fieldId === "gameTimeAndScoring" ? "time_and_scoring" :
+                            fieldId === "gameScoringNotes" ? "scoring_notes" :
+                                fieldId === "gameStaffing" ? "staffing" :
+                                    fieldId === "gameSetup" ? "setup" :
+                                        fieldId === "gameReset" ? "reset" :
+                                            "supplies_text";
+
+                // Set initial value
+                let val = game.content[key] || "";
+                if (!val && ["staffing", "setup", "reset", "supplies_text"].includes(key)) {
+                    val = game.content.logistics ? game.content.logistics[key] || "" : "";
+                }
+                el.value = val;
+
+                if (window.EasyMDE) {
+                    const mde = new EasyMDE({
+                        element: el,
+                        spellChecker: false,
+                        status: false,
+                        minHeight: "100px",
+                        initialValue: val,
+                        toolbar: ["bold", "italic", "heading", "|", "unordered-list", "ordered-list", "|", "link", "image", "upload-image", "|", "preview", "side-by-side", "fullscreen"],
+                        uploadImage: true,
+                        imageAccept: "image/png, image/jpeg, image/gif, image/webp",
+                        imageUploadFunction: (file, onSuccess, onError) => {
+                            if (!this.isServerMode || !this.data.meta.camporeeId) {
+                                onError("Uploads only supported in Server Mode with a saved workspace.");
+                                return;
+                            }
+                            const reader = new FileReader();
+                            reader.onload = () => {
+                                const b64 = reader.result.split(',')[1];
+                                const ext = file.name.split('.').pop();
+                                const filename = `img_${Date.now()}.${ext}`;
+                                fetch(`/api/camporee/${this.data.meta.camporeeId}/assets/${filename}`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ base64: b64 })
+                                })
+                                    .then(res => res.json())
+                                    .then(data => {
+                                        if (data.success) onSuccess(data.path);
+                                        else onError(data.error || "Upload failed");
+                                    })
+                                    .catch(() => onError("Network Error"));
+                            };
+                            reader.readAsDataURL(file);
+                        }
+                    });
+
+                    mde.codemirror.on("change", () => {
+                        // Dynamic lookup to handle rapid clicks where `game` reference might be stale
+                        this.updateGameField(key, mde.value());
+                    });
+                    this.markdownEditors[fieldId] = mde;
+
+                    // Add event listeners to refresh the editor when its parent tab or accordion opens
+                    const parentTab = el.closest('.tab-pane');
+                    if (parentTab) {
+                        const tabButton = document.querySelector(`button[data-bs-target="#${parentTab.id}"]`);
+                        if (tabButton) {
+                            tabButton.addEventListener('shown.bs.tab', () => {
+                                mde.codemirror.refresh();
+                            });
+                        }
+                    }
+                    const parentCollapse = el.closest('.accordion-collapse');
+                    if (parentCollapse) {
+                        parentCollapse.addEventListener('shown.bs.collapse', () => {
+                            mde.codemirror.refresh();
+                        });
+                    }
+
+                } else {
+                    // Fallback if CDN fails
+                    el.oninput = (e) => this.updateGameField(key, e.target.value);
+                }
             }
         });
 
@@ -1084,9 +1164,6 @@ const composer = {
             game.meta.tags = tags;
             if (game.content) game.content.tags = tags;
             game.tags = tags;
-        } else if (["staffing", "setup", "reset", "supplies_text"].includes(field)) {
-            if (!game.content.logistics) game.content.logistics = {};
-            game.content.logistics[field] = value;
         } else {
             game.content[field] = value;
         }
@@ -1470,8 +1547,11 @@ const composer = {
             const template = Handlebars.compile(this._gameGuideTemplate);
             const markdown = template(game);
 
-            // Convert to HTML with Marked
-            const html = marked.parse(markdown);
+            // Convert to HTML with Marked, resolving relative paths to workspace assets
+            const workspaceId = this.data.meta.camporeeId || 'camp0002';
+            const html = marked.parse(markdown, {
+                baseUrl: `/api/camporee/${workspaceId}/games/`
+            });
 
             const modalBody = document.getElementById("previewModalBody");
             const modalTitle = document.getElementById("previewModalTitle");
@@ -1509,7 +1589,7 @@ const composer = {
         window.location.reload(); // Reload to restore proper event bindings
     },
 
-    exportCamporee: function () {
+    exportCamporee: async function () {
         this.normalizeGameSortOrders();
         const zip = new JSZip();
 
@@ -1545,6 +1625,28 @@ const composer = {
 
             gamesFolder.file(`${g.id}.json`, JSON.stringify(gameFile, null, 2));
         });
+
+        // Add assets directory if running in Server Mode
+        if (this.isServerMode && this.data.meta.camporeeId) {
+            try {
+                const res = await fetch(`/api/camporee/${this.data.meta.camporeeId}/assets`);
+                if (res.ok) {
+                    const assets = await res.json();
+                    if (assets && assets.length > 0) {
+                        const assetsFolder = zip.folder("assets");
+                        for (const asset of assets) {
+                            const assetRes = await fetch(`/api/camporee/${this.data.meta.camporeeId}/assets/${asset}`);
+                            if (assetRes.ok) {
+                                const blob = await assetRes.blob();
+                                assetsFolder.file(asset, blob);
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn("Failed to bundle assets into ZIP:", e);
+            }
+        }
 
         zip.generateAsync({ type: "blob" }).then(function (content) {
             saveAs(content, "CamporeeConfig.zip");
@@ -1605,6 +1707,26 @@ const composer = {
 
                 if (!this.data.meta.camporeeId) {
                     this.data.meta.camporeeId = this.generateUUID();
+                }
+
+                if (this.isServerMode && zip.folder("assets")) {
+                    const assetPromises = [];
+                    zip.folder("assets").forEach((relativePath, file) => {
+                        if (!file.dir) {
+                            assetPromises.push(file.async("base64").then(b64 => {
+                                return fetch(`/api/camporee/${this.data.meta.camporeeId}/assets/${relativePath}`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ base64: b64 })
+                                });
+                            }));
+                        }
+                    });
+                    try {
+                        await Promise.all(assetPromises);
+                    } catch (e) {
+                        console.error("Failed to upload some assets", e);
+                    }
                 }
 
                 this.ensureSystemPresets();

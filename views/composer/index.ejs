@@ -44,7 +44,7 @@
 
     <div id="composer-layout" class="d-flex w-100">
         <!-- Sidebar Navigation -->
-        <aside class="bg-light border-end d-flex flex-column h-100" style="width: 320px; flex-shrink: 0;">
+        <aside id="composer-sidebar" class="bg-light d-flex flex-column h-100" style="width: 320px; flex-shrink: 0;">
             <div class="p-3 border-bottom bg-white">
                 <h5 class="mb-0 fw-bold">Camporee Instance</h5>
             </div>
@@ -109,6 +109,9 @@
 
             </div>
         </aside>
+
+        <!-- Resizer Handle -->
+        <div id="sidebar-resizer" class="sidebar-resizer"></div>
 
         <!-- Main Content -->
         <main id="composer-main-pane" class="flex-grow-1 bg-white p-4 h-100 overflow-auto">
@@ -200,8 +203,48 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/easymde/dist/easymde.min.css">
+    <script src="https://unpkg.com/easymde/dist/easymde.min.js"></script>
 
     <script type="module" src="/js/apps/composer.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const resizer = document.getElementById('sidebar-resizer');
+            const sidebar = document.getElementById('composer-sidebar');
+            let isResizing = false;
+
+            if (resizer && sidebar) {
+                resizer.addEventListener('mousedown', function (e) {
+                    isResizing = true;
+                    resizer.classList.add('resizing');
+                    document.body.style.cursor = 'col-resize';
+                    document.body.style.userSelect = 'none'; // Prevent text selection while dragging
+                    e.preventDefault();
+                });
+
+                document.addEventListener('mousemove', function (e) {
+                    if (!isResizing) return;
+
+                    // Constrain width between 250px and 800px
+                    let newWidth = e.clientX;
+                    if (newWidth < 250) newWidth = 250;
+                    if (newWidth > 800) newWidth = 800;
+
+                    sidebar.style.width = newWidth + 'px';
+                });
+
+                document.addEventListener('mouseup', function () {
+                    if (isResizing) {
+                        isResizing = false;
+                        resizer.classList.remove('resizing');
+                        document.body.style.cursor = 'default';
+                        document.body.style.userSelect = 'auto';
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 
 </html>

@@ -166,6 +166,79 @@ app.get('/api/camporee/:id', (req, res) => {
 });
 
 /**
+ * 3.4. LIST CAMPOREE ASSETS
+ * Returns a list of filenames from the assets directory.
+ */
+app.get('/api/camporee/:id/assets', (req, res) => {
+    try {
+        const id = req.params.id;
+        const assetsPath = path.join(WORKSPACE_PATH, id, 'assets');
+
+        if (fs.existsSync(assetsPath)) {
+            const files = fs.readdirSync(assetsPath).filter(f => !fs.statSync(path.join(assetsPath, f)).isDirectory());
+            res.json(files);
+        } else {
+            res.json([]);
+        }
+    } catch (err) {
+        console.error("Asset List Error:", err);
+        res.status(500).json({ error: "Failed to list assets" });
+    }
+});
+
+/**
+ * 3.5. SERVE CAMPOREE ASSETS
+ * Serves images or other physical assets from the workspace assets directory.
+ */
+app.get('/api/camporee/:id/assets/:filename', (req, res) => {
+    try {
+        const { id, filename } = req.params;
+        // Basic sanitization
+        if (!/^[a-zA-Z0-9_-]+$/.test(id)) return res.status(400).send("Invalid ID");
+        if (filename.includes('..')) return res.status(400).send("Invalid filename");
+
+        const filePath = path.join(WORKSPACE_PATH, id, 'assets', filename);
+        if (fs.existsSync(filePath)) {
+            res.sendFile(filePath);
+        } else {
+            res.status(404).send('Asset not found');
+        }
+    } catch (err) {
+        console.error("Asset Load Error:", err);
+        res.status(500).send("Failed to load asset");
+    }
+});
+
+/**
+ * 3.6. UPLOAD CAMPOREE ASSET
+ * Accepts a JSON body with { base64: "..." } and writes it to the assets folder.
+ */
+app.post('/api/camporee/:id/assets/:filename', (req, res) => {
+    try {
+        const { id, filename } = req.params;
+        const { base64 } = req.body;
+
+        if (!/^[a-zA-Z0-9_-]+$/.test(id)) return res.status(400).send("Invalid ID");
+        if (filename.includes('..')) return res.status(400).send("Invalid filename");
+        if (!base64) return res.status(400).send("No base64 data provided");
+
+        const assetsPath = path.join(WORKSPACE_PATH, id, 'assets');
+        if (!fs.existsSync(assetsPath)) {
+            fs.mkdirSync(assetsPath, { recursive: true });
+        }
+
+        const filePath = path.join(assetsPath, filename);
+        const buffer = Buffer.from(base64, 'base64');
+        fs.writeFileSync(filePath, buffer);
+
+        res.json({ success: true, path: `../assets/${filename}` });
+    } catch (err) {
+        console.error("Asset Upload Error:", err);
+        res.status(500).json({ error: "Failed to upload asset" });
+    }
+});
+
+/**
  * 4. CHECK METADATA (For Overwrite Warning)
  * Returns just the meta block to compare client vs server versions.
  */

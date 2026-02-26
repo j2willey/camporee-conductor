@@ -386,3 +386,17 @@ main.has-fixed-header {
     border-bottom: 3px solid #0d6efd !important;
     background: transparent !important;
 }
+
+/* Sidebar Resizer */
+.sidebar-resizer {
+    width: 6px;
+    background-color: #dee2e6;
+    cursor: col-resize;
+    flex-shrink: 0;
+    transition: background-color 0.2s;
+    z-index: 100;
+}
+
+.sidebar-resizer:hover, .sidebar-resizer.resizing {
+    background-color: var(--brand-accent);
+}

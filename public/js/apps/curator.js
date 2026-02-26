@@ -593,15 +593,66 @@ const curator = {
 
         // Content bindings
         document.getElementById("gameChallenge").oninput = (e) => { this.data.content.challenge = e.target.value; this.updateSaveButton(); };
-        document.getElementById("gameStory").oninput = (e) => { this.data.content.story = e.target.value; this.updateSaveButton(); };
-        document.getElementById("gameDescription").oninput = (e) => { this.data.content.description = e.target.value; this.updateSaveButton(); };
-        document.getElementById("gameTimeAndScoring").oninput = (e) => { this.data.content.time_and_scoring = e.target.value; this.updateSaveButton(); };
-        document.getElementById("gameScoringNotes").oninput = (e) => { this.data.content.scoring_notes = e.target.value; this.updateSaveButton(); };
 
-        document.getElementById("gameStaffing").oninput = (e) => { this.data.content.staffing = e.target.value; this.updateSaveButton(); };
-        document.getElementById("gameSetup").oninput = (e) => { this.data.content.setup = e.target.value; this.updateSaveButton(); };
-        document.getElementById("gameReset").oninput = (e) => { this.data.content.reset = e.target.value; this.updateSaveButton(); };
-        document.getElementById("gameSuppliesText").oninput = (e) => { this.data.content.supplies_text = e.target.value; this.updateSaveButton(); };
+        if (this.markdownEditors) {
+            Object.values(this.markdownEditors).forEach(e => {
+                if (e.toTextArea) e.toTextArea();
+            });
+        }
+        this.markdownEditors = {};
+
+        ["gameStory", "gameDescription", "gameTimeAndScoring", "gameScoringNotes", "gameStaffing", "gameSetup", "gameReset", "gameSuppliesText"].forEach(fieldId => {
+            const el = document.getElementById(fieldId);
+            if (el) {
+                const key = fieldId === "gameStory" ? "story" :
+                    fieldId === "gameDescription" ? "description" :
+                        fieldId === "gameTimeAndScoring" ? "time_and_scoring" :
+                            fieldId === "gameScoringNotes" ? "scoring_notes" :
+                                fieldId === "gameStaffing" ? "staffing" :
+                                    fieldId === "gameSetup" ? "setup" :
+                                        fieldId === "gameReset" ? "reset" :
+                                            "supplies_text";
+
+                if (window.EasyMDE) {
+                    const mde = new EasyMDE({
+                        element: el,
+                        spellChecker: false,
+                        status: false,
+                        minHeight: "100px",
+                        initialValue: this.data.content[key] || "",
+                        toolbar: ["bold", "italic", "heading", "|", "unordered-list", "ordered-list", "|", "link", "image", "|", "preview", "side-by-side", "fullscreen"]
+                    });
+
+                    mde.codemirror.on("change", () => {
+                        this.data.content[key] = mde.value();
+                        this.updateSaveButton();
+                    });
+                    this.markdownEditors[fieldId] = mde;
+
+                    // Add event listeners to refresh the editor when its parent tab or accordion opens
+                    const parentTab = el.closest('.tab-pane');
+                    if (parentTab) {
+                        const tabButton = document.querySelector(`button[data-bs-target="#${parentTab.id}"]`);
+                        if (tabButton) {
+                            tabButton.addEventListener('shown.bs.tab', () => {
+                                mde.codemirror.refresh();
+                            });
+                        }
+                    }
+                    const parentCollapse = el.closest('.accordion-collapse');
+                    if (parentCollapse) {
+                        parentCollapse.addEventListener('shown.bs.collapse', () => {
+                            mde.codemirror.refresh();
+                        });
+                    }
+                } else {
+                    el.oninput = (e) => {
+                        this.data.content[key] = e.target.value;
+                        this.updateSaveButton();
+                    };
+                }
+            }
+        });
 
         this.renderScoringInputs(data.scoring_model.inputs, "game");
         this.renderListEditor('rules', data.content.rules);
