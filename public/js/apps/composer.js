@@ -155,8 +155,15 @@ const composer = {
         }
     },
 
+    promptLoadWorkspace: async function () {
+        const id = prompt("Enter Workspace Name/ID to load (e.g. camp0002):");
+        if (!id) return;
+
+        await this.loadFromServer(id);
+    },
+
     loadFromServer: async function (id) {
-        if (!confirm("Load this? Unsaved changes will be lost.")) return;
+        if (!confirm(`Load workspace '${id}'? Unsaved changes will be lost.`)) return;
 
         try {
             const camporee = await this.api.getCamporee(id);
