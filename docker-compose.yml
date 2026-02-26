@@ -32,7 +32,7 @@ services:
       - WORKSPACE_PATH=/app/data/workspaces
       - LIBRARY_PATH=/app/data/library
     volumes:
-      - ./data/composer:/app/data/workspaces
+      - ./data/composer/workspaces:/app/data/workspaces
       - ./data/curator:/app/data/library
       - ./src:/app/src
       - ./views:/app/views
