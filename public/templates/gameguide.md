@@ -34,6 +34,16 @@ Tags: {{#each tags}}#{{this}} {{/each}}
 ### Judging & Performance Tips
 {{content.judging_notes}}
 
+{{#if content.notes}}
+### 📝 Notes & Background
+{{content.notes}}
+{{/if}}
+
+{{#if content.references}}
+### 🔗 References
+{{content.references}}
+{{/if}}
+
 ### Station Reset
 {{#if content.logistics.reset}}
 **Immediate Action Required:** {{content.logistics.reset}}

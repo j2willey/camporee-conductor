@@ -29,6 +29,12 @@
         "judging_notes": {
             "type": "string"
         },
+        "notes": {
+            "type": "string"
+        },
+        "references": {
+            "type": "string"
+        },
         "marketing_image_url": {
             "type": "string",
             "format": "uri"

@@ -31,6 +31,8 @@ Heavy narrative text and logistics for human consumption
 | `rules` | string[] | ❌ |  |
 | `scoring_overview` | string | ❌ |  |
 | `judging_notes` | string | ❌ |  |
+| `notes` | string | ❌ |  |
+| `references` | string | ❌ |  |
 | `marketing_image_url` | string | ❌ |  |
 | `logistics` | object | ❌ |  <br>(Contains nested properties, see below or source for details) |
 
