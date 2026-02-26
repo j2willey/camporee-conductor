@@ -29,7 +29,7 @@ app.use((req, res, next) => {
     next();
 });
 
-const WORKSPACE_PATH = process.env.WORKSPACE_PATH || path.join(__dirname, 'data', 'workspaces');
+const WORKSPACE_PATH = process.env.WORKSPACE_PATH || path.join(__dirname, 'data', 'composer');
 const LIBRARY_PATH = process.env.LIBRARY_PATH || path.join(__dirname, 'data', 'library');
 
 // Important: { index: false } prevents Express from automatically serving

@@ -23,10 +23,11 @@ export async function loadData(options = {}) {
     try {
         const ts = Date.now();
         // Fetch Games Config & Entities
+        const apiBase = window.API_BASE || '';
         const [gamesRes, entitiesRes, dataRes] = await Promise.all([
-            fetch(`/games.json?t=${ts}`),
-            fetch(`/api/entities?t=${ts}`),
-            fetch(`/api/admin/all-data?t=${ts}`)
+            fetch(`${apiBase}/games.json?t=${ts}`),
+            fetch(`${apiBase}/api/entities?t=${ts}`),
+            fetch(`${apiBase}/api/admin/all-data?t=${ts}`)
         ]);
 
         const gamesResult = await gamesRes.json();

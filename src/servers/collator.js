@@ -18,10 +18,10 @@ const app = express();
 const PORT = 3000;
 
 // Directory Structure
-const DATA_DIR = path.join(__dirname, 'data');
-const ACTIVE_DIR = process.env.EVENT_PATH || path.join(__dirname, 'data', 'active-event');
-const ARCHIVE_DIR = path.join(__dirname, 'data', 'archive');
-const UPLOAD_TEMP = path.join(__dirname, 'temp_uploads');
+const DATA_DIR = path.join(__dirname, 'data', 'collator');
+const ACTIVE_DIR = process.env.EVENT_PATH || path.join(DATA_DIR, 'active-event');
+const ARCHIVE_DIR = path.join(DATA_DIR, 'archive');
+const UPLOAD_TEMP = path.join(DATA_DIR, 'temp_uploads');
 const LIBRARY_PATH = process.env.LIBRARY_PATH || path.join(__dirname, 'data', 'library');
 
 // Ensure all directories exist

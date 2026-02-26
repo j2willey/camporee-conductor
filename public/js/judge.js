@@ -89,7 +89,7 @@ async function init() {
 // --- DATA MANAGEMENT ---
 
 function resetAppData() {
-    if(!confirm("⚠️ RESET WARNING ⚠️\n\nThis will wipe all local tournament brackets and draft scores.\nIt effectively 'Fresh Installs' the app.\n\nData already sent to the server is safe.\n\nProceed?")) return;
+    if (!confirm("⚠️ RESET WARNING ⚠️\n\nThis will wipe all local tournament brackets and draft scores.\nIt effectively 'Fresh Installs' the app.\n\nData already sent to the server is safe.\n\nProceed?")) return;
 
     // 1. Preserve Judge Identity
     const judge = localStorage.getItem('judge_info');
@@ -98,7 +98,7 @@ function resetAppData() {
     localStorage.clear();
 
     // 3. Restore Judge Identity
-    if(judge) localStorage.setItem('judge_info', judge);
+    if (judge) localStorage.setItem('judge_info', judge);
 
     // 4. Reload to fetch fresh server state
     window.location.reload();
@@ -109,9 +109,9 @@ function resetAppData() {
 function navigate(viewName) {
     state.view = viewName;
     Object.values(views).forEach(el => {
-        if(el) el.classList.add('hidden');
+        if (el) el.classList.add('hidden');
     });
-    if(views[viewName]) views[viewName].classList.remove('hidden');
+    if (views[viewName]) views[viewName].classList.remove('hidden');
 
     const isHome = viewName === 'home';
     els.backBtn.classList.toggle('hidden', isHome);
@@ -123,19 +123,19 @@ function navigate(viewName) {
         header.style.backgroundColor = '';
         header.style.color = '';
         const sub = document.getElementById('header-subtitle');
-        if(sub) sub.style.display = 'none';
+        if (sub) sub.style.display = 'none';
     }
 
     if (isHome) {
         document.getElementById('header-title').textContent = 'Camporee Collator';
         const syncLine = document.getElementById('header-sync-line');
-        if(syncLine) syncLine.style.display = 'block';
+        if (syncLine) syncLine.style.display = 'block';
         document.body.style.paddingBottom = '0';
     } else {
         const syncLine = document.getElementById('header-sync-line');
-        if(syncLine) syncLine.style.display = 'none';
+        if (syncLine) syncLine.style.display = 'none';
     }
-    window.scrollTo(0,0);
+    window.scrollTo(0, 0);
 }
 
 function handleBack() {
@@ -229,7 +229,7 @@ function setMode(mode) {
 
 function selectStation(id) {
     state.currentStation = state.config.stations.find(s => s.id === id);
-    if(!state.currentStation) return;
+    if (!state.currentStation) return;
 
     if (state.currentStation.bracketMode) {
         const bData = initBracketState(id);
@@ -319,7 +319,7 @@ function renderEntityList(filter = '') {
         const doneA = scoredIds.has(a.id);
         const doneB = scoredIds.has(b.id);
         if (doneA !== doneB) return doneA ? 1 : -1;
-        return (parseInt(a.troop_number)||0) - (parseInt(b.troop_number)||0);
+        return (parseInt(a.troop_number) || 0) - (parseInt(b.troop_number) || 0);
     });
 
     els.entityHeader.textContent = `Select ${requiredType === 'patrol' ? 'Patrol' : 'Troop'}`;
@@ -380,7 +380,7 @@ function renderForm(existingScore = null) {
     document.getElementById('header-subtitle').style.display = 'block';
 
     els.scoreForm.innerHTML = '';
-    const fields = [...(s.fields||[]), ...(state.config.common_scoring||[])].filter(f => f.audience === 'judge');
+    const fields = [...(s.fields || []), ...(state.config.common_scoring || [])].filter(f => f.audience === 'judge');
 
     if (fields.length > 0) {
         fields.forEach(f => {
@@ -400,13 +400,13 @@ function saveDraft() {
     if (!state.currentStation || !state.currentEntity) return;
     const draftKey = `${state.currentStation.id}_${state.currentEntity.id}`;
     const payload = {};
-    const allFields = [...(state.currentStation.fields||[]), ...(state.config.common_scoring||[])];
-    for(const f of allFields) {
+    const allFields = [...(state.currentStation.fields || []), ...(state.config.common_scoring || [])];
+    for (const f of allFields) {
         const el = document.getElementById(`f_${f.id}`);
         if (f.type === 'timed' || f.type === 'stopwatch') {
             const mm = document.getElementById(`f_${f.id}_mm`)?.value || '';
             const ss = document.getElementById(`f_${f.id}_ss`)?.value || '';
-            if (mm || ss) payload[f.id] = `${mm.padStart(2,'0')}:${ss.padStart(2,'0')}`;
+            if (mm || ss) payload[f.id] = `${mm.padStart(2, '0')}:${ss.padStart(2, '0')}`;
         } else if (f.type === 'boolean') payload[f.id] = el?.checked;
         else if (el) payload[f.id] = el.value;
     }
@@ -417,17 +417,17 @@ function saveDraft() {
 
 async function submitScore(e) {
     if (e && e.preventDefault) e.preventDefault();
-    if(!state.currentStation || !state.currentEntity) return;
+    if (!state.currentStation || !state.currentEntity) return;
     const payload = {};
-    const fields = [...(state.currentStation.fields||[]), ...(state.config.common_scoring||[])];
+    const fields = [...(state.currentStation.fields || []), ...(state.config.common_scoring || [])];
     fields.forEach(f => {
         const el = document.getElementById(`f_${f.id}`);
-        if(f.type === 'boolean') payload[f.id] = el?.checked;
-        else if(f.type === 'timed' || f.type === 'stopwatch') {
+        if (f.type === 'boolean') payload[f.id] = el?.checked;
+        else if (f.type === 'timed' || f.type === 'stopwatch') {
             combineTime(f.id);
             payload[f.id] = document.getElementById(`f_${f.id}_val`).value;
         }
-        else if(el) payload[f.id] = el.value;
+        else if (el) payload[f.id] = el.value;
     });
     const queue = syncManager.getQueue();
     const existing = queue.find(s => s.game_id === state.currentStation.id && s.entity_id === state.currentEntity.id);
@@ -441,7 +441,7 @@ async function submitScore(e) {
         judge_email: els.judgeEmail.value,
         judge_unit: els.judgeUnit.value
     };
-    if(packet.judge_email) localStorage.setItem('judge_info', JSON.stringify({name:packet.judge_name, email:packet.judge_email, unit:packet.judge_unit}));
+    if (packet.judge_email) localStorage.setItem('judge_info', JSON.stringify({ name: packet.judge_name, email: packet.judge_email, unit: packet.judge_unit }));
     syncManager.addToQueue(packet);
     const draftKey = `${state.currentStation.id}_${state.currentEntity.id}`;
     const drafts = JSON.parse(localStorage.getItem('camporee_drafts') || '{}');
@@ -449,7 +449,7 @@ async function submitScore(e) {
     localStorage.setItem('camporee_drafts', JSON.stringify(drafts));
 
     try {
-        if(navigator.onLine) {
+        if (navigator.onLine) {
             await syncManager.sync();
         }
         updateSyncCounts();
@@ -479,7 +479,7 @@ let isPaused = false;
 
 function startStopwatch(id) {
     if (activeTimerId && activeTimerId !== id) {
-        if(!confirm("Another timer is running. Stop it and start this one?")) return;
+        if (!confirm("Another timer is running. Stop it and start this one?")) return;
         stopStopwatch();
     }
     const dock = document.getElementById('stopwatch-dock');
@@ -522,10 +522,10 @@ function startStopwatch(id) {
         }
     };
     btnReset.onclick = () => {
-        if(confirm("Reset timer to 00:00?")) {
+        if (confirm("Reset timer to 00:00?")) {
             activeTimerOffset = 0;
             activeTimerStartedAt = Date.now();
-            if(isPaused) document.getElementById('dock-display').innerText = "00:00";
+            if (isPaused) document.getElementById('dock-display').innerText = "00:00";
         }
     };
     if (activeTimerInterval) clearInterval(activeTimerInterval);
@@ -539,11 +539,11 @@ function tick() {
     const totSec = Math.floor(totalMs / 1000);
     const m = Math.floor(totSec / 60);
     const s = totSec % 60;
-    document.getElementById('dock-display').innerText = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+    document.getElementById('dock-display').innerText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 }
 
 function stopStopwatch() {
-    if(!activeTimerId) return;
+    if (!activeTimerId) return;
     if (!isPaused) activeTimerOffset += (Date.now() - activeTimerStartedAt);
     const finalSec = Math.floor(activeTimerOffset / 1000);
     const m = Math.floor(finalSec / 60);
@@ -555,7 +555,7 @@ function stopStopwatch() {
     document.body.style.paddingBottom = '0';
     const mmInput = document.getElementById(`f_${activeTimerId}_mm`);
     const ssInput = document.getElementById(`f_${activeTimerId}_ss`);
-    if(mmInput && ssInput) {
+    if (mmInput && ssInput) {
         mmInput.value = m;
         ssInput.value = s;
         combineTime(activeTimerId);
@@ -566,7 +566,7 @@ function stopStopwatch() {
 function combineTime(id) {
     const m = document.getElementById(`f_${id}_mm`).value || '00';
     const s = document.getElementById(`f_${id}_ss`).value || '00';
-    document.getElementById(`f_${id}_val`).value = `${m.padStart(2,'0')}:${s.padStart(2,'0')}`;
+    document.getElementById(`f_${id}_val`).value = `${m.padStart(2, '0')}:${s.padStart(2, '0')}`;
     saveDraft();
 }
 
@@ -635,7 +635,7 @@ function renderBracketLobby() {
 
     // 2. Render Team List
     const requiredType = s.type || state.viewMode;
-    const entities = state.entities.filter(e => e.type === requiredType).sort((a,b) => (parseInt(a.troop_number)||0) - (parseInt(b.troop_number)||0));
+    const entities = state.entities.filter(e => e.type === requiredType).sort((a, b) => (parseInt(a.troop_number) || 0) - (parseInt(b.troop_number) || 0));
 
     els.lobbyList.innerHTML = entities.map(e => {
         const isChecked = activeIds.has(e.id) ? 'checked' : '';
@@ -855,7 +855,7 @@ function renderBracketRound() {
     if (round.heats.length > 0) {
         const label = state.currentStation.match_label || 'Match';
         html += `<h6 class="text-uppercase text-muted fw-bold small mb-2 ps-1 border-top pt-3">Active ${label}s</h6>`;
-        const sortedHeats = [...round.heats].sort((a,b) => (a.complete === b.complete) ? 0 : a.complete ? 1 : -1);
+        const sortedHeats = [...round.heats].sort((a, b) => (a.complete === b.complete) ? 0 : a.complete ? 1 : -1);
 
         html += sortedHeats.map((heat) => {
             const originalIdx = round.heats.findIndex(h => h.id === heat.id);
@@ -1277,7 +1277,7 @@ function bracketToggleAdvance(heatIdx, eid, event) {
     const roundList = getBracketRoundList(gameId);
     const round = roundList[state.currentRoundIdx];
     const heat = round.heats[heatIdx];
-    if(!heat.results[eid]) heat.results[eid] = {};
+    if (!heat.results[eid]) heat.results[eid] = {};
     heat.results[eid].advance = !heat.results[eid].advance;
     saveBracketState();
     renderBracketRound();
@@ -1316,7 +1316,7 @@ function bracketOpenHeat(heatIdx) {
     const saveBtn = document.getElementById('btn-bracket-save-heat');
     if (saveBtn) saveBtn.innerText = `SAVE ${label.toUpperCase()}`;
 
-    const fields = [...(state.currentStation.fields||[]), ...(state.config.common_scoring||[])].filter(f => f.audience === 'judge');
+    const fields = [...(state.currentStation.fields || []), ...(state.config.common_scoring || [])].filter(f => f.audience === 'judge');
 
     const headerLabel = fields.length === 1 ? fields[0].label : "Results";
     document.getElementById('heat-header-score').innerText = headerLabel;
@@ -1334,19 +1334,19 @@ function bracketOpenHeat(heatIdx) {
             const val = result[f.id] || '';
 
             if (f.type === 'timed' || f.type === 'stopwatch') {
-                 let [mm, ss] = (val && val.includes(':')) ? val.split(':') : ['',''];
-                 return `
+                let [mm, ss] = (val && val.includes(':')) ? val.split(':') : ['', ''];
+                return `
                  <div class="input-group input-group-sm mb-1 justify-content-center">
                     <input type="number" class="form-control text-center px-0 heat-input-mm" data-fid="${f.id}" value="${mm}" placeholder="MM" style="max-width: 45px;">
                     <span class="input-group-text px-1">:</span>
                     <input type="number" class="form-control text-center px-0 heat-input-ss" data-fid="${f.id}" value="${ss}" placeholder="SS" style="max-width: 45px;">
                  </div>`;
             } else if (f.type === 'boolean') {
-                 const checked = val === true ? 'checked' : '';
-                 return `<div class="d-flex justify-content-center mb-1"><input type="checkbox" class="form-check-input heat-input-bool" data-fid="${f.id}" ${checked}></div>`;
+                const checked = val === true ? 'checked' : '';
+                return `<div class="d-flex justify-content-center mb-1"><input type="checkbox" class="form-check-input heat-input-bool" data-fid="${f.id}" ${checked}></div>`;
             } else {
                 const type = f.type === 'number' ? 'number' : 'text';
-                return `<input type="${type}" class="form-control form-control-sm text-center mb-1 heat-input" data-fid="${f.id}" value="${val}" placeholder="${f.placeholder||''}" style="max-width: 100%;">`;
+                return `<input type="${type}" class="form-control form-control-sm text-center mb-1 heat-input" data-fid="${f.id}" value="${val}" placeholder="${f.placeholder || ''}" style="max-width: 100%;">`;
             }
         }).join('');
 
@@ -1374,20 +1374,20 @@ async function bracketSaveHeat() {
         document.querySelectorAll('.entity-score-row').forEach(row => {
             const eid = row.dataset.id;
             const payload = {};
-            const fields = [...(state.currentStation.fields||[]), ...(state.config.common_scoring||[])];
+            const fields = [...(state.currentStation.fields || []), ...(state.config.common_scoring || [])];
 
             fields.forEach(f => {
-                 if (f.type === 'timed' || f.type === 'stopwatch') {
-                     const mm = row.querySelector(`.heat-input-mm[data-fid="${f.id}"]`)?.value || '00';
-                     const ss = row.querySelector(`.heat-input-ss[data-fid="${f.id}"]`)?.value || '00';
-                     payload[f.id] = `${mm.padStart(2,'0')}:${ss.padStart(2,'0')}`;
-                 } else if (f.type === 'boolean') {
-                     const el = row.querySelector(`.heat-input-bool[data-fid="${f.id}"]`);
-                     payload[f.id] = el ? el.checked : false;
-                 } else {
-                     const el = row.querySelector(`.heat-input[data-fid="${f.id}"]`);
-                     if(el) payload[f.id] = el.value;
-                 }
+                if (f.type === 'timed' || f.type === 'stopwatch') {
+                    const mm = row.querySelector(`.heat-input-mm[data-fid="${f.id}"]`)?.value || '00';
+                    const ss = row.querySelector(`.heat-input-ss[data-fid="${f.id}"]`)?.value || '00';
+                    payload[f.id] = `${mm.padStart(2, '0')}:${ss.padStart(2, '0')}`;
+                } else if (f.type === 'boolean') {
+                    const el = row.querySelector(`.heat-input-bool[data-fid="${f.id}"]`);
+                    payload[f.id] = el ? el.checked : false;
+                } else {
+                    const el = row.querySelector(`.heat-input[data-fid="${f.id}"]`);
+                    if (el) payload[f.id] = el.value;
+                }
             });
 
             // Updated Logic: Check for 'active' class on the span instead of checkbox
@@ -1546,13 +1546,13 @@ function openPodiumModal() {
         const final = rounds[rounds.length - 1];
         let winner = null, loser = null;
         final.heats.forEach(h => {
-             if (h.complete) {
-                 h.teams.forEach(tid => {
-                     const res = h.results[tid];
-                     if (res && res.advance) winner = tid;
-                     else loser = tid;
-                 });
-             }
+            if (h.complete) {
+                h.teams.forEach(tid => {
+                    const res = h.results[tid];
+                    if (res && res.advance) winner = tid;
+                    else loser = tid;
+                });
+            }
         });
         return { winner, loser };
     };
@@ -1889,7 +1889,7 @@ function bracketRenameRound() {
 function updateOnlineStatus() {
     state.isOnline = navigator.onLine;
     const c = syncManager.getCounts().unsynced;
-    if(els.unsyncedCount) els.unsyncedCount.textContent = c;
+    if (els.unsyncedCount) els.unsyncedCount.textContent = c;
     if (c > 0 && state.isOnline) { els.status.textContent = 'Sync'; els.status.className = 'status-sync ms-2'; }
     else { els.status.textContent = state.isOnline ? 'Online' : 'Offline'; els.status.className = (state.isOnline ? 'status-online' : 'status-offline') + ' ms-2'; }
 }
@@ -1898,7 +1898,7 @@ async function refreshData() {
     const ts = Date.now();
     try {
         // 1. Fetch Config
-        const cRes = await fetch('/games.json?t=' + ts).catch(() => ({ ok: false }));
+        const cRes = await fetch(window.API_BASE + '/games.json?t=' + ts).catch(() => ({ ok: false }));
         if (cRes.ok) {
             const sc = await cRes.json();
             state.config = { stations: sc.games, common_scoring: sc.common_scoring || [] };
@@ -1940,35 +1940,35 @@ function loadLocalData() {
 }
 
 function loadJudgeInfo() {
-    const j = JSON.parse(localStorage.getItem('judge_info')||'{}');
-    if(els.judgeName) els.judgeName.value = j.name||'';
-    if(els.judgeEmail) els.judgeEmail.value = j.email||'';
-    if(els.judgeUnit) els.judgeUnit.value = j.unit||'';
-    if(j.name && document.getElementById('welcome-text')) document.getElementById('welcome-text').textContent = `Welcome, ${j.name.split(' ')[0]}.`;
+    const j = JSON.parse(localStorage.getItem('judge_info') || '{}');
+    if (els.judgeName) els.judgeName.value = j.name || '';
+    if (els.judgeEmail) els.judgeEmail.value = j.email || '';
+    if (els.judgeUnit) els.judgeUnit.value = j.unit || '';
+    if (j.name && document.getElementById('welcome-text')) document.getElementById('welcome-text').textContent = `Welcome, ${j.name.split(' ')[0]}.`;
     else toggleJudgeModal(true);
 }
 
 function toggleJudgeModal(show) {
     const m = document.getElementById('judge-modal');
-    if(show===true) m.classList.remove('hidden');
-    else if(show===false) m.classList.add('hidden');
+    if (show === true) m.classList.remove('hidden');
+    else if (show === false) m.classList.add('hidden');
     else m.classList.toggle('hidden');
 }
 
 function saveJudgeInfo() {
     const j = { name: els.judgeName.value.trim(), email: els.judgeEmail.value.trim(), unit: els.judgeUnit.value.trim() };
-    if(!j.email) return alert("Email required.");
+    if (!j.email) return alert("Email required.");
     localStorage.setItem('judge_info', JSON.stringify(j));
-    if(j.name) document.getElementById('welcome-text').textContent = `Welcome, ${j.name.split(' ')[0]}.`;
+    if (j.name) document.getElementById('welcome-text').textContent = `Welcome, ${j.name.split(' ')[0]}.`;
     toggleJudgeModal(false);
 }
 
 async function promptNewEntity(type) {
-    const n = prompt(`Name for new ${type}:`); if(!n) return;
-    const t = prompt("Troop Number:"); if(!t) return;
+    const n = prompt(`Name for new ${type}:`); if (!n) return;
+    const t = prompt("Troop Number:"); if (!t) return;
     try {
-        const r = await fetch(window.API_BASE + '/api/entities', { method: 'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:n, type, troop_number:t}) });
-        if(r.ok) {
+        const r = await fetch(window.API_BASE + '/api/entities', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: n, type, troop_number: t }) });
+        if (r.ok) {
             // SAFE PARSING: Chrome forgives empty JSON, Safari throws.
             if (r.status !== 204) {
                 const data = await r.json();
@@ -1977,10 +1977,10 @@ async function promptNewEntity(type) {
             localStorage.setItem('camporee_entities', JSON.stringify(state.entities));
             renderEntityList();
         } else {
-             const err = await r.text();
-             alert("Error creating entity: " + err);
+            const err = await r.text();
+            alert("Error creating entity: " + err);
         }
-    } catch(e) {
+    } catch (e) {
         console.error("New Entity Error:", e);
         alert("Network Error: " + e.message);
     }
@@ -1988,7 +1988,7 @@ async function promptNewEntity(type) {
 
 function showEntitySelect() { navigate('entity'); }
 function updateSyncCounts() { updateOnlineStatus(); }
-async function handleSync() { if(state.isOnline) await syncManager.sync(); updateSyncCounts(); }
+async function handleSync() { if (state.isOnline) await syncManager.sync(); updateSyncCounts(); }
 
 
 if (!window.startStopwatch) {
