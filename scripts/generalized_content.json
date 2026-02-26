@@ -1,0 +1,132 @@
+{
+    "p1": {
+        "library_file": "p_Fire_to_Water_001.json",
+        "content": {
+            "story": "Fire has been a critical survival tool for millennia. A patrol's ability to quickly build and manage a fire is a fundamental Scouting skill.",
+            "challenge": "Working as a team, safely build a fire capable of boiling water using only the provided materials.",
+            "description": "*   You have **up to 5 minutes** to gather your provided tinder and kindling and prepare to start the fire.\n*   You are encouraged to attempt a friction fire start. You may begin building the fire at any time.\n*   You may also use matches. Matches carry a penalty cost (e.g., added time per match).\n*   The official time starts either when the first embers appear from a friction start, or when the first match is struck.\n*   The maximum allowed time is 15 minutes.\n*   Once the water boils over the edge of the container, the game is complete.\n*   The fire must be properly extinguished and the station reset before your patrol leaves.",
+            "notes": "Ensure safety boundaries around the fire pit. Friction fire attempts should be closely monitored.",
+            "references": "Consider providing reference literature on bow-drill or flint-and-steel techniques at the station."
+        }
+    },
+    "p2": {
+        "library_file": "p_First_Aid_Code_001.json",
+        "content": {
+            "story": "Accidents happen when we least expect them. In an emergency, a patrol must remain calm, assess the situation, and act quickly to administer first aid.",
+            "challenge": "Triage and treat multiple injuries on a simulated victim using standard First Aid procedures.",
+            "description": "*   Assess the scene for safety before approaching the victim.\n*   Identify the injuries through observation and communicating with the victim.\n*   Apply the correct bandage, splint, or treatment for each identified injury.\n*   Work collaboratively as a patrol.",
+            "notes": "Victim actors should be briefed on their symptoms beforehand.",
+            "references": "Refer to the Scouts BSA Handbook First Aid section."
+        }
+    },
+    "p3": {
+        "library_file": "p_Campfire_Skit_001.json",
+        "content": {
+            "story": "Campfires are a time-honored tradition for sharing stories, songs, and laughter.",
+            "challenge": "Perform a short, entertaining skit or song for the judges.",
+            "description": "*   Your patrol must perform a cohesive skit or song.\n*   All patrol members must participate in some capacity.\n*   The performance should be appropriate and demonstrate Scout Spirit.",
+            "notes": "Judges should look for creativity, volume, and full patrol involvement.",
+            "references": ""
+        }
+    },
+    "p4": {
+        "library_file": "p_Tent_Setup_001.json",
+        "content": {
+            "story": "A Scout is prepared for the elements. Setting up shelter quickly and correctly is essential for a safe camping trip.",
+            "challenge": "Correctly pitch and then strike a tent as a patrol, wearing designated restrictive gear (e.g., thick gloves or blindfolds for some members) to simulate adverse conditions.",
+            "description": "*   Work together to assemble the provided tent.\n*   Judges will pause the clock to inspect the tent once you declare it finished.\n*   If errors are found, the clock resumes until they are corrected.\n*   Once approved, disassemble and correctly pack the tent back into its bag.",
+            "notes": "Make sure the tent is completely dry before packing away at the end of the day.",
+            "references": ""
+        }
+    },
+    "p5": {
+        "library_file": "p_Mix_Make_Pancake_001.json",
+        "content": {
+            "story": "Hot meals boost morale in the field. Every Scout should know how to properly operate a camp stove and cook a basic meal.",
+            "challenge": "Prepare the stove, mix batter, and successfully cook a pancake.",
+            "description": "*   The entire patrol must participate in the process.\n*   Safely connect and ignite the camp stove.\n*   Mix the provided ingredients to create a pancake batter.\n*   Cook the pancake thoroughly on both sides without burning it.",
+            "notes": "Ensure stove safety and hygienic food handling practices.",
+            "references": ""
+        }
+    },
+    "p6": {
+        "library_file": "p_Compass_Game_001.json",
+        "content": {
+            "story": "Navigation is a core Scouting skill. Knowing how to find your bearings ensures you can always find your way home.",
+            "challenge": "Navigate an established compass course by following a series of bearings and distances.",
+            "description": "*   Start at the designated starting marker.\n*   Use your compass to follow the provided bearings and distances.\n*   Record the identifier found at each destination marker.\n*   Return your completed scorecard to the judge.",
+            "notes": "Course markers should be clearly visible but require accurate bearings to locate.",
+            "references": ""
+        }
+    },
+    "p7": {
+        "library_file": "p_Colorguard_Game_001.json",
+        "content": {
+            "story": "Respect for the flag is a hallmark of Scouting. Performing a proper flag ceremony demonstrates discipline and patriotism.",
+            "challenge": "Execute a formal flag raising and lowering ceremony.",
+            "description": "*   The patrol will perform a full color guard ceremony (raising the flags).\n*   Following the raising, the patrol will perform the closure (lowering and folding the flags).\n*   Attention to detail, commands, and respect are paramount.",
+            "notes": "Ensure the flags do not touch the ground during the exercise.",
+            "references": "Scouts BSA Handbook - Flag Ceremonies."
+        }
+    },
+    "p8": {
+        "library_file": "p_Eight_Legged_Race_001.json",
+        "content": {
+            "story": "Working in unison requires communication and coordination. A patrol that moves as one can overcome any obstacle.",
+            "challenge": "Navigate a specific course while physically linked together as a patrol.",
+            "description": "*   Patrol members must stand in a circle facing outwards.\n*   Adjacent legs will be bound together using bungee cords or bandanas.\n*   The patrol must navigate the marked course and return to the start line as many times as possible within the time limit.",
+            "notes": "Monitor for safety to prevent tripping and falling hazards.",
+            "references": ""
+        }
+    },
+    "p9": {
+        "library_file": "p_Stretcher_Race_001.json",
+        "content": {
+            "story": "In wilderness rescue scenarios, a patrol may need to transport an injured member over rough terrain using improvised methods.",
+            "challenge": "Construct a rescue stretcher from provided materials and transport a patrol member across the course.",
+            "description": "*   Build a sturdy stretcher using the provided staves and blankets/ropes.\n*   Safely load one patrol member onto the stretcher.\n*   Transport the \"victim\" from the start line to the finish line without dropping them.\n*   Disassemble the stretcher and return to the start.\n*   Repeat the process. Different patrol members must take different roles on each trip.\n*   **NO RUNNING.** Walk with purpose and prioritize safety.",
+            "notes": "Safety is the primary concern. Stop the activity immediately if the stretcher appears unstable.",
+            "references": "Scouts BSA Handbook - Improvised Stretchers."
+        }
+    },
+    "p10": {
+        "library_file": "p_Ladder_Lashing_001.json",
+        "content": {
+            "story": "Pioneering skills allow Scouts to build structures to overcome obstacles. Lashings are the building blocks of pioneering.",
+            "challenge": "Construct a sturdy ladder using staves and square lashings.",
+            "description": "*   The entire patrol should participate.\n*   Upon the start signal, lash the structural rungs to the main poles using square lashings.\n*   The rungs must be spaced evenly and securely fastened.\n*   The ladder must hold the weight of a patrol member.",
+            "notes": "Check lashings for tightness and proper fraps.",
+            "references": "Pioneering Merit Badge Pamphlet, square lashings."
+        }
+    },
+    "p11": {
+        "library_file": "p_Barrel_Raft_001.json",
+        "content": {
+            "story": "Moving heavy objects over land requires ingenuity. Rollers are an ancient and effective method of transportation.",
+            "challenge": "Transport the entire patrol across a designated area using a wooden platform and rolling barrels.",
+            "description": "*   A minimum of 4 Scouts must be on the \"raft\" (plywood platform) at all times.\n*   The patrol must move the raft forward by rolling it over the provided barrels.\n*   As a barrel rolls out from the back, a Scout must retrieve it and place it squarely in the front path.\n*   No part of the raft or the Scouts on it may touch the ground.",
+            "notes": "Ensure the rolling surface is relatively flat and free of major debris.",
+            "references": ""
+        }
+    },
+    "p12": {
+        "library_file": "p_Carpet_Puzzle_001.json",
+        "content": {
+            "story": "Traversing hazardous terrain requires careful stepping and resource management.",
+            "challenge": "Move the entire patrol across the \"lava\" using only the provided stepping stones (carpet squares).",
+            "description": "*   The ground is impassable. You may only step on the provided blocks/squares.\n*   Each member receives a \"stepping stone\".\n*   As long as a patrol member maintains physical contact with a stone, it remains safe.\n*   If a stone is left completely untouched, it is \"lost\" and removed by the judge.\n*   Work together to bridge the gap and move everyone to the safe zone.",
+            "notes": "Judges must be diligent in removing untouched squares immediately.",
+            "references": ""
+        }
+    },
+    "p13": {
+        "library_file": "p_Kims_Game_001.json",
+        "content": {
+            "story": "Observation and memory are vital skills for tracking, nature study, and situational awareness.",
+            "challenge": "Observe a collection of items for a limited time and then recall as many as possible.",
+            "description": "*   Inform the judge when your patrol is ready.\n*   The judge will reveal a collection of hidden items for exactly 60 seconds (or designated time).\n*   Observe the items silently. You may not take notes or photos.\n*   Once the items are covered, work as a patrol to list as many items as you can remember.",
+            "notes": "Ensure the items are completely hidden before the patrol arrives. Have a standardized grading sheet.",
+            "references": "Baden-Powell's 'Scouting for Boys', Kim's Game."
+        }
+    }
+}
