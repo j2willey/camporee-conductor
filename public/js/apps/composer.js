@@ -560,18 +560,16 @@ const composer = {
                 content: {
                     camporee_uuid: this.data.meta.camporeeId,
                     game_uuid: newId,
-                    legend: template.content?.legend || template.content?.story || "",
-                    quest: template.content?.quest || template.content?.description || "",
-                    briefing: template.content?.briefing || template.content?.instructions || "",
+                    story: template.content?.story || template.content?.legend || "",
+                    challenge: template.content?.challenge || template.content?.quest || template.content?.description || "",
+                    description: template.content?.description || template.content?.briefing || template.content?.instructions || "",
                     rules: template.content?.rules || [],
-                    scoring_overview: template.content?.scoring_overview || "",
-                    judging_notes: template.content?.judging_notes || "",
-                    logistics: {
-                        staffing: template.content?.logistics?.staffing || "",
-                        setup: template.content?.logistics?.setup || "",
-                        reset: template.content?.logistics?.reset || "",
-                        supplies: template.content?.logistics?.supplies || template.content?.supplies || []
-                    }
+                    time_and_scoring: template.content?.time_and_scoring || template.content?.scoring_overview || "",
+                    scoring_notes: template.content?.scoring_notes || template.content?.judging_notes || "",
+                    staffing: template.content?.staffing || template.content?.logistics?.staffing || "",
+                    setup: template.content?.setup || template.content?.logistics?.setup || "",
+                    reset: template.content?.reset || template.content?.logistics?.reset || "",
+                    supplies: template.content?.supplies || template.content?.logistics?.supplies || template.content?.supplies || []
                 },
                 scoring_model: {
                     camporee_uuid: this.data.meta.camporeeId,
@@ -783,16 +781,16 @@ const composer = {
                     <div id="collapseNarrative" class="accordion-collapse collapse show" data-bs-parent="#gameGuideAccordion">
                         <div class="accordion-body bg-light pb-1">
                             <div class="mb-3">
-                                <label class="form-label">Quest (Objective)</label>
-                                <input type="text" class="form-control" id="gameQuest" placeholder="e.g. Boil water within 10 minutes" value="${game.content.quest || ""}">
+                                <label class="form-label">Challenge (Objective)</label>
+                                <input type="text" class="form-control" id="gameChallenge" placeholder="e.g. Boil water within 10 minutes" value="${game.content.challenge || ""}">
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Legend (Thematic Story)</label>
-                                <textarea class="form-control" rows="6" id="gameLegend" placeholder="Read this to the patrol...">${game.content.legend || ""}</textarea>
+                                <label class="form-label">Story (Thematic Lore)</label>
+                                <textarea class="form-control" rows="6" id="gameStory" placeholder="Read this to the patrol...">${game.content.story || ""}</textarea>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Briefing (Instructions)</label>
-                                <textarea class="form-control" rows="6" id="gameBriefing" placeholder="Specific instructions...">${game.content.briefing || ""}</textarea>
+                                <label class="form-label">Description (Instructions)</label>
+                                <textarea class="form-control" rows="6" id="gameDescription" placeholder="Specific instructions...">${game.content.description || ""}</textarea>
                             </div>
                         </div>
                     </div>
@@ -823,12 +821,12 @@ const composer = {
                     <div id="collapseJudging" class="accordion-collapse collapse" data-bs-parent="#gameGuideAccordion">
                         <div class="accordion-body bg-light pb-1">
                             <div class="mb-3">
-                                <label class="form-label">Scoring Overview (Text)</label>
-                                <textarea class="form-control" rows="6" id="gameScoringOverview" placeholder="General explanation...">${game.content.scoring_overview || ""}</textarea>
+                                <label class="form-label">Time & Scoring (Overview)</label>
+                                <textarea class="form-control" rows="6" id="gameTimeAndScoring" placeholder="General explanation...">${game.content.time_and_scoring || ""}</textarea>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Judging Notes (Tips)</label>
-                                <textarea class="form-control" rows="6" id="gameJudgingNotes" placeholder="Tips for the judge...">${game.content.judging_notes || ""}</textarea>
+                                <label class="form-label">Scoring Notes (Tips)</label>
+                                <textarea class="form-control" rows="6" id="gameScoringNotes" placeholder="Tips for the judge...">${game.content.scoring_notes || ""}</textarea>
                             </div>
                         </div>
                     </div>
@@ -844,19 +842,19 @@ const composer = {
                         <div class="accordion-body bg-light pb-1">
                             <div class="mb-3">
                                 <label class="form-label">Staffing Requirements</label>
-                                <textarea class="form-control" rows="6" id="gameStaffing">${game.content.logistics?.staffing || ""}</textarea>
+                                <textarea class="form-control" rows="6" id="gameStaffing">${game.content.staffing || ""}</textarea>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Setup Instructions</label>
-                                <textarea class="form-control" rows="6" id="gameSetup">${game.content.logistics?.setup || ""}</textarea>
+                                <textarea class="form-control" rows="6" id="gameSetup">${game.content.setup || ""}</textarea>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Reset Instructions</label>
-                                <textarea class="form-control" rows="6" id="gameReset">${game.content.logistics?.reset || ""}</textarea>
+                                <textarea class="form-control" rows="6" id="gameReset">${game.content.reset || ""}</textarea>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Supplies Needed (Text)</label>
-                                <textarea class="form-control" rows="6" id="gameSuppliesText" placeholder="List of supplies...">${game.content.logistics?.supplies_text || ""}</textarea>
+                                <textarea class="form-control" rows="6" id="gameSuppliesText" placeholder="List of supplies...">${game.content.supplies_text || ""}</textarea>
                             </div>
                         </div>
                     </div>
@@ -934,14 +932,14 @@ const composer = {
     </div>`;
 
         // Bind Inputs
-        ["gameTitle", "gameMatchLabel", "gameQuest", "gameLegend", "gameBriefing", "gameScoringOverview", "gameJudgingNotes", "gameStaffing", "gameSetup", "gameReset", "gameSuppliesText"].forEach(fieldId => {
+        ["gameTitle", "gameMatchLabel", "gameChallenge", "gameStory", "gameDescription", "gameTimeAndScoring", "gameScoringNotes", "gameStaffing", "gameSetup", "gameReset", "gameSuppliesText"].forEach(fieldId => {
             const key = fieldId === "gameTitle" ? "game_title" :
                 fieldId === "gameMatchLabel" ? "match_label" :
-                    fieldId === "gameQuest" ? "quest" :
-                        fieldId === "gameLegend" ? "legend" :
-                            fieldId === "gameBriefing" ? "briefing" :
-                                fieldId === "gameScoringOverview" ? "scoring_overview" :
-                                    fieldId === "gameJudgingNotes" ? "judging_notes" :
+                    fieldId === "gameChallenge" ? "challenge" :
+                        fieldId === "gameStory" ? "story" :
+                            fieldId === "gameDescription" ? "description" :
+                                fieldId === "gameTimeAndScoring" ? "time_and_scoring" :
+                                    fieldId === "gameScoringNotes" ? "scoring_notes" :
                                         fieldId === "gameStaffing" ? "staffing" :
                                             fieldId === "gameSetup" ? "setup" :
                                                 fieldId === "gameReset" ? "reset" :
@@ -952,8 +950,6 @@ const composer = {
                 let val = "";
                 if (key === "match_label" || key === "game_title") {
                     val = game[key] || "";
-                } else if (["staffing", "setup", "reset", "supplies_text"].includes(key)) {
-                    val = game.content.logistics?.[key] || "";
                 } else {
                     val = game.content[key] || "";
                 }

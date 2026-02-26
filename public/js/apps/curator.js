@@ -172,18 +172,16 @@ const curator = {
             type: "patrol",
             category: "Teamwork",
             content: {
-                legend: "",
-                quest: "",
-                briefing: "",
+                story: "",
+                challenge: "",
+                description: "",
                 rules: [],
-                scoring_overview: "",
-                judging_notes: "",
-                logistics: {
-                    staffing: "",
-                    setup: "",
-                    reset: "",
-                    supplies: []
-                }
+                time_and_scoring: "",
+                scoring_notes: "",
+                staffing: "",
+                setup: "",
+                reset: "",
+                supplies: []
             },
             tags: [],
             scoring_model: {
@@ -225,18 +223,16 @@ const curator = {
                 type: game.type || "patrol",
                 category: game.category || "Teamwork",
                 content: {
-                    legend: game.content?.legend || game.story || game.meta?.story || "",
-                    quest: game.content?.quest || game.description || "",
-                    briefing: game.content?.briefing || game.instructions || game.meta?.instructions || "",
+                    story: game.content?.story || game.content?.legend || game.story || game.meta?.story || "",
+                    challenge: game.content?.challenge || game.content?.quest || game.description || "",
+                    description: game.content?.description || game.content?.briefing || game.instructions || game.meta?.instructions || "",
                     rules: game.content?.rules || game.rules || [],
-                    scoring_overview: game.content?.scoring_overview || "",
-                    judging_notes: game.content?.judging_notes || "",
-                    logistics: {
-                        staffing: game.content?.logistics?.staffing || "",
-                        setup: game.content?.logistics?.setup || "",
-                        reset: game.content?.logistics?.reset || "",
-                        supplies: game.content?.logistics?.supplies || game.supplies || []
-                    }
+                    time_and_scoring: game.content?.time_and_scoring || game.content?.scoring_overview || "",
+                    scoring_notes: game.content?.scoring_notes || game.content?.judging_notes || "",
+                    staffing: game.content?.staffing || game.content?.logistics?.staffing || "",
+                    setup: game.content?.setup || game.content?.logistics?.setup || "",
+                    reset: game.content?.reset || game.content?.logistics?.reset || "",
+                    supplies: game.content?.supplies || game.content?.logistics?.supplies || game.supplies || []
                 },
                 tags: game.tags || game.meta?.tags || [],
                 scoring_model: {
@@ -431,16 +427,16 @@ const curator = {
                             <div id="collapseNarrative" class="accordion-collapse collapse show" data-bs-parent="#gameGuideAccordion">
                                 <div class="accordion-body bg-light pb-1">
                                     <div class="mb-3">
-                                        <label class="form-label">Quest (Objective)</label>
-                                        <input type="text" class="form-control" id="gameQuest" placeholder="e.g. Boil water within 10 minutes" value="${data.content.quest || ""}">
+                                        <label class="form-label">Challenge (Objective)</label>
+                                        <input type="text" class="form-control" id="gameChallenge" placeholder="e.g. Boil water within 10 minutes" value="${data.content.challenge || ""}">
                                     </div>
                                     <div class="mb-3">
-                                        <label class="form-label">Legend (Thematic Story)</label>
-                                        <textarea class="form-control" rows="6" id="gameLegend" placeholder="Read this to the patrol...">${data.content.legend || ""}</textarea>
+                                        <label class="form-label">Story (Thematic Lore)</label>
+                                        <textarea class="form-control" rows="6" id="gameStory" placeholder="Read this to the patrol...">${data.content.story || ""}</textarea>
                                     </div>
                                     <div class="mb-3">
-                                        <label class="form-label">Briefing (Instructions)</label>
-                                        <textarea class="form-control" rows="6" id="gameBriefing" placeholder="Specific instructions...">${data.content.briefing || ""}</textarea>
+                                        <label class="form-label">Description (Instructions)</label>
+                                        <textarea class="form-control" rows="6" id="gameDescription" placeholder="Specific instructions...">${data.content.description || ""}</textarea>
                                     </div>
                                 </div>
                             </div>
@@ -471,12 +467,12 @@ const curator = {
                             <div id="collapseJudging" class="accordion-collapse collapse" data-bs-parent="#gameGuideAccordion">
                                 <div class="accordion-body bg-light pb-1">
                                     <div class="mb-3">
-                                        <label class="form-label">Scoring Overview (Text)</label>
-                                        <textarea class="form-control" rows="6" id="gameScoringOverview" placeholder="General explanation...">${data.content.scoring_overview || ""}</textarea>
+                                        <label class="form-label">Time & Scoring (Overview)</label>
+                                        <textarea class="form-control" rows="6" id="gameTimeAndScoring" placeholder="General explanation...">${data.content.time_and_scoring || ""}</textarea>
                                     </div>
                                     <div class="mb-3">
-                                        <label class="form-label">Judging Notes (Tips)</label>
-                                        <textarea class="form-control" rows="6" id="gameJudgingNotes" placeholder="Tips for the judge...">${data.content.judging_notes || ""}</textarea>
+                                        <label class="form-label">Scoring Notes (Tips)</label>
+                                        <textarea class="form-control" rows="6" id="gameScoringNotes" placeholder="Tips for the judge...">${data.content.scoring_notes || ""}</textarea>
                                     </div>
                                 </div>
                             </div>
@@ -492,19 +488,19 @@ const curator = {
                                 <div class="accordion-body bg-light pb-1">
                                     <div class="mb-3">
                                         <label class="form-label">Staffing Requirements</label>
-                                        <textarea class="form-control" rows="6" id="gameStaffing">${data.content.logistics.staffing || ""}</textarea>
+                                        <textarea class="form-control" rows="6" id="gameStaffing">${data.content.staffing || ""}</textarea>
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label">Setup Instructions</label>
-                                        <textarea class="form-control" rows="6" id="gameSetup">${data.content.logistics.setup || ""}</textarea>
+                                        <textarea class="form-control" rows="6" id="gameSetup">${data.content.setup || ""}</textarea>
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label">Reset Instructions</label>
-                                        <textarea class="form-control" rows="6" id="gameReset">${data.content.logistics.reset || ""}</textarea>
+                                        <textarea class="form-control" rows="6" id="gameReset">${data.content.reset || ""}</textarea>
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label">Supplies Needed (Text)</label>
-                                        <textarea class="form-control" rows="6" id="gameSuppliesText" placeholder="List of supplies...">${data.content.logistics.supplies_text || ""}</textarea>
+                                        <textarea class="form-control" rows="6" id="gameSuppliesText" placeholder="List of supplies...">${data.content.supplies_text || ""}</textarea>
                                     </div>
                                     <hr>
                                     <label class="form-label fw-bold">Itemized Supplies</label>
@@ -596,17 +592,16 @@ const curator = {
         });
 
         // Content bindings
-        document.getElementById("gameQuest").oninput = (e) => { this.data.content.quest = e.target.value; this.updateSaveButton(); };
-        document.getElementById("gameLegend").oninput = (e) => { this.data.content.legend = e.target.value; this.updateSaveButton(); };
-        document.getElementById("gameBriefing").oninput = (e) => { this.data.content.briefing = e.target.value; this.updateSaveButton(); };
-        document.getElementById("gameScoringOverview").oninput = (e) => { this.data.content.scoring_overview = e.target.value; this.updateSaveButton(); };
-        document.getElementById("gameJudgingNotes").oninput = (e) => { this.data.content.judging_notes = e.target.value; this.updateSaveButton(); };
+        document.getElementById("gameChallenge").oninput = (e) => { this.data.content.challenge = e.target.value; this.updateSaveButton(); };
+        document.getElementById("gameStory").oninput = (e) => { this.data.content.story = e.target.value; this.updateSaveButton(); };
+        document.getElementById("gameDescription").oninput = (e) => { this.data.content.description = e.target.value; this.updateSaveButton(); };
+        document.getElementById("gameTimeAndScoring").oninput = (e) => { this.data.content.time_and_scoring = e.target.value; this.updateSaveButton(); };
+        document.getElementById("gameScoringNotes").oninput = (e) => { this.data.content.scoring_notes = e.target.value; this.updateSaveButton(); };
 
-        // Logistics bindings
-        document.getElementById("gameStaffing").oninput = (e) => { this.data.content.logistics.staffing = e.target.value; this.updateSaveButton(); };
-        document.getElementById("gameSetup").oninput = (e) => { this.data.content.logistics.setup = e.target.value; this.updateSaveButton(); };
-        document.getElementById("gameReset").oninput = (e) => { this.data.content.logistics.reset = e.target.value; this.updateSaveButton(); };
-        document.getElementById("gameSuppliesText").oninput = (e) => { this.data.content.logistics.supplies_text = e.target.value; this.updateSaveButton(); };
+        document.getElementById("gameStaffing").oninput = (e) => { this.data.content.staffing = e.target.value; this.updateSaveButton(); };
+        document.getElementById("gameSetup").oninput = (e) => { this.data.content.setup = e.target.value; this.updateSaveButton(); };
+        document.getElementById("gameReset").oninput = (e) => { this.data.content.reset = e.target.value; this.updateSaveButton(); };
+        document.getElementById("gameSuppliesText").oninput = (e) => { this.data.content.supplies_text = e.target.value; this.updateSaveButton(); };
 
         this.renderScoringInputs(data.scoring_model.inputs, "game");
         this.renderListEditor('rules', data.content.rules);
