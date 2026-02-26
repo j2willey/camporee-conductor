@@ -25,21 +25,15 @@ Heavy narrative text and logistics for human consumption
 
 | Field | Type | Required | Description |
 | :--- | :--- | :---: | :--- |
-| `legend` | string | ❌ | Thematic setting/story |
-| `quest` | string | ❌ | Primary objective |
-| `briefing` | string | ❌ | Instructions for competitors |
+| `story` | string | ❌ | Thematic setting/story |
+| `challenge` | string | ❌ | Primary objective |
+| `description` | string | ❌ | Instructions for competitors |
 | `rules` | string[] | ❌ |  |
-| `scoring_overview` | string | ❌ |  |
-| `judging_notes` | string | ❌ |  |
+| `time_and_scoring` | string | ❌ |  |
+| `scoring_notes` | string | ❌ |  |
 | `notes` | string | ❌ |  |
 | `references` | string | ❌ |  |
 | `marketing_image_url` | string | ❌ |  |
-| `logistics` | object | ❌ |  <br>(Contains nested properties, see below or source for details) |
-
-### Logistics Sub-Object
-
-| Field | Type | Required | Description |
-| :--- | :--- | :---: | :--- |
 | `staffing` | string | ❌ |  |
 | `setup` | string | ❌ |  |
 | `reset` | string | ❌ |  |

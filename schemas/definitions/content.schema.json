@@ -5,15 +5,15 @@
     "description": "Heavy narrative text and logistics for human consumption",
     "type": "object",
     "properties": {
-        "legend": {
+        "story": {
             "type": "string",
             "description": "Thematic setting/story"
         },
-        "quest": {
+        "challenge": {
             "type": "string",
             "description": "Primary objective"
         },
-        "briefing": {
+        "description": {
             "type": "string",
             "description": "Instructions for competitors"
         },
@@ -23,10 +23,10 @@
                 "type": "string"
             }
         },
-        "scoring_overview": {
+        "time_and_scoring": {
             "type": "string"
         },
-        "judging_notes": {
+        "scoring_notes": {
             "type": "string"
         },
         "notes": {
@@ -39,41 +39,36 @@
             "type": "string",
             "format": "uri"
         },
-        "logistics": {
-            "type": "object",
-            "properties": {
-                "staffing": {
-                    "type": "string"
-                },
-                "setup": {
-                    "type": "string"
-                },
-                "reset": {
-                    "type": "string"
-                },
-                "supplies_text": {
-                    "type": "string",
-                    "description": "Unstructured text representation of supplies needed"
-                },
-                "supplies": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "required": [
-                            "item",
-                            "qty"
-                        ],
-                        "properties": {
-                            "item": {
-                                "type": "string"
-                            },
-                            "qty": {
-                                "type": "string"
-                            },
-                            "source": {
-                                "type": "string"
-                            }
-                        }
+        "staffing": {
+            "type": "string"
+        },
+        "setup": {
+            "type": "string"
+        },
+        "reset": {
+            "type": "string"
+        },
+        "supplies_text": {
+            "type": "string",
+            "description": "Unstructured text representation of supplies needed"
+        },
+        "supplies": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": [
+                    "item",
+                    "qty"
+                ],
+                "properties": {
+                    "item": {
+                        "type": "string"
+                    },
+                    "qty": {
+                        "type": "string"
+                    },
+                    "source": {
+                        "type": "string"
                     }
                 }
             }
