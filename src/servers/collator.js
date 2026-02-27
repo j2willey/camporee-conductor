@@ -410,6 +410,15 @@ app.get('/', (req, res) => {
 // 1. GET /games.json
 app.get('/games.json', (req, res) => {
     const data = loadCamporeeData();
+
+    // Strip history/snapshots from Judge view to save bandwidth
+    if (data && Array.isArray(data.games)) {
+        data.games.forEach(game => {
+            delete game.source_snapshot;
+            delete game.variants;
+        });
+    }
+
     res.json(data);
 });
 

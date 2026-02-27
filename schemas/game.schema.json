@@ -59,6 +59,17 @@
         "scoring_model": {
             "$ref": "definitions/scoring.json"
         },
+        "source_snapshot": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "$ref": "definitions/content.json"
+                },
+                "scoring_model": {
+                    "$ref": "definitions/scoring.json"
+                }
+            }
+        },
         "variants": {
             "type": "array",
             "items": {
@@ -80,6 +91,9 @@
                     },
                     "content": {
                         "$ref": "definitions/content.json"
+                    },
+                    "scoring_model": {
+                        "$ref": "definitions/scoring.json"
                     }
                 }
             }

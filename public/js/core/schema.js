@@ -26,6 +26,14 @@ export function normalizeGameDefinition(gameDef, playlistOrder = 0) {
     // Clone to avoid mutating the input
     const game = JSON.parse(JSON.stringify(gameDef));
 
+    // Create source_snapshot if imported from library but missing one
+    if ((game.library_uuid || game.library_ref_id) && !game.source_snapshot) {
+        game.source_snapshot = {
+            content: game.content ? JSON.parse(JSON.stringify(game.content)) : {},
+            scoring_model: game.scoring_model ? JSON.parse(JSON.stringify(game.scoring_model)) : {}
+        };
+    }
+
     // Support library vs instance titles
     // library templates may provide `base_title`; instances use `content.title`
     if (!game.base_title && game.title) game.base_title = game.title;
