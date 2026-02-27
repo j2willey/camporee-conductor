@@ -13,6 +13,7 @@
     "test": "npx playwright test"
   },
   "dependencies": {
+    "@google/genai": "^1.43.0",
     "adm-zip": "^0.5.16",
     "ajv": "^8.18.0",
     "ajv-formats": "^3.0.1",

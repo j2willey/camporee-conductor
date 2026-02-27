@@ -1,5 +1,6 @@
 import express from 'express';
 import bodyParser from 'body-parser';
+import { GoogleGenAI } from '@google/genai';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
@@ -322,6 +323,78 @@ app.post('/api/library/save', async (req, res) => {
     } catch (err) {
         console.error('Library save error:', err);
         return res.status(500).json({ error: 'Failed to save library game' });
+    }
+});
+
+/**
+ * 8. AI Brainstorm Introduction
+ * Hits the Gemini API to return 3 distinct introduction options based on a theme.
+ */
+app.post('/api/ai/brainstorm-theme', async (req, res) => {
+    try {
+        const { theme, instruction } = req.body;
+        if (!process.env.GEMINI_API_KEY) {
+            return res.status(500).json({ error: "GEMINI_API_KEY is not configured in .env" });
+        }
+
+        const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+        const prompt = `
+        You are an expert event planner and creative writer for a Scout Camporee. 
+        The theme of the camporee is: "${theme || 'Scouting Adventure'}".
+        
+        Please provide three distinct options for the "Introduction" or "Welcome Text" of the event program.
+        ${instruction ? `The user also requested: "${instruction}"` : ''}
+        
+        1. An Action-Oriented option that excites the participants.
+        2. A Lore-Heavy option that leans deep into the theme's storytelling.
+        3. A Skill-Focused option emphasizing the scouting skills they will use.
+        
+        Keep each option between 3 and 5 sentences. Return ONLY a JSON object exactly like this:
+        {
+            "action": "...",
+            "lore": "...",
+            "skill": "..."
+        }
+        `;
+
+        const response = await genAI.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt
+        });
+        const text = response.text;
+
+        // Extract JSON from markdown backticks if present
+        const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/) || text.match(/```\n([\s\S]*?)\n```/);
+        const parsedJSON = JSON.parse(jsonMatch ? jsonMatch[1] : text);
+
+        res.json(parsedJSON);
+    } catch (err) {
+        console.error("AI Brainstorm Error:", err);
+        res.status(500).json({ error: "Failed to generate AI response" });
+    }
+});
+
+/**
+ * 9. AI Test Key
+ * Validates the Gemini API key is configured and working.
+ */
+app.get('/api/ai/test', async (req, res) => {
+    try {
+        if (!process.env.GEMINI_API_KEY) {
+            return res.json({ success: false, message: "GEMINI_API_KEY is missing from .env" });
+        }
+        const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+        const response = await genAI.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: "Reply with the word SUCCESS"
+        });
+        if (response.text.includes("SUCCESS")) {
+            return res.json({ success: true, message: "API Key is valid and working!" });
+        }
+        res.json({ success: false, message: "Received unexpected response from API." });
+    } catch (err) {
+        console.error("AI Test Error:", err);
+        res.json({ success: false, message: err.message || "Failed to reach Google API." });
     }
 });
 

@@ -83,4 +83,31 @@ export class ApiClient {
         });
         return await res.json();
     }
+
+    /**
+     * Calls the AI brainstorming endpoint.
+     * @param {Object} payload { theme: string, instruction: string }
+     * @returns {Promise<Object>} { action, lore, skill }
+     */
+    async brainstormTheme(payload) {
+        const res = await fetch(`${this.baseUrl}/ai/brainstorm-theme`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || "Brainstorming failed.");
+        }
+        return await res.json();
+    }
+
+    /**
+     * Tests the AI API Key configuration.
+     * @returns {Promise<Object>} { success, message }
+     */
+    async testAIKey() {
+        const res = await fetch(`${this.baseUrl}/ai/test`);
+        return await res.json();
+    }
 }

@@ -55,6 +55,8 @@
                     <i class="fas fa-info-circle fa-fw text-primary me-2"></i> Camporee Info
                 </button>
 
+
+
                 <!-- Patrol Games -->
                 <div class="accordion-item bg-transparent border-0 mb-1">
                     <button
@@ -137,6 +139,74 @@
                             <input type="text" class="form-control" id="metaTheme" placeholder="e.g. Space Odyssey">
                         </div>
                     </div>
+
+                    <div class="accordion mt-3" id="accordionEventDetails">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed fw-bold text-primary" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#collapseEventDetails">
+                                    <i class="fas fa-calendar-alt fa-fw me-2"></i> Event Details
+                                </button>
+                            </h2>
+                            <div id="collapseEventDetails" class="accordion-collapse collapse"
+                                data-bs-parent="#accordionEventDetails">
+                                <div class="accordion-body bg-light">
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-bold">Council</label>
+                                            <input type="text" class="form-control" id="metaCouncil"
+                                                placeholder="e.g. Cascade Pacific">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-bold">Location Name</label>
+                                            <input type="text" class="form-control mb-1" id="metaLocName"
+                                                placeholder="Camp Name">
+                                            <input type="text" class="form-control form-control-sm" id="metaLocAddress"
+                                                placeholder="Address">
+                                        </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-bold">Start Date</label>
+                                            <input type="date" class="form-control" id="metaStartDate">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-bold">End Date</label>
+                                            <input type="date" class="form-control" id="metaEndDate">
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <label class="form-label fw-bold mb-0">Introduction</label>
+                                            <div>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary me-1"
+                                                    id="testAIBtn" onclick="composer.testAIKey()" title="Test API Key">
+                                                    <i class="fas fa-key"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-primary"
+                                                    onclick="composer.openBrainstormModal()">
+                                                    <i class="fas fa-magic"></i> Brainstorm
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <textarea id="metaIntroduction" class="form-control" rows="3"
+                                            placeholder="Introduction markdown..."></textarea>
+                                    </div>
+
+                                    <div class="border rounded bg-white p-3">
+                                        <h6 class="fw-bold mb-3"><i class="fas fa-address-book text-muted me-2"></i>Key
+                                            Contacts</h6>
+                                        <div id="contactsContainer"></div>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary mt-2 w-100"
+                                            onclick="composer.addContact()">
+                                            <i class="fas fa-plus"></i> Add Contact
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="row mt-4">
                         <div class="col-12 text-center">
                             <button type="button" class="btn btn-outline-primary"
@@ -193,6 +263,77 @@
                     <button type="button" class="btn btn-primary d-none" id="previewPrintBtn"
                         onclick="composer.printPreview()"><i class="fas fa-print"></i> Print</button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Brainstorm Modal -->
+    <div class="modal fade" id="brainstormModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="fas fa-magic"></i> AI Theme Embellisher</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small">Select an introduction generated by AI based on your theme.</p>
+
+                    <div id="brainstormLoading" class="text-center py-4 d-none">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2 text-muted">Brainstorming with Gemini...</p>
+                    </div>
+
+                    <div id="brainstormResults" class="d-none">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <div class="card h-100 border-primary">
+                                    <div class="card-header bg-primary text-white fw-bold small"><i
+                                            class="fas fa-bolt"></i> Action-Oriented</div>
+                                    <div class="card-body small" id="bsOptionAction"></div>
+                                    <div class="card-footer bg-transparent border-0 p-2">
+                                        <button class="btn btn-sm btn-outline-primary w-100"
+                                            onclick="composer.selectBrainstorm('action')">Select</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card h-100 border-success">
+                                    <div class="card-header bg-success text-white fw-bold small"><i
+                                            class="fas fa-book-journal-whills"></i> Lore-Heavy</div>
+                                    <div class="card-body small" id="bsOptionLore"></div>
+                                    <div class="card-footer bg-transparent border-0 p-2">
+                                        <button class="btn btn-sm btn-outline-success w-100"
+                                            onclick="composer.selectBrainstorm('lore')">Select</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card h-100 border-info">
+                                    <div class="card-header bg-info text-white fw-bold small"><i
+                                            class="fas fa-compass"></i> Skill-Focused</div>
+                                    <div class="card-body small" id="bsOptionSkill"></div>
+                                    <div class="card-footer bg-transparent border-0 p-2">
+                                        <button class="btn btn-sm btn-outline-info w-100"
+                                            onclick="composer.selectBrainstorm('skill')">Select</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 pt-3 border-top">
+                        <label class="form-label small fw-bold">Not quite right? Refine the prompt:</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control form-control-sm" id="brainstormRefineInput"
+                                placeholder="e.g. Make it sound like a pirate captain...">
+                            <button class="btn btn-sm btn-secondary" onclick="composer.runBrainstorm()"><i
+                                    class="fas fa-sync-alt"></i> Try Again</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

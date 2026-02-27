@@ -74,15 +74,68 @@ const composer = {
         importGameInput.addEventListener("change", (e) => this.handleGameImport(e));
         document.body.appendChild(importGameInput);
 
-        ["metaTitle", "metaTheme"].forEach(id => {
+        ["metaTitle", "metaTheme", "metaCouncil"].forEach(id => {
             const el = document.getElementById(id);
             if (el) {
                 el.addEventListener("input", (e) => {
-                    const key = id === "metaTitle" ? "title" : "theme";
+                    const key = id === "metaTitle" ? "title" :
+                        id === "metaTheme" ? "theme" : "council";
                     this.data.meta[key] = e.target.value;
                 });
             }
         });
+
+        // Location binding
+        ["metaLocName", "metaLocAddress"].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener("input", (e) => {
+                    if (!this.data.meta.location) this.data.meta.location = {};
+                    const key = id === "metaLocName" ? "name" : "address";
+                    this.data.meta.location[key] = e.target.value;
+                });
+            }
+        });
+
+        // Dates binding
+        ["metaStartDate", "metaEndDate"].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener("change", (e) => {
+                    if (!this.data.meta.dates) this.data.meta.dates = {};
+                    const key = id === "metaStartDate" ? "start" : "end";
+                    this.data.meta.dates[key] = e.target.value;
+                });
+            }
+        });
+
+        // Inside bindGlobalEvents, eagerly initialize the Welcome Text EasyMDE
+        const introEl = document.getElementById("metaIntroduction");
+        if (introEl && window.EasyMDE && !this.welcomeEditor) {
+            const mde = new EasyMDE({
+                element: introEl,
+                spellChecker: false,
+                status: false,
+                minHeight: "100px",
+                initialValue: this.data.meta.introduction || "",
+                toolbar: ["bold", "italic", "heading", "link", "image"]
+            });
+            mde.codemirror.on("change", () => {
+                this.data.meta.introduction = mde.value();
+            });
+            this.welcomeEditor = mde;
+
+            const parentCollapse = document.getElementById("collapseEventDetails");
+            if (parentCollapse) {
+                parentCollapse.addEventListener('shown.bs.collapse', () => {
+                    mde.codemirror.refresh();
+                });
+            }
+        } else if (introEl) {
+            introEl.addEventListener("input", (e) => {
+                this.data.meta.introduction = e.target.value;
+            });
+        }
     },
 
     generateUUID: function () {
@@ -509,6 +562,75 @@ const composer = {
         const themeEl = document.getElementById("metaTheme");
         if (titleEl) titleEl.value = this.data.meta.title || "";
         if (themeEl) themeEl.value = this.data.meta.theme || "";
+
+        const councilEl = document.getElementById("metaCouncil");
+        if (councilEl) councilEl.value = this.data.meta.council || "";
+
+        if (this.data.meta.location) {
+            const elN = document.getElementById("metaLocName");
+            if (elN) elN.value = this.data.meta.location.name || "";
+            const elA = document.getElementById("metaLocAddress");
+            if (elA) elA.value = this.data.meta.location.address || "";
+        }
+
+        if (this.data.meta.dates) {
+            const elS = document.getElementById("metaStartDate");
+            if (elS) elS.value = this.data.meta.dates.start || "";
+            const elE = document.getElementById("metaEndDate");
+            if (elE) elE.value = this.data.meta.dates.end || "";
+        }
+
+        if (this.welcomeEditor) {
+            this.welcomeEditor.value(this.data.meta.introduction || "");
+        } else {
+            const elW = document.getElementById("metaIntroduction");
+            if (elW) elW.value = this.data.meta.introduction || "";
+        }
+
+        this.renderContacts();
+    },
+
+    renderContacts: function () {
+        const container = document.getElementById("contactsContainer");
+        if (!container) return;
+
+        const contacts = this.data.meta.contacts || [];
+
+        if (contacts.length === 0) {
+            container.innerHTML = `<div class="text-muted text-center small p-2">No contacts added.</div>`;
+            return;
+        }
+
+        container.innerHTML = contacts.map((c, i) => `
+            <div class="card mb-2 border">
+                <div class="card-body p-2 position-relative">
+                    <button class="btn btn-sm btn-link text-danger position-absolute top-0 end-0 p-1" onclick="composer.removeContact(${i})"><i class="fas fa-times"></i></button>
+                    <input type="text" class="form-control form-control-sm mb-1 fw-bold border-0 bg-light" placeholder="Role (e.g. Medic)" value="${c.role || ''}" onchange="composer.updateContact(${i}, 'role', this.value)">
+                    <input type="text" class="form-control form-control-sm mb-1 border-0" placeholder="Name" value="${c.name || ''}" onchange="composer.updateContact(${i}, 'name', this.value)">
+                    <input type="email" class="form-control form-control-sm mb-1 border-0" placeholder="Email" value="${c.email || ''}" onchange="composer.updateContact(${i}, 'email', this.value)">
+                    <input type="tel" class="form-control form-control-sm border-0" placeholder="Phone" value="${c.phone || ''}" onchange="composer.updateContact(${i}, 'phone', this.value)">
+                </div>
+            </div>
+        `).join("");
+    },
+
+    addContact: function () {
+        if (!this.data.meta.contacts) this.data.meta.contacts = [];
+        this.data.meta.contacts.push({ role: "", name: "", email: "", phone: "" });
+        this.renderContacts();
+    },
+
+    updateContact: function (index, field, value) {
+        if (this.data.meta.contacts && this.data.meta.contacts[index]) {
+            this.data.meta.contacts[index][field] = value;
+        }
+    },
+
+    removeContact: function (index) {
+        if (this.data.meta.contacts) {
+            this.data.meta.contacts.splice(index, 1);
+            this.renderContacts();
+        }
     },
 
     renderLibrary: function (catalog) {
@@ -1587,6 +1709,72 @@ const composer = {
         window.print();
         document.body.innerHTML = originalContents;
         window.location.reload(); // Reload to restore proper event bindings
+    },
+
+    openBrainstormModal: function () {
+        if (!this.data.meta.theme) {
+            alert("Please enter a Theme first!");
+            return;
+        }
+
+        document.getElementById('brainstormLoading').classList.add('d-none');
+        document.getElementById('brainstormResults').classList.add('d-none');
+        document.getElementById('brainstormRefineInput').value = '';
+
+        window.bootstrap.Modal.getOrCreateInstance(document.getElementById('brainstormModal')).show();
+        this.runBrainstorm();
+    },
+
+    testAIKey: async function () {
+        const btn = document.getElementById('testAIBtn');
+        const icon = btn ? btn.querySelector('i') : null;
+        if (icon) icon.className = "fas fa-spinner fa-spin";
+
+        try {
+            const data = await this.api.testAIKey();
+            if (data.success) {
+                alert("✅ " + data.message);
+            } else {
+                alert("❌ " + data.message);
+            }
+        } catch (err) {
+            alert("❌ Error: " + err.message);
+        }
+
+        if (icon) icon.className = "fas fa-key";
+    },
+
+    runBrainstorm: async function () {
+        const theme = this.data.meta.theme;
+        const instruction = document.getElementById('brainstormRefineInput').value;
+
+        document.getElementById('brainstormLoading').classList.remove('d-none');
+        document.getElementById('brainstormResults').classList.add('d-none');
+
+        try {
+            const data = await this.api.brainstormTheme({ theme, instruction });
+
+            document.getElementById('bsOptionAction').innerText = data.action || "No action option returned.";
+            document.getElementById('bsOptionLore').innerText = data.lore || "No lore option returned.";
+            document.getElementById('bsOptionSkill').innerText = data.skill || "No skill option returned.";
+
+            document.getElementById('brainstormLoading').classList.add('d-none');
+            document.getElementById('brainstormResults').classList.remove('d-none');
+        } catch (err) {
+            document.getElementById('brainstormLoading').classList.add('d-none');
+            alert(err.message || "Failed to brainstorm. Check server logs or API key.");
+        }
+    },
+
+    selectBrainstorm: function (type) {
+        let text = "";
+        if (type === 'action') text = document.getElementById('bsOptionAction').innerText;
+        else if (type === 'lore') text = document.getElementById('bsOptionLore').innerText;
+        else if (type === 'skill') text = document.getElementById('bsOptionSkill').innerText;
+
+        this.data.meta.introduction = text;
+        this.updateMetaUI();
+        window.bootstrap.Modal.getInstance(document.getElementById('brainstormModal')).hide();
     },
 
     exportCamporee: async function () {
