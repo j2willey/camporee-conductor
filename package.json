@@ -10,7 +10,10 @@
     "dev:collator": "ACTIVE_SERVICES=collator node server.js",
     "minify": "terser public/js/apps/composer.js -o public/js/apps/composer.js --compress --mangle && terser public/js/apps/curator.js -o public/js/apps/curator.js --compress --mangle",
     "docs:schema": "node scripts/generate-docs.js",
-    "test": "npx playwright test"
+    "test": "npm run test:unit && npm run test:integration && npm run test:e2e",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:e2e": "npx playwright test tests/e2e"
   },
   "dependencies": {
     "@google/genai": "^1.43.0",
@@ -27,7 +30,10 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.58.1",
-    "terser": "^5.19.2"
+    "supertest": "^7.2.2",
+    "supertest-fetch": "^2.0.0",
+    "terser": "^5.19.2",
+    "vitest": "^4.0.18"
   },
   "engines": {
     "node": ">=22.0.0 <23.0.0"

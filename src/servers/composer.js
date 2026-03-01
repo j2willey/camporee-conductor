@@ -41,6 +41,7 @@ app.use(express.static('public', { index: false }));
 app.use('/library/games', express.static(LIBRARY_PATH));
 
 app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
 
 // Ensure root storage directory exists
 if (!fs.existsSync(WORKSPACE_PATH)) {
@@ -52,9 +53,14 @@ if (!fs.existsSync(WORKSPACE_PATH)) {
 
 // FIX: Passed the 'title' variable required by index.ejs
 app.get('/', (req, res) => {
-    res.render('composer/index', {
-        title: 'Camporee Composer'
-    });
+    try {
+        res.render('composer/index', {
+            title: 'Camporee Composer'
+        });
+    } catch (err) {
+        console.error("COMPOSER RENDER ERROR:", err);
+        res.status(500).send("Render Error: " + err.message);
+    }
 });
 
 // --- API ROUTES ---
@@ -395,6 +401,61 @@ app.get('/api/ai/test', async (req, res) => {
     } catch (err) {
         console.error("AI Test Error:", err);
         res.json({ success: false, message: err.message || "Failed to reach Google API." });
+    }
+});
+
+/**
+ * 10. AI Theme Game
+ * Transforms a generic scout game into a themed experience based on camporee context.
+ */
+app.post('/api/ai/theme-game', async (req, res) => {
+    try {
+        const { camporeeContext, gameJson, instruction } = req.body;
+
+        if (!process.env.GEMINI_API_KEY) {
+            return res.status(500).json({ error: "GEMINI_API_KEY is not configured in .env" });
+        }
+
+        const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+        const prompt = `
+        You are a Creative Lead for Scouting America. Your goal is to transform a generic scout skill game into a high-adventure themed experience.
+        
+        Tone: G-rated, inspiring, and age-appropriate (11-17).
+        
+        Inputs: You will receive the Camporee Theme/Welcome Text and a Game JSON.
+        
+        Camporee Context:
+        ${camporeeContext}
+        
+        Original Game JSON:
+        ${JSON.stringify(gameJson, null, 2)}
+        
+        Tasks: 
+        1. Update the \`game_title\`.
+        2. Update \`content.story\`, \`content.briefing\`, and \`content.rules\`. 
+        3. Use themed nomenclature for supplies in parentheses if applicable (e.g., 'Matches (Dragon Breath Sparks)').
+        4. Scoring: You may update the \`label\` and \`description\` of scoring inputs (\`scoring_model\`) to match the theme, but NEVER change the \`id\`, \`type\`, or \`weight\`.
+        ${instruction ? `\nUser Feedback/Instruction:\n${instruction}\n` : ''}
+        
+        Return ONLY a clean, valid JSON object that structurely matches the original Game JSON but with the updated text fields. Do not wrap in markdown quotes if possible, or if you do, wrap strictly in \`\`\`json.
+        `;
+
+        const response = await genAI.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt
+        });
+
+        const text = response.text;
+
+        // Extract JSON from markdown backticks if present
+        const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/) || text.match(/```\n([\s\S]*?)\n```/);
+        const parsedJSON = JSON.parse(jsonMatch ? jsonMatch[1] : text);
+
+        res.json(parsedJSON);
+    } catch (err) {
+        console.error("AI Theme Game Error:", err);
+        res.status(500).json({ error: "Failed to theme game via AI" });
     }
 });
 

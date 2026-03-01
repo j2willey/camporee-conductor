@@ -835,9 +835,14 @@ const composer = {
             <i class="fas fa-edit"></i> <span id="headerTitle">${game.game_title || "Game Editor"}</span>
         </h4>
         <div class="d-flex flex-column align-items-end gap-2">
-             <button class="btn btn-outline-primary btn-sm w-100 d-none" id="previewBtnTop" onclick="composer.renderGuidePreview('${id}')">
-                 <i class="fas fa-eye"></i> Preview Guide
-             </button>
+             <div class="btn-group w-100">
+                 <button class="btn btn-outline-primary btn-sm d-none" id="previewBtnTop" onclick="composer.renderGuidePreview('${id}')">
+                     <i class="fas fa-eye"></i> Preview Guide
+                 </button>
+                 <button class="btn btn-info text-white btn-sm fw-bold shadow-sm" onclick="composer.openThemeModal('${id}')">
+                     ✨ AI Theme
+                 </button>
+             </div>
         </div>
     </div>
 
@@ -1775,6 +1780,156 @@ const composer = {
         this.data.meta.introduction = text;
         this.updateMetaUI();
         window.bootstrap.Modal.getInstance(document.getElementById('brainstormModal')).hide();
+    },
+
+    openThemeModal: function (id) {
+        if (!this.data.meta.theme && !this.data.meta.introduction) {
+            alert("Please provide a Camporee Theme or Introduction first so the AI has context!");
+            return;
+        }
+
+        const game = this.data.games.find(g => g.id === id);
+        if (!game) return;
+        this.activeThemeGameId = id; // Track which game we are theming
+
+        // Show context
+        const contextStr = `${this.data.meta.theme || 'No Theme'} - ${this.data.meta.introduction || ''}`;
+        document.getElementById('themeContextText').innerText = contextStr;
+
+        // Setup initial UI state
+        document.getElementById('themeLoading').classList.add('d-none');
+        document.getElementById('themeResults').classList.add('d-none');
+        document.getElementById('themeRevertBtn').classList.add('d-none');
+        document.getElementById('themeCommitBtn').classList.add('d-none');
+        document.getElementById('themeRefineInput').value = '';
+
+        window.bootstrap.Modal.getOrCreateInstance(document.getElementById('themeModal')).show();
+    },
+
+    runThemeGame: async function () {
+        const id = this.activeThemeGameId;
+        const game = this.data.games.find(g => g.id === id);
+        if (!game) return;
+
+        const instruction = document.getElementById('themeRefineInput').value;
+        const camporeeContext = `Theme: ${this.data.meta.theme || 'N/A'}\nIntro: ${this.data.meta.introduction || 'N/A'}`;
+
+        document.getElementById('themeLoading').classList.remove('d-none');
+        document.getElementById('themeResults').classList.add('d-none');
+        document.getElementById('themeCommitBtn').classList.add('d-none');
+
+        try {
+            // Give AI the generic snapshot if we have it, otherwise standard content
+            const payloadGame = game.source_snapshot ? game.source_snapshot : game;
+
+            const themedGame = await this.api.themeGame({
+                camporeeContext,
+                gameJson: payloadGame,
+                instruction
+            });
+
+            this.pendingThemedDraft = themedGame; // Store iteration draft
+
+            this.renderThemeComparison(payloadGame, themedGame);
+
+            document.getElementById('themeLoading').classList.add('d-none');
+            document.getElementById('themeResults').classList.remove('d-none');
+            document.getElementById('themeCommitBtn').classList.remove('d-none');
+        } catch (err) {
+            document.getElementById('themeLoading').classList.add('d-none');
+            alert(err.message || "Failed to theme game. Check server logs.");
+        }
+    },
+
+    renderThemeComparison: function (original, themed) {
+        // Simple markdown preview of fields
+        const buildPreview = (g) => {
+            let html = `<strong>Title:</strong> ${g.game_title || g.title || ''}<hr>`;
+            if (g.content) {
+                const parseField = (val) => {
+                    if (Array.isArray(val)) return marked.parse(val.join('\n'));
+                    return marked.parse(val || '');
+                };
+                html += `<strong>Story:</strong><br>${parseField(g.content.story)}<hr>`;
+                html += `<strong>Briefing:</strong><br>${parseField(g.content.briefing)}<hr>`;
+                html += `<strong>Rules:</strong><br>${parseField(g.content.rules)}<hr>`;
+            }
+            if (g.scoring_model && g.scoring_model.inputs) {
+                html += `<strong>Scoring Labels:</strong><ul>`;
+                g.scoring_model.inputs.forEach(i => {
+                    html += `<li>${i.label} (${i.type})</li>`;
+                });
+                html += `</ul>`;
+            }
+            return html;
+        };
+
+        const origEl = document.getElementById('themeOriginalPreview');
+        const draftEl = document.getElementById('themeDraftPreview');
+
+        origEl.innerHTML = buildPreview(original);
+        draftEl.innerHTML = buildPreview(themed);
+    },
+
+    commitTheme: function () {
+        const id = this.activeThemeGameId;
+        const game = this.data.games.find(g => g.id === id);
+        if (!game || !this.pendingThemedDraft) return;
+
+        // Ensure we preserve the snapshot before replacing content
+        if (!game.source_snapshot) {
+            game.source_snapshot = {
+                content: JSON.parse(JSON.stringify(game.content)),
+                scoring_model: JSON.parse(JSON.stringify(game.scoring_model))
+            };
+        }
+
+        // Apply themed draft
+        game.game_title = this.pendingThemedDraft.game_title || game.game_title;
+        game.content = this.pendingThemedDraft.content || game.content;
+        game.scoring_model = this.pendingThemedDraft.scoring_model || game.scoring_model;
+
+        this.pendingThemedDraft = null;
+        this.activeThemeGameId = null;
+
+        // Rerender editor
+        this.editGame(id);
+
+        window.bootstrap.Modal.getInstance(document.getElementById('themeModal')).hide();
+        setTimeout(() => alert("Theme committed to active workspace cartridge!"), 300);
+    },
+
+    revertTheme: function () {
+        if (!confirm("Are you sure you want to revert this game back to your original generic template? All current custom themed text will be lost.")) {
+            return;
+        }
+
+        const id = this.activeThemeGameId || this.activeGameId; // Allow calling from editor header later
+        const game = this.data.games.find(g => g.id === id);
+        if (!game) return;
+
+        if (game.source_snapshot) {
+            game.content = JSON.parse(JSON.stringify(game.source_snapshot.content));
+            if (game.source_snapshot.scoring_model) {
+                game.scoring_model = JSON.parse(JSON.stringify(game.source_snapshot.scoring_model));
+            }
+            game.game_title = game.library_title || "Untitled Game";
+
+            // Remove the snapshot since it is now generic again
+            delete game.source_snapshot;
+
+            this.editGame(id);
+
+            // If modal happens to be open, close it
+            const modalEl = document.getElementById('themeModal');
+            if (modalEl && modalEl.classList.contains('show')) {
+                window.bootstrap.Modal.getInstance(modalEl).hide();
+            }
+
+            setTimeout(() => alert("Game reverted to generic template."), 300);
+        } else {
+            alert("This game does not have an original generic snapshot to revert to.");
+        }
     },
 
     exportCamporee: async function () {

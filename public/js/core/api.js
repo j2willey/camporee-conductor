@@ -110,4 +110,22 @@ export class ApiClient {
         const res = await fetch(`${this.baseUrl}/ai/test`);
         return await res.json();
     }
+
+    /**
+     * Calls the AI theme-game endpoint.
+     * @param {Object} payload { camporeeContext, gameJson, instruction }
+     * @returns {Promise<Object>} Themed Game JSON
+     */
+    async themeGame(payload) {
+        const res = await fetch(`${this.baseUrl}/ai/theme-game`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || "Theming failed.");
+        }
+        return await res.json();
+    }
 }
