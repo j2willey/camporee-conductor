@@ -100,8 +100,11 @@ export function normalizeGameDefinition(gameDef, playlistOrder = 0) {
 
 export function formatGameTitle(game) {
     if (!game) return '';
-    // If name already has number prefix, assume legacy and leave it
-    if (game.name.match(/^(Game|Exhibition|\w\d)/i)) return game.name;
+    // If name already has Exhibition prefix, assume legacy and leave it
+    if (game.name.match(/^(Exhibition)/i)) return game.name;
+
+    // Remove legacy 'Game X. ' prefix if it's already explicitly in the title so we don't duplicate
+    let rawName = game.name.replace(/^Game\s*\d+\.\s*/i, '');
 
     // Use type if available, otherwise fallback to guessing from ID
     let prefixLetter = 'g';
@@ -113,8 +116,8 @@ export function formatGameTitle(game) {
     const match = game.id?.match(/(\d+)/);
     const num = match ? match[1] : '';
 
-    if (num) return `${prefixLetter}${num}. ${game.name}`;
-    return game.name; // Fallback for Exhibition etc
+    if (num) return `${prefixLetter}${num}. ${rawName}`;
+    return rawName; // Fallback for Exhibition etc
 }
 
 export function getOrdinalSuffix(i) {
