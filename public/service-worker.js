@@ -1,6 +1,5 @@
-const CACHE_NAME = 'camporee-conductor-v7';
+const CACHE_NAME = 'camporee-conductor-v8';
 const FILES_TO_CACHE = [
-  './',
   './admin.html',
   './judge.html',
   './official.html',
@@ -36,6 +35,11 @@ self.addEventListener('fetch', (event) => {
 
   // Always ignore cache for API POST/PUT/DELETE calls
   if (event.request.method !== 'GET' && url.pathname.includes('/api/')) {
+    return;
+  }
+
+  // Bypass cache completely for the root navigation (to allow express redirects to work)
+  if (event.request.mode === 'navigate' && url.pathname === '/') {
     return;
   }
 
