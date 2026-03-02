@@ -20,7 +20,7 @@ async function run() {
         console.log(`\n${yellow}Step 1: Clearing Database via API...${reset}`);
         // We use fetch (Node 18+) to hit the server's reset endpoint
         // This avoids better-sqlite3 native binding issues in the host terminal
-        const response = await fetch('http://localhost:3000/api/admin/full-reset', { method: 'DELETE' });
+        const response = await fetch('http://localhost:3000/collator/api/admin/full-reset', { method: 'DELETE' });
         if (!response.ok) {
             throw new Error(`Failed to reset database: ${response.statusText}`);
         }

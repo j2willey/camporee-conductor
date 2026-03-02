@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const XLSX = require('xlsx');
 
-const gamesDir = path.join(__dirname, '../../camporee/camp0001/games');
+const gamesDir = path.join(__dirname, '../../data/collator/active-event/games');
 const outputDir = __dirname;
 const excelPath = path.join(__dirname, '../../patrol.xlsx');
 

@@ -88,7 +88,7 @@ async function getContext(options = {}) {
         },
         async startDemo() {
             // Explicitly request judge.html for scoring flow
-            await page.goto('http://localhost:3000/judge.html');
+            await page.goto('http://localhost:3000/collator/judge.html');
             if (isInteractive) {
                 console.log("Interactive mode active. Waiting 5 seconds...");
                 await new Promise(r => setTimeout(r, 5000));

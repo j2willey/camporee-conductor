@@ -23,7 +23,7 @@ async function run() {
     ];
 
     await startDemo();
-    await page.goto('http://localhost:3000/admin.html');
+    await page.goto('http://localhost:3000/collator/admin.html');
     await sleep(waitTime);
 
     // Click the Registration button on the landing dashboard
