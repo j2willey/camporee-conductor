@@ -1,25 +1,25 @@
-const CACHE_NAME = 'camporee-conductor-v5';
+const CACHE_NAME = 'camporee-conductor-v7';
 const FILES_TO_CACHE = [
-  '/',
-  '/admin.html',
-  '/judge.html',
-  '/official.html',
-  '/utils.html',
-  '/css/bootstrap.min.css',
-  '/css/conductor.css',
-  '/css/spreadsheet.css',
-  '/js/admin.js',
-  '/js/composer_app.js',
-  '/js/judge.js?v=4',
-  '/js/official.js',
-  '/js/qrcode.min.js',
-  '/js/sync-manager.js',
-  '/js/utils.js',
-  '/js/core/data-store.js',
-  '/js/core/leaderboard.js',
-  '/js/core/schema.js',
-  '/js/core/ui.js',
-  '/manifest.json'
+  './',
+  './admin.html',
+  './judge.html',
+  './official.html',
+  './utils.html',
+  './css/bootstrap.min.css',
+  './css/conductor.css',
+  './css/spreadsheet.css',
+  './js/admin.js',
+  './js/apps/composer.js',
+  './js/judge.js?v=4',
+  './js/official.js',
+  './js/qrcode.min.js',
+  './js/sync-manager.js',
+  './js/utils.js',
+  './js/core/data-store.js',
+  './js/core/leaderboard.js',
+  './js/core/schema.js',
+  './js/core/ui.js',
+  './manifest.json'
 ];
 
 self.addEventListener('install', (event) => {

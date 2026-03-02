@@ -23,7 +23,11 @@ export async function loadData(options = {}) {
     try {
         const ts = Date.now();
         // Fetch Games Config & Entities
-        const apiBase = window.API_BASE || '';
+        // If window.API_BASE is not defined, we dynamically check if we are running under the /collator mount
+        let apiBase = window.API_BASE;
+        if (typeof apiBase === 'undefined') {
+            apiBase = window.location.pathname.startsWith('/collator') ? '/collator' : '';
+        }
         const [gamesRes, entitiesRes, dataRes] = await Promise.all([
             fetch(`${apiBase}/games.json?t=${ts}`),
             fetch(`${apiBase}/api/entities?t=${ts}`),
