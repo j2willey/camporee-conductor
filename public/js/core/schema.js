@@ -100,14 +100,20 @@ export function normalizeGameDefinition(gameDef, playlistOrder = 0) {
 
 export function formatGameTitle(game) {
     if (!game) return '';
-    // If name already has "Game" or number prefix, assume legacy and leave it
-    if (game.name.match(/^(Game|Exhibition|p\d)/i)) return game.name;
+    // If name already has number prefix, assume legacy and leave it
+    if (game.name.match(/^(Game|Exhibition|\w\d)/i)) return game.name;
+
+    // Use type if available, otherwise fallback to guessing from ID
+    let prefixLetter = 'g';
+    if (game.type === 'patrol' || game.id?.startsWith('p')) prefixLetter = 'p';
+    else if (game.type === 'troop' || game.id?.startsWith('t')) prefixLetter = 't';
+    else if (game.type === 'exhibition' || game.id?.startsWith('e')) prefixLetter = 'e';
 
     // Extract Number from ID (p1 -> 1, t10 -> 10)
-    const match = game.id.match(/(\d+)/);
+    const match = game.id?.match(/(\d+)/);
     const num = match ? match[1] : '';
 
-    if (num) return `Game ${num}. ${game.name}`;
+    if (num) return `${prefixLetter}${num}. ${game.name}`;
     return game.name; // Fallback for Exhibition etc
 }
 

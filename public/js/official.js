@@ -215,7 +215,7 @@ function renderOverviewList() {
     lbTr.className = 'table-info';
     lbTr.onclick = () => switchView('matrix');
     lbTr.innerHTML = `
-        <td class="fw-bold">Game 0. Leader Board</td>
+        <td class="fw-bold">G0. Leader Board</td>
         <td>-</td>
         <td class="text-center">
             <span class="badge bg-info text-dark">Aggregated</span>
@@ -233,8 +233,8 @@ function renderOverviewList() {
         const tr = document.createElement('tr');
         tr.style.cursor = 'pointer';
         tr.onclick = (e) => {
-             // Don't trigger if clicked checkbox or button
-             if(e.target.tagName !== 'INPUT' && e.target.tagName !== 'LABEL') openGameDetail(game.id)
+            // Don't trigger if clicked checkbox or button
+            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'LABEL') openGameDetail(game.id)
         };
 
         tr.innerHTML = `
@@ -275,7 +275,7 @@ async function toggleGameStatus(gameId, isFinal) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ game_id: gameId, status })
         });
-    } catch(err) {
+    } catch (err) {
         console.error(err);
         alert('Failed to save status');
     }
@@ -378,7 +378,7 @@ function openGameDetail(gameId) {
     });
 
     // 1. Calculate Auto Ranks (Dense: 1, 1, 2)
-    const sortedForRank = [...gameScores].sort((a,b) => (b._total || 0) - (a._total || 0));
+    const sortedForRank = [...gameScores].sort((a, b) => (b._total || 0) - (a._total || 0));
     let currentAutoRank = 0;
     let lastTotal = null;
     sortedForRank.forEach(s => {
@@ -767,7 +767,7 @@ function renderMatrixNormal(table, games, patrols) {
     });
 
     // 3. Dense Rank the patrol leaderboard totals
-    const sortedForRank = [...patrols].sort((a,b) => b._leaderboardTotal - a._leaderboardTotal);
+    const sortedForRank = [...patrols].sort((a, b) => b._leaderboardTotal - a._leaderboardTotal);
     let curRank = 0;
     let lastLT = null;
     sortedForRank.forEach(p => {
@@ -874,7 +874,7 @@ function renderMatrixTransposed(table, games, patrols) {
     });
 
     // Dense Rank the patrol leaderboard totals
-    const sortedForRankTrans = [...patrols].sort((a,b) => b._leaderboardTotal - a._leaderboardTotal);
+    const sortedForRankTrans = [...patrols].sort((a, b) => b._leaderboardTotal - a._leaderboardTotal);
     let curRankTrans = 0;
     let lastLTTrans = null;
     sortedForRankTrans.forEach(p => {
