@@ -239,6 +239,11 @@
                     <h5 class="modal-title"><i class="fas fa-book"></i> Game Library</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
+                <!-- Search Bar added for filtering -->
+                <div class="p-2 border-bottom bg-light">
+                    <input type="text" id="composer-catalog-search" class="form-control"
+                        placeholder="Search titles or #tags..." onkeyup="composer.filterCatalog()">
+                </div>
                 <div class="modal-body p-0">
                     <ul id="library-list" class="list-unstyled p-0 mb-0"></ul>
                 </div>

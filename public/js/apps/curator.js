@@ -142,7 +142,6 @@ const curator = {
                                     ${game.title}
                                 </span>
                                 <div class="item-tags mt-1">${tagsHtml}</div>
-                                <small class="text-muted" style="font-size:0.7em">${game.path}</small>
                             </div>
                         </div>
                     `;
@@ -157,6 +156,22 @@ const curator = {
                 }
             }
         }
+    },
+
+    filterCatalog: function () {
+        const query = document.getElementById('catalog-search').value.toLowerCase();
+        const items = document.querySelectorAll('#library-list .library-item');
+
+        items.forEach(item => {
+            const title = item.querySelector('.item-title')?.textContent.toLowerCase() || '';
+            const tags = item.querySelector('.item-tags')?.textContent.toLowerCase() || '';
+
+            if (title.includes(query) || tags.includes(query)) {
+                item.style.display = '';
+            } else {
+                item.style.display = 'none';
+            }
+        });
     },
 
     newTemplate: function () {
@@ -372,9 +387,13 @@ const curator = {
                     <div class="card">
                         <div class="card-body">
                             <div class="row">
-                                <div class="col-md-4 mb-3">
+                                <div class="col-md-3 mb-3">
                                     <label class="form-label">Game UUID</label>
                                     <input type="text" class="form-control" id="gameId" value="${data.id || ""}">
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label class="form-label text-muted">File Path</label>
+                                    <input type="text" class="form-control bg-light text-muted" value="${this.activeTemplatePath || 'Unsaved'}" disabled readonly>
                                 </div>
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label" title="Original unthemed name in catalog">Library Title <i class="fas fa-info-circle text-muted"></i></label>

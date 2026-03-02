@@ -673,6 +673,22 @@ const composer = {
         }
     },
 
+    filterCatalog: function () {
+        const query = document.getElementById('composer-catalog-search').value.toLowerCase();
+        const items = document.querySelectorAll('#libraryModal #library-list .library-item');
+
+        items.forEach(item => {
+            const title = item.querySelector('.item-title')?.textContent.toLowerCase() || '';
+            const tags = item.querySelector('.item-tags')?.textContent.toLowerCase() || '';
+
+            if (title.includes(query) || tags.includes(query)) {
+                item.style.display = '';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    },
+
     async addGameFromLibrary(path) {
         console.log("Adding game from library:", path);
         const libService = new LibraryService();
