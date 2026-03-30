@@ -91,6 +91,17 @@
         }
       }
     },
+    "type_defaults": {
+      "type": "object",
+      "description": "Defines which common preset fields are injected for each game type at runtime.",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "prefix": { "type": "array", "items": { "type": "string" } },
+          "suffix": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
     "playlist": {
       "type": "array",
       "items": {

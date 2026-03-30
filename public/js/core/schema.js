@@ -69,13 +69,15 @@ export function normalizeGameDefinition(gameDef, playlistOrder = 0) {
             id: i.id || (`score-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`),
             label: i.label || i.name || '',
             type: i.type || 'number',
-            kind: i.type === 'timer' ? 'metric' : 'points',
+            kind: i.type === 'timer' ? 'metric' : (i.kind || 'points'),
             weight: typeof i.weight !== 'undefined' ? i.weight : 1,
-            audience: 'judge',
+            audience: i.audience || 'judge',
             config: {
-                min: i.min || 0,
-                max: i.max_points || i.max || 0,
-                placeholder: i.placeholder || ''
+                min: i.config?.min ?? i.min ?? 0,
+                max: i.config?.max ?? i.max_points ?? i.max ?? 0,
+                placeholder: i.config?.placeholder ?? i.placeholder ?? '',
+                ...(i.config?.options ? { options: i.config.options } : {}),
+                ...(i.config?.defaultValue !== undefined ? { defaultValue: i.config.defaultValue } : {})
             }
         }));
     }

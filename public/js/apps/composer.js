@@ -4,14 +4,35 @@ import { LibraryService } from "../core/library-service.js";
 import { ApiClient } from "../core/api.js";
 
 const SYSTEM_PRESETS = [
-    { id: "p_flag", label: "Patrol Flag", type: "number", kind: "points", weight: 10, audience: "judge", config: { min: 0, max: 10, placeholder: "0-10 Points" } },
-    { id: "p_yell", label: "Patrol Yell", type: "number", kind: "points", weight: 5, audience: "judge", config: { min: 0, max: 5, placeholder: "0-5 Points" } },
-    { id: "p_spirit", label: "Scout Spirit", type: "number", kind: "points", weight: 10, audience: "judge", config: { min: 0, max: 10, placeholder: "0-10 Points" } },
-    { id: "off_notes", label: "Judges Notes", type: "textarea", kind: "info", weight: 0, audience: "judge", config: { placeholder: "Issues, tie-breakers, etc." } },
-    { id: "bracket_result", label: "Match Result", type: "text", kind: "info", weight: 0, audience: "judge", required: true, config: { placeholder: "Place:  1, 2, 3, 4....." } },
-    { id: "final_rank", label: "Final Ranking", type: "select", kind: "info", weight: 0, audience: "admin", config: { options: ["1st Place", "2nd Place", "3rd Place", "4th Place", "Participant"] } },
-    { id: "overall_points", label: "Overall Points", type: "number", kind: "points", weight: 1, audience: "admin", config: { placeholder: "e.g., 100, 90, 80..." } }
+    // Patrol prefix common fields (injected before game-specific fields by the Collator)
+    { id: "p_flag",    label: "Patrol Flag",                              type: "number",   kind: "points",  weight: 10, audience: "judge", position: "prefix", sortOrder: 10, config: { min: 0, max: 10, placeholder: "0-10 Points" } },
+    { id: "p_yell",    label: "Patrol Yell",                              type: "number",   kind: "points",  weight: 5,  audience: "judge", position: "prefix", sortOrder: 20, config: { min: 0, max: 5,  placeholder: "0-5 Points"  } },
+    { id: "p_spirit",  label: "Scout Spirit",                             type: "number",   kind: "points",  weight: 10, audience: "judge", position: "prefix", sortOrder: 30, config: { min: 0, max: 10, placeholder: "0-10 Points" } },
+    { id: "ten_ess",   label: "10 Essentials: {{ten_essentials_item}}",   type: "checkbox", kind: "points",  weight: 5,  audience: "judge", position: "prefix", sortOrder: 40, config: { placeholder: "Does the patrol have {{ten_essentials_item}}?" } },
+    // Patrol/Troop suffix common fields (injected after game-specific fields by the Collator)
+    { id: "unscout",   label: "Unscoutlike Behavior",                     type: "number",   kind: "penalty", weight: 1,  audience: "judge", position: "suffix", sortOrder: 10, config: { min: 0, max: 20, placeholder: "Points deducted (0-20)" } },
+    { id: "off_notes", label: "Judges Notes",                             type: "textarea", kind: "info",    weight: 0,  audience: "judge", position: "suffix", sortOrder: 20, config: { placeholder: "Issues, tie-breakers, etc." } },
+    { id: "off_score", label: "Official Score",                           type: "number",   kind: "points",  weight: 1,  audience: "admin", position: "suffix", sortOrder: 30, config: { placeholder: "Final Calculated Points" } },
+    { id: "final_rank",label: "Final Ranking",                            type: "select",   kind: "info",    weight: 0,  audience: "admin", position: "suffix", sortOrder: 40, config: { options: ["1st Place", "2nd Place", "3rd Place", "4th Place", "Participant"] } },
+    { id: "overall_points", label: "Overall Points",                      type: "number",   kind: "points",  weight: 1,  audience: "admin", position: "suffix", sortOrder: 50, config: { placeholder: "e.g., 100, 90, 80..." } },
+    // Bracket-specific field — injected only when bracketMode is enabled on a game
+    { id: "bracket_result", label: "Match Result", type: "text", kind: "info", weight: 0, audience: "judge", required: true, config: { placeholder: "Place:  1, 2, 3, 4....." } }
 ];
+
+// Common field IDs managed by the preset injection system.
+// These must not be baked into individual game files.
+const COMMON_FIELD_IDS = new Set([
+    'patrol_flag', 'patrol_yell', 'patrol_spirit', 'patrol_sprirt',
+    'p_flag', 'p_yell', 'p_spirit', 'ten_ess',
+    'unscoutlike', 'unscout',
+    'judge_notes', 'off_notes',
+    'off_score', 'final_rank', 'overall_points'
+]);
+
+const DEFAULT_TYPE_DEFAULTS = {
+    patrol: { prefix: ["p_flag", "p_yell", "p_spirit", "ten_ess"], suffix: ["unscout", "off_notes", "off_score", "final_rank", "overall_points"] },
+    troop:  { prefix: [], suffix: ["off_score", "final_rank", "overall_points"] }
+};
 
 const composer = {
     serverMode: false,
@@ -25,7 +46,8 @@ const composer = {
             year: new Date().getFullYear(),
             director: ""
         },
-        games: []
+        games: [],
+        type_defaults: JSON.parse(JSON.stringify(DEFAULT_TYPE_DEFAULTS))
     },
     presets: JSON.parse(JSON.stringify(SYSTEM_PRESETS)),
     activeGameId: null,
@@ -222,6 +244,7 @@ const composer = {
             const camporee = await this.api.getCamporee(id);
             this.data.meta = camporee.meta;
             this.data.games = camporee.games || [];
+            this.data.type_defaults = camporee.type_defaults || JSON.parse(JSON.stringify(DEFAULT_TYPE_DEFAULTS));
             if (camporee.presets) {
                 this.presets = camporee.presets;
             }
@@ -276,7 +299,8 @@ const composer = {
         const payload = {
             meta: this.data.meta,
             games: this.data.games,
-            presets: this.presets
+            presets: this.presets,
+            type_defaults: this.data.type_defaults
         };
 
         try {
@@ -1328,22 +1352,17 @@ const composer = {
         }
 
         if (isEnabled) {
-            ["bracket_result", "final_rank", "overall_points"].forEach(pid => {
-                if (!game.scoring_model.inputs.find(c => c.id === pid)) {
-                    let preset = this.presets.find(p => p.id === pid) ||
-                        SYSTEM_PRESETS.find(p => p.id === pid);
-                    if (preset) {
-                        const copy = JSON.parse(JSON.stringify(preset));
-                        if (pid === "bracket_result") {
-                            copy.audience = "judge";
-                            game.scoring_model.inputs.unshift(copy);
-                        } else {
-                            copy.audience = "admin";
-                            game.scoring_model.inputs.push(copy);
-                        }
-                    }
+            // Only bracket_result is bracket-specific; off_score/final_rank/overall_points
+            // are common suffix fields injected by the Collator for all patrol/troop games.
+            if (!game.scoring_model.inputs.find(c => c.id === "bracket_result")) {
+                const preset = this.presets.find(p => p.id === "bracket_result") ||
+                    SYSTEM_PRESETS.find(p => p.id === "bracket_result");
+                if (preset) {
+                    const copy = JSON.parse(JSON.stringify(preset));
+                    copy.audience = "judge";
+                    game.scoring_model.inputs.unshift(copy);
                 }
-            });
+            }
         }
         this.renderScoringInputs(game.scoring_model.inputs, game.id, "game");
     },
@@ -1963,7 +1982,8 @@ const composer = {
         const camporeeConfig = {
             schemaVersion: "2.9",
             meta: this.data.meta,
-            playlist: playlist
+            playlist: playlist,
+            type_defaults: this.data.type_defaults || DEFAULT_TYPE_DEFAULTS
         };
 
         zip.file("camporee.json", JSON.stringify(camporeeConfig, null, 2));
@@ -1977,10 +1997,14 @@ const composer = {
                 sortOrder: g.sortOrder,
                 schemaVersion: "2.9",
                 content: g.content,
-                scoring_model: g.scoring_model,
+                scoring_model: {
+                    ...g.scoring_model,
+                    inputs: (g.scoring_model?.inputs || []).filter(f => !COMMON_FIELD_IDS.has(f.id))
+                },
                 match_label: g.match_label || ""
             };
             if (g.bracketMode) gameFile.bracketMode = true;
+            if (g.variables) gameFile.variables = g.variables;
 
             gamesFolder.file(`${g.id}.json`, JSON.stringify(gameFile, null, 2));
         });

@@ -197,6 +197,40 @@ function archiveDatabase() {
     }
 }
 
+// --- COMMON FIELD INJECTION ---
+
+function applyTemplate(str, variables) {
+    if (!str) return str;
+    return str.replace(/\{\{(\w+)\}\}/g, (_, key) => variables[key] || key);
+}
+
+function injectCommonFields(normalizedGame, presets, typeDefaults) {
+    const defaults = typeDefaults[normalizedGame.type];
+    if (!defaults || !Array.isArray(normalizedGame.fields)) return;
+
+    const presetsById = Object.fromEntries(presets.map(p => [p.id, p]));
+    const variables = normalizedGame.variables || {};
+
+    function resolvePreset(id) {
+        const p = presetsById[id];
+        if (!p) return null;
+        const { config = {}, position, sortOrder, ...rest } = p;
+        return {
+            ...rest,
+            label: applyTemplate(p.label, variables),
+            placeholder: applyTemplate(config.placeholder, variables),
+            ...(config.min !== undefined ? { min: config.min } : {}),
+            ...(config.max !== undefined ? { max: config.max } : {}),
+            ...(config.options ? { options: config.options } : {}),
+            ...(config.defaultValue !== undefined ? { defaultValue: config.defaultValue } : {})
+        };
+    }
+
+    const prefixFields = (defaults.prefix || []).map(resolvePreset).filter(Boolean);
+    const suffixFields = (defaults.suffix || []).map(resolvePreset).filter(Boolean);
+    normalizedGame.fields = [...prefixFields, ...normalizedGame.fields, ...suffixFields];
+}
+
 function installCartridge(zipPath) {
     // 1. Wipe Active Directory
     fs.rmSync(ACTIVE_DIR, { recursive: true, force: true });
@@ -219,6 +253,12 @@ function loadCamporeeData() {
 
     try {
         const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+
+        // Load presets and type_defaults for common field injection
+        const presetsPath = path.join(ACTIVE_DIR, 'presets.json');
+        const presets = fs.existsSync(presetsPath) ? JSON.parse(fs.readFileSync(presetsPath, 'utf8')) : [];
+        const typeDefaults = manifest.type_defaults || {};
+
         const games = [];
 
         if (manifest.playlist) {
@@ -239,6 +279,9 @@ function loadCamporeeData() {
                         normalizedGame.bracketMode = !!gameDef.bracketMode;
                         normalizedGame.match_label = gameDef.match_label || '';
 
+                        // Inject common prefix/suffix fields from presets
+                        injectCommonFields(normalizedGame, presets, typeDefaults);
+
                         games.push(normalizedGame);
                     }
                 }
@@ -248,8 +291,7 @@ function loadCamporeeData() {
         games.sort((a, b) => a.sortOrder - b.sortOrder);
         return {
             metadata: manifest.meta,
-            games: games,
-            common_scoring: []
+            games: games
         };
 
     } catch (err) {

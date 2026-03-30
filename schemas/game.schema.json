@@ -70,6 +70,11 @@
                 }
             }
         },
+        "variables": {
+            "type": "object",
+            "description": "Key/value pairs for template substitution in injected common fields (e.g. ten_essentials_item).",
+            "additionalProperties": { "type": "string" }
+        },
         "variants": {
             "type": "array",
             "items": {
