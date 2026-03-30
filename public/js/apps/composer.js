@@ -1382,14 +1382,14 @@ const composer = {
                 else if (comp.kind === "info") borderClass = "border-secondary";
 
                 const card = document.createElement("div");
-                card.className = `card border - start border - 4 shadow - sm ${borderClass} `;
+                card.className = `card border-start border-4 shadow-sm ${borderClass}`;
                 card.draggable = true;
                 card.dataset.index = index;
 
                 const isSelect = comp.type === "select";
 
                 card.innerHTML = `
-    < div class="card-body p-3 d-flex align-items-start" >
+                    <div class="card-body p-3 d-flex align-items-start">
                     <div class="me-3 mt-4 text-muted" style="cursor: grab;"><i class="fas fa-grip-vertical fa-lg"></i></div>
                     <div class="flex-grow-1 me-4">
                       <label class="form-label small text-muted fw-bold mb-1">Label</label>
@@ -1465,7 +1465,7 @@ const composer = {
                         </button>
                       </div>
                     </div>
-                  </div > `;
+                  </div>`;
 
                 // Drag Events for Components
                 card.addEventListener("dragstart", (e) => {
