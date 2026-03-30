@@ -935,6 +935,20 @@ const composer = {
                             <input type="text" class="form-control" id="gameTags" placeholder="#fire #knots #teamwork">
                         </div>
                     </div>
+                    <div class="row">
+                        <div class="col-12 mb-2">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label fw-bold mb-0">
+                                    <i class="fas fa-code fa-fw text-muted me-1"></i> Game Variables
+                                    <small class="text-muted fw-normal ms-1">— substituted into common field labels, e.g. <code>{{ten_essentials_item}}</code></small>
+                                </label>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="composer.addVariable('${game.id}')">
+                                    <i class="fas fa-plus"></i> Add
+                                </button>
+                            </div>
+                            <div id="variables-editor" class="border rounded bg-light p-2"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1239,6 +1253,7 @@ const composer = {
 
         this.renderScoringInputs(game.scoring_model.inputs, game.id, "game");
         this.renderListEditor('rules', game.content.rules);
+        this.renderVariables(game);
 
         // UI Tabs toggle for preview button
         const triggerTabs = document.querySelectorAll('#editorTabs button[data-bs-toggle="tab"]');
@@ -1310,6 +1325,81 @@ const composer = {
             game.content[type].splice(index, 1);
             this.renderListEditor(type, game.content[type]);
         }
+    },
+
+    renderVariables: function (game) {
+        const container = document.getElementById('variables-editor');
+        if (!container) return;
+        const vars = game.variables || {};
+        const entries = Object.entries(vars);
+        if (entries.length === 0) {
+            container.innerHTML = '<p class="text-muted small mb-0 p-1">No variables defined. Click Add to create one.</p>';
+            return;
+        }
+        container.innerHTML = '';
+        entries.forEach(([key, value]) => {
+            const row = document.createElement('div');
+            row.className = 'input-group input-group-sm mb-1';
+            row.innerHTML = `
+                <input type="text" class="form-control font-monospace" placeholder="variable_name"
+                       value="${key.replace(/"/g, '&quot;')}"
+                       onblur="composer.renameVariable('${game.id}', '${key.replace(/'/g, "\\'")}', this.value)">
+                <span class="input-group-text text-muted small">=</span>
+                <input type="text" class="form-control" placeholder="value"
+                       value="${(value || '').replace(/"/g, '&quot;')}"
+                       oninput="composer.setVariable('${game.id}', '${key.replace(/'/g, "\\'")}', this.value)">
+                <button class="btn btn-outline-danger" type="button"
+                        onclick="composer.removeVariable('${game.id}', '${key.replace(/'/g, "\\'")}')">
+                    <i class="fas fa-times"></i>
+                </button>`;
+            container.appendChild(row);
+        });
+    },
+
+    addVariable: function (gameId) {
+        const game = this.data.games.find(g => g.id === gameId);
+        if (!game) return;
+        if (!game.variables) game.variables = {};
+        let n = 1;
+        while (game.variables[`variable_${n}`] !== undefined) n++;
+        game.variables[`variable_${n}`] = '';
+        this.renderVariables(game);
+        const container = document.getElementById('variables-editor');
+        if (container) {
+            const inputs = container.querySelectorAll('input[type="text"]');
+            if (inputs.length >= 2) { inputs[inputs.length - 2].focus(); inputs[inputs.length - 2].select(); }
+        }
+    },
+
+    renameVariable: function (gameId, oldKey, newKey) {
+        const game = this.data.games.find(g => g.id === gameId);
+        if (!game || !game.variables) return;
+        newKey = newKey.trim().replace(/\s+/g, '_');
+        if (newKey === oldKey) return;
+        if (!newKey) { this.renderVariables(game); return; }
+        if (game.variables[newKey] !== undefined) {
+            alert(`Variable "${newKey}" already exists.`);
+            this.renderVariables(game);
+            return;
+        }
+        const val = game.variables[oldKey];
+        delete game.variables[oldKey];
+        game.variables[newKey] = val;
+        this.renderVariables(game);
+    },
+
+    setVariable: function (gameId, key, value) {
+        const game = this.data.games.find(g => g.id === gameId);
+        if (!game) return;
+        if (!game.variables) game.variables = {};
+        game.variables[key] = value;
+    },
+
+    removeVariable: function (gameId, key) {
+        const game = this.data.games.find(g => g.id === gameId);
+        if (!game || !game.variables) return;
+        delete game.variables[key];
+        this.renderVariables(game);
     },
 
     updateGameField: function (field, value) {
