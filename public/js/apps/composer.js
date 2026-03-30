@@ -1461,7 +1461,7 @@ const composer = {
         const container = document.getElementById("presets-container");
         if (container) {
             container.innerHTML = `
-    < div class="card" >
+                <div class="card">
                     <div class="card-header bg-light"><h5 class="mb-0">Preset Library</h5></div>
                     <div class="card-body bg-light">
                         <div id="preset-editor-list" class="d-flex flex-column gap-3"></div>
@@ -1471,7 +1471,7 @@ const composer = {
                             </button>
                         </div>
                     </div>
-                </div > `;
+                </div>`;
             this.renderScoringInputs(this.presets, "global", "preset_manager");
         }
     },
@@ -1772,7 +1772,7 @@ const composer = {
 
         if (dialog) dialog.style.maxWidth = '400px';
 
-        if (modalBody) modalBody.innerHTML = `< div class="p-2" > ${html}</div > `;
+        if (modalBody) modalBody.innerHTML = `<div class="p-2">${html}</div>`;
         if (modalTitle) modalTitle.innerText = "Judge View: " + (game.game_title || "Game");
 
         const printBtn = document.getElementById("previewPrintBtn");
@@ -1831,10 +1831,9 @@ const composer = {
         const modalBody = document.getElementById('previewModalBody').innerHTML;
 
         document.body.innerHTML = `
-    < div style = "padding: 20px; max-width: 800px; margin: 0 auto; font-family: sans-serif;" >
-        ${modalBody}
-            </div >
-    `;
+            <div style="padding: 20px; max-width: 800px; margin: 0 auto; font-family: sans-serif;">
+                ${modalBody}
+            </div>`;
 
         window.print();
         document.body.innerHTML = originalContents;
