@@ -6,7 +6,12 @@ const gamesDir = path.join(__dirname, '../../data/collator/active-event/games');
 const outputDir = __dirname;
 const excelPath = path.join(__dirname, '../../patrol.xlsx');
 
-const normalize = (str) => str ? str.toLowerCase().replace(/[^a-z0-9]/g, '') : '';
+const normalize = (str) => {
+    if (!str) return '';
+    return String(str).toLowerCase()
+        .replace(/sprirt/g, 'spirit') // Fix common "Sprirt" typo in spreadsheets
+        .replace(/[^a-z0-9]/g, '');
+};
 
 if (!fs.existsSync(excelPath)) {
     console.error(`Excel file not found: ${excelPath}`);
@@ -69,13 +74,19 @@ files.forEach(file => {
 
     // Map columns to fields
     // v2.9 Schema: Components are in game.scoring.components
-    const allFields = (game.scoring && game.scoring.components) || [];
+    const allFields = (game.scoring && game.scoring.components) || (game.scoring_model && game.scoring_model.inputs) || [];
 
     const fieldMap = [];
     headers.forEach((h, idx) => {
         if (!h) return;
         const normH = normalize(String(h));
-        const field = allFields.find(f => normalize(f.id) === normH || normalize(f.label) === normH || (normH.length > 3 && normalize(f.label).includes(normH)));
+        const field = allFields.find(f => {
+            const nfId = normalize(f.id);
+            const nfLabel = normalize(f.label);
+            return nfId === normH || nfLabel === normH ||
+                (normH.length > 3 && nfLabel.includes(normH)) ||
+                (nfLabel.length > 3 && normH.includes(nfLabel));
+        });
         if (field) fieldMap.push({ colIdx: idx, field });
     });
 
@@ -184,7 +195,7 @@ async function run() {
             if (field.type === 'timed' || field.type === 'stopwatch') {
                 let mm = '00', ss = '00';
                 if (typeof val === 'number') {
-                    const totalSeconds = Math.round(val * 24 * 60 * 60);
+                    const totalSeconds = val < 1 ? Math.round(val * 24 * 60 * 60) : Math.round(val);
                     mm = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
                     ss = String(totalSeconds % 60).padStart(2, '0');
                 } else if (String(val).includes(':')) {
