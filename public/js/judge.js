@@ -46,6 +46,7 @@ const views = {
     home: document.getElementById('view-home'),
     entity: document.getElementById('view-entity'),
     scoring: document.getElementById('view-scoring'),
+    submissionPhase2: document.getElementById('view-submission-phase2'),
     // Bracket Views
     bracketLobby: document.getElementById('view-bracket-lobby'),
     bracketRound: document.getElementById('view-bracket-round'),
@@ -127,7 +128,7 @@ function navigate(viewName) {
     }
 
     if (isHome) {
-        document.getElementById('header-title').textContent = 'Camporee Collator';
+        document.getElementById('header-title').textContent = state.camporeeTitle || localStorage.getItem('camporee_title') || 'Camporee Collator';
         const syncLine = document.getElementById('header-sync-line');
         if (syncLine) syncLine.style.display = 'block';
         document.body.style.paddingBottom = '0';
@@ -293,13 +294,19 @@ function renderStationList() {
             statusHtml = '<span class="badge bg-primary" style="font-size:0.75rem;">Resume</span>';
         }
 
+        const closure = getGameClosure(s.id);
+        const closedBadge = closure
+            ? '<span class="badge bg-success ms-1" style="font-size:0.7rem;">✅ Closed</span>'
+            : '';
+        const borderColor = closure ? '#198754' : 'var(--brand-main)';
+
         return `
-        <button class="btn btn-outline-dark w-100 mb-2 text-start p-3 shadow-sm d-flex justify-content-between align-items-center" onclick="app.selectStation('${s.id}')">
-            <div>
-                <div class="fw-bold">${formatGameTitle(s)}</div>
-            </div>
+        <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-3"
+             onclick="app.selectStation('${s.id}')"
+             style="cursor:pointer; border-left: 5px solid ${borderColor}; margin-bottom: 4px; background:#fff;">
+            <span class="fw-bold" style="font-size:0.95rem;">${formatGameTitle(s)}${closedBadge}</span>
             ${statusHtml}
-        </button>`;
+        </div>`;
     }).join('');
 }
 
@@ -323,7 +330,10 @@ function renderEntityList(filter = '') {
     });
 
     els.entityHeader.textContent = `Select ${requiredType === 'patrol' ? 'Patrol' : 'Troop'}`;
-    const addButton = `<button class="list-group-item list-group-item-action p-3 text-center text-primary fw-bold" onclick="app.promptNewEntity('${requiredType}')" style="border: 2px dashed var(--bs-primary); margin-bottom: 8px;"><span style="font-size: 1.2rem;">➕ Register New ${requiredType}</span></button>`;
+    const addButton = `<button class="list-group-item list-group-item-action py-2 px-3 text-center text-primary fw-bold" onclick="app.promptNewEntity('${requiredType}')" style="border: 2px dashed var(--bs-primary); margin-bottom: 6px;">➕ Register New ${requiredType}</button>`;
+
+    const gameId = state.currentStation?.id;
+    const closure = getGameClosure(gameId);
 
     els.entityList.innerHTML = addButton + filtered.map(e => {
         const isDone = scoredIds.has(e.id);
@@ -332,16 +342,45 @@ function renderEntityList(filter = '') {
         const displayLabel = formatEntityLabel(e); // USE FORMATTER
 
         return `
-            <div class="list-group-item list-group-item-action p-3 d-flex justify-content-between align-items-center"
+            <div class="list-group-item list-group-item-action py-2 px-3 d-flex justify-content-between align-items-center"
                 onclick="app.selectEntity('${e.id}')"
-                style="cursor:pointer; border-left: 5px solid ${isDone ? '#adb5bd' : (hasDraft ? '#ffc107' : '#0d6efd')}; margin-bottom: 6px; ${isDone ? 'background-color: #f1f3f5; opacity: 0.6;' : 'background-color: #fff;'}">
-                <div class="fw-bold text-truncate" style="max-width: 85%; font-size: 1.05rem;">${isDone ? `<del class="text-muted">${displayLabel}</del>` : displayLabel}</div>
-                <div>${hasDraft && !isDone ? '<span class="badge bg-warning text-dark me-1">Draft</span>' : ''}${isDone ? '<span class="badge bg-light text-dark border">Done</span>' : ''}</div>
+                style="cursor:pointer; border-left: 5px solid ${isDone ? '#adb5bd' : (hasDraft ? '#ffc107' : '#0d6efd')}; margin-bottom: 4px; ${isDone ? 'background-color: #f1f3f5; opacity: 0.6;' : 'background-color: #fff;'}">
+                <span class="fw-bold text-truncate" style="max-width: 85%; font-size: 0.95rem;">${isDone ? `<del class="text-muted">${displayLabel}</del>` : displayLabel}</span>
+                <div class="flex-shrink-0">${hasDraft && !isDone ? '<span class="badge bg-warning text-dark me-1">Draft</span>' : ''}${isDone ? '<span class="badge bg-light text-dark border">Done</span>' : ''}</div>
             </div>`;
     }).join('');
+
+    // Append footer: submission games get Phase 2 button; others get Close Game
+    const isSubmission = state.currentStation?.scoring_mode === 'submission';
+
+    if (closure) {
+        els.entityList.innerHTML += `
+            <div class="mt-3 px-1">
+                <div class="alert alert-success py-2 text-center mb-2">
+                    <strong>✅ Game Closed</strong><br>
+                    <span class="small">${closure.score_count} score${closure.score_count !== 1 ? 's' : ''} confirmed by server</span>
+                </div>
+                <button class="btn btn-outline-secondary w-100 py-2 fw-bold" onclick="app.reopenGame()">Reopen Game</button>
+            </div>`;
+    } else if (isSubmission) {
+        els.entityList.innerHTML += `
+            <div class="mt-3 px-1">
+                <button class="btn btn-warning w-100 py-3 fw-bold" onclick="app.startPhase2()">🏆 All Submissions Received — Judge Submissions</button>
+            </div>`;
+    } else {
+        els.entityList.innerHTML += `
+            <div class="mt-3 px-1">
+                <button class="btn btn-success w-100 py-3 fw-bold" onclick="app.closeGame()">✅ I'm Done — Close Game</button>
+            </div>`;
+    }
 }
 
 function selectEntity(id) {
+    // If this game was closed, revoke the closure — judge is editing
+    const gameId = state.currentStation?.id;
+    if (gameId && getGameClosure(gameId)) {
+        revokeGameClosure(gameId);
+    }
     state.currentEntity = state.entities.find(e => e.id === id);
     const queue = syncManager.getQueue();
     const existingScore = queue.find(s => s.game_id === state.currentStation.id && s.entity_id === id);
@@ -380,7 +419,16 @@ function renderForm(existingScore = null) {
     document.getElementById('header-subtitle').style.display = 'block';
 
     els.scoreForm.innerHTML = '';
-    const fields = [...(s.fields || []), ...(state.config.common_scoring || [])].filter(f => f.audience === 'judge');
+    const isSubmission = s.scoring_mode === 'submission';
+    const allJudgeFields = [...(s.fields || []), ...(state.config.common_scoring || [])].filter(f => f.audience === 'judge');
+    // For submission games, Phase 1 only shows phase:1 fields during per-patrol scoring
+    const fields = isSubmission ? allJudgeFields.filter(f => (f.phase || 1) === 1) : allJudgeFields;
+
+    if (isSubmission && !existingScore) {
+        btnSubmit.innerText = 'Save Phase 1';
+        btnSubmit.classList.remove('btn-warning');
+        btnSubmit.classList.add('btn-secondary');
+    }
 
     if (fields.length > 0) {
         fields.forEach(f => {
@@ -418,6 +466,15 @@ function saveDraft() {
 async function submitScore(e) {
     if (e && e.preventDefault) e.preventDefault();
     if (!state.currentStation || !state.currentEntity) return;
+
+    // Submission games: "Save Phase 1" — store to drafts only, don't queue for sync
+    if (state.currentStation.scoring_mode === 'submission') {
+        saveDraft();
+        renderEntityList();
+        navigate('entity');
+        return;
+    }
+
     const payload = {};
     const fields = [...(state.currentStation.fields || []), ...(state.config.common_scoring || [])];
     fields.forEach(f => {
@@ -1337,16 +1394,17 @@ function bracketOpenHeat(heatIdx) {
                 let [mm, ss] = (val && val.includes(':')) ? val.split(':') : ['', ''];
                 return `
                  <div class="input-group input-group-sm mb-1 justify-content-center">
-                    <input type="number" class="form-control text-center px-0 heat-input-mm" data-fid="${f.id}" value="${mm}" placeholder="MM" style="max-width: 45px;">
+                    <input type="number" inputmode="numeric" pattern="[0-9]*" class="form-control text-center px-0 heat-input-mm" data-fid="${f.id}" value="${mm}" placeholder="MM" style="max-width: 45px;">
                     <span class="input-group-text px-1">:</span>
-                    <input type="number" class="form-control text-center px-0 heat-input-ss" data-fid="${f.id}" value="${ss}" placeholder="SS" style="max-width: 45px;">
+                    <input type="number" inputmode="numeric" pattern="[0-9]*" class="form-control text-center px-0 heat-input-ss" data-fid="${f.id}" value="${ss}" placeholder="SS" style="max-width: 45px;">
                  </div>`;
             } else if (f.type === 'boolean') {
                 const checked = val === true ? 'checked' : '';
                 return `<div class="d-flex justify-content-center mb-1"><input type="checkbox" class="form-check-input heat-input-bool" data-fid="${f.id}" ${checked}></div>`;
             } else {
                 const type = f.type === 'number' ? 'number' : 'text';
-                return `<input type="${type}" class="form-control form-control-sm text-center mb-1 heat-input" data-fid="${f.id}" value="${val}" placeholder="${f.placeholder || ''}" style="max-width: 100%;">`;
+                const numAttrs = f.type === 'number' ? ' inputmode="numeric" pattern="[0-9]*"' : '';
+                return `<input type="${type}"${numAttrs} class="form-control form-control-sm text-center mb-1 heat-input" data-fid="${f.id}" value="${val}" placeholder="${f.placeholder || ''}" style="max-width: 100%;">`;
             }
         }).join('');
 
@@ -1860,11 +1918,207 @@ function togglePodiumModal(show) {
     else m.classList.add('hidden');
 }
 
-// Don't forget to export the new helper!
+// --- Submission Mode Phase 2 ---
+
+function startPhase2() {
+    const s = state.currentStation;
+    if (!s) return;
+
+    const drafts = JSON.parse(localStorage.getItem('camporee_drafts') || '{}');
+    const phase2Fields = (s.fields || []).filter(f => f.phase === 2 && f.audience === 'judge');
+
+    if (phase2Fields.length === 0) {
+        alert('No Phase 2 fields are defined for this game.\n\nGo to Composer → Scoring tab and set at least one field to Phase 2.');
+        return;
+    }
+
+    // Collect patrols that have Phase 1 draft data
+    const participating = state.entities.filter(e => {
+        const key = `${s.id}_${e.id}`;
+        return !!drafts[key];
+    });
+
+    if (participating.length === 0) {
+        alert('No Phase 1 scores found. Score at least one patrol in Phase 1 before proceeding to Phase 2.');
+        return;
+    }
+
+    // Render header columns
+    const headerEl = document.getElementById('phase2-field-headers');
+    headerEl.innerHTML = phase2Fields.map(f =>
+        `<div style="flex:1; text-align:center; font-size:0.7rem; padding:0 2px;">${f.label}</div>`
+    ).join('');
+
+    // Render rows
+    const rowsEl = document.getElementById('phase2-scoring-rows');
+    rowsEl.innerHTML = participating.map(e => {
+        const label = formatEntityLabel(e);
+        const existingDraft = drafts[`${s.id}_${e.id}`] || {};
+        const inputs = phase2Fields.map(f => {
+            const val = existingDraft[f.id] ?? '';
+            if (f.type === 'select') {
+                const opts = (f.options || []).map(o => `<option value="${o}" ${o === val ? 'selected' : ''}>${o}</option>`).join('');
+                return `<div style="flex:1; padding:2px;"><select class="form-select form-select-sm p2-input" data-entity="${e.id}" data-field="${f.id}" style="font-size:0.8rem; padding:0.2rem;">${opts}</select></div>`;
+            }
+            return `<div style="flex:1; padding:2px;"><input type="number" class="form-control form-control-sm p2-input text-center" data-entity="${e.id}" data-field="${f.id}" value="${val}" inputmode="numeric" style="font-size:0.8rem; padding:0.2rem;"></div>`;
+        }).join('');
+        return `<div class="d-flex align-items-center border-bottom py-1 px-2" style="min-height:42px;">
+            <div style="width:45%; font-size:0.85rem; font-weight:600;" class="text-truncate pe-1">${label}</div>
+            <div class="d-flex flex-grow-1">${inputs}</div>
+        </div>`;
+    }).join('');
+
+    document.getElementById('phase2-title').textContent = `Phase 2: ${formatGameTitle(s)}`;
+    navigate('submissionPhase2');
+}
+
+async function submitAllPhase2() {
+    const s = state.currentStation;
+    if (!s) return;
+
+    const drafts = JSON.parse(localStorage.getItem('camporee_drafts') || '{}');
+    const phase2Fields = (s.fields || []).filter(f => f.phase === 2 && f.audience === 'judge');
+
+    // Collect Phase 2 values from the table inputs
+    const phase2Values = {};
+    document.querySelectorAll('.p2-input').forEach(el => {
+        const { entity, field } = el.dataset;
+        if (!phase2Values[entity]) phase2Values[entity] = {};
+        phase2Values[entity][field] = el.value;
+    });
+
+    const allFields = [...(s.fields || []), ...(state.config.common_scoring || [])];
+    const queue = syncManager.getQueue();
+
+    Object.entries(phase2Values).forEach(([entityId, p2data]) => {
+        const draftKey = `${s.id}_${entityId}`;
+        const phase1Data = drafts[draftKey] || {};
+        const combined = { ...phase1Data, ...p2data };
+
+        const existing = queue.find(q => q.game_id === s.id && q.entity_id === entityId);
+        const packet = {
+            uuid: existing ? existing.uuid : generateUUID(),
+            game_id: s.id,
+            entity_id: entityId,
+            score_payload: combined,
+            timestamp: Date.now(),
+            judge_name: els.judgeName.value,
+            judge_email: els.judgeEmail.value,
+            judge_unit: els.judgeUnit.value
+        };
+        syncManager.addToQueue(packet);
+        delete drafts[draftKey];
+    });
+
+    localStorage.setItem('camporee_drafts', JSON.stringify(drafts));
+
+    try {
+        if (navigator.onLine) await syncManager.sync();
+        updateSyncCounts();
+        alert(`${Object.keys(phase2Values).length} patrol scores submitted!`);
+        renderEntityList();
+        navigate('entity');
+    } catch (err) {
+        updateSyncCounts();
+        alert('Scores saved locally. Sync pending — connect to Camporee WiFi to upload.');
+        renderEntityList();
+        navigate('entity');
+    }
+}
+
+// --- Game Closure ---
+
+const GAME_CLOSURES_KEY = 'camporee_game_closures';
+
+function getGameClosure(gameId) {
+    const all = JSON.parse(localStorage.getItem(GAME_CLOSURES_KEY) || '{}');
+    return all[gameId] || null;
+}
+
+function setGameClosure(gameId, data) {
+    const all = JSON.parse(localStorage.getItem(GAME_CLOSURES_KEY) || '{}');
+    all[gameId] = data;
+    localStorage.setItem(GAME_CLOSURES_KEY, JSON.stringify(all));
+}
+
+function revokeGameClosure(gameId) {
+    const all = JSON.parse(localStorage.getItem(GAME_CLOSURES_KEY) || '{}');
+    delete all[gameId];
+    localStorage.setItem(GAME_CLOSURES_KEY, JSON.stringify(all));
+}
+
+async function closeGame() {
+    const gameId = state.currentStation?.id;
+    if (!gameId) return;
+
+    const queue = syncManager.getQueue();
+    const unsyncedForGame = queue.filter(q => q.game_id === gameId && !q._synced);
+
+    if (!state.isOnline) {
+        const msg = unsyncedForGame.length > 0
+            ? `You have ${unsyncedForGame.length} unsynced score(s).\n\nPlease connect to the Camporee WiFi network, then tap "I'm Done" again to finalize.`
+            : `You are currently offline.\n\nPlease connect to the Camporee WiFi network, then tap "I'm Done" again to confirm your scores were received.`;
+        alert(msg);
+        return;
+    }
+
+    if (unsyncedForGame.length > 0) {
+        try {
+            await syncManager.sync();
+            updateUnsyncedCount();
+        } catch (err) {
+            alert('Could not sync scores. Please check your connection and try again.');
+            return;
+        }
+    }
+
+    const judge = state.judgeInfo || {};
+    const scoreCount = syncManager.getQueue().filter(q => q.game_id === gameId).length;
+    const closedAt = new Date().toISOString();
+
+    try {
+        const res = await fetch(`${window.API_BASE}/api/scores/close-game`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ game_id: gameId, judge_id: judge.id, score_count: scoreCount, closed_at: closedAt })
+        });
+        if (!res.ok) throw new Error('Server error');
+
+        setGameClosure(gameId, {
+            status: 'closed',
+            closed_at: closedAt,
+            score_count: scoreCount,
+            game_title: formatGameTitle(state.currentStation)
+        });
+
+        document.getElementById('closed-game-title').textContent = formatGameTitle(state.currentStation);
+        document.getElementById('closed-score-count').textContent = `${scoreCount} score${scoreCount !== 1 ? 's' : ''} on file`;
+        document.getElementById('closed-judge-name').textContent = judge.name ? `Judge: ${judge.name}` : '';
+        document.getElementById('game-closed-modal').classList.remove('hidden');
+
+    } catch (err) {
+        alert('Could not reach the server to confirm. Please check your connection and try again.');
+    }
+}
+
+function dismissGameClosed() {
+    document.getElementById('game-closed-modal').classList.add('hidden');
+    renderStationList();
+    navigate('home');
+}
+
+function reopenGame() {
+    const gameId = state.currentStation?.id;
+    if (gameId) revokeGameClosure(gameId);
+    renderEntityList();
+}
+
 window.app = {
     init, navigate, handleBack, refreshData, selectStation, selectEntity,
     submitScore, setMode, promptNewEntity, toggleJudgeModal, saveJudgeInfo,
-    saveDraft, combineTime, resetAppData, bracketQuickSave, bracketScratchTeam,
+    saveDraft, combineTime, resetAppData, closeGame, dismissGameClosed, reopenGame,
+    startPhase2, submitAllPhase2,
+    bracketQuickSave, bracketScratchTeam,
     openPodiumModal, openReviewModal, togglePodiumModal, bracketSubmitPodium,
     bracketSelectAll, bracketStartEvent, bracketDirectEntry, bracketCreateHeat, bracketOpenHeat,
     bracketSaveHeat, bracketAdvanceRound, bracketRenameRound, bracketToggleAdvance,
@@ -1903,6 +2157,21 @@ async function refreshData() {
             const sc = await cRes.json();
             state.config = { stations: sc.games, common_scoring: sc.common_scoring || [] };
             localStorage.setItem('camporee_config', JSON.stringify(state.config));
+            const meta = sc.metadata || {};
+            // Update header title with camporee name
+            if (meta.title) {
+                state.camporeeTitle = meta.title;
+                const headerTitle = document.getElementById('header-title');
+                if (headerTitle) headerTitle.textContent = meta.title;
+                localStorage.setItem('camporee_title', meta.title);
+            }
+            // Apply theme colors
+            const colors = meta.theme_colors;
+            if (colors) {
+                if (colors.main) document.documentElement.style.setProperty('--brand-main', colors.main);
+                if (colors.header) document.documentElement.style.setProperty('--brand-header', colors.header);
+                if (colors.accent) document.documentElement.style.setProperty('--brand-accent', colors.accent);
+            }
         }
 
         // 2. Fetch Entities
@@ -1930,10 +2199,16 @@ function loadLocalData() {
         const c = localStorage.getItem('camporee_config') || localStorage.getItem('coyote_config');
         const e = localStorage.getItem('camporee_entities') || localStorage.getItem('coyote_entities');
         const b = localStorage.getItem('camporee_bracket_data') || localStorage.getItem('coyote_bracket_data');
+        const t = localStorage.getItem('camporee_title');
 
         if (c) state.config = JSON.parse(c);
         if (e) state.entities = JSON.parse(e);
         if (b) state.bracketData = JSON.parse(b);
+        if (t) {
+            state.camporeeTitle = t;
+            const headerTitle = document.getElementById('header-title');
+            if (headerTitle) headerTitle.textContent = t;
+        }
     } catch (e) {
         console.error("Local Data Load Error:", e);
     }

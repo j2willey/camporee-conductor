@@ -72,6 +72,7 @@ export function normalizeGameDefinition(gameDef, playlistOrder = 0) {
             kind: i.type === 'timer' ? 'metric' : (i.kind || 'points'),
             weight: typeof i.weight !== 'undefined' ? i.weight : 1,
             audience: i.audience || 'judge',
+            phase: i.phase || 1,
             config: {
                 min: i.config?.min ?? i.min ?? 0,
                 max: i.config?.max ?? i.max_points ?? i.max ?? 0,
@@ -82,6 +83,8 @@ export function normalizeGameDefinition(gameDef, playlistOrder = 0) {
         }));
     }
 
+    game.scoring_mode = game.scoring_mode || 'sequential';
+
     game.fields = components.map(comp => ({
         id: comp.id,
         label: comp.label,
@@ -89,6 +92,7 @@ export function normalizeGameDefinition(gameDef, playlistOrder = 0) {
         kind: comp.kind,
         weight: comp.weight,
         audience: comp.audience || 'judge',
+        phase: comp.phase || 1,
         ...(comp.config || {}) // Spread min/max/placeholder into root
     }));
 
@@ -110,16 +114,26 @@ export function formatGameTitle(game) {
 
     // Use type if available, otherwise fallback to guessing from ID
     let prefixLetter = 'g';
-    if (game.type === 'patrol' || game.id?.startsWith('p')) prefixLetter = 'p';
-    else if (game.type === 'troop' || game.id?.startsWith('t')) prefixLetter = 't';
-    else if (game.type === 'exhibition' || game.id?.startsWith('e')) prefixLetter = 'e';
+    if (game.type === 'patrol') prefixLetter = 'p';
+    else if (game.type === 'troop') prefixLetter = 't';
+    else if (game.type === 'exhibition') prefixLetter = 'e';
+    else if (game.id?.startsWith('p')) prefixLetter = 'p';
+    else if (game.id?.startsWith('t')) prefixLetter = 't';
+    else if (game.id?.startsWith('e')) prefixLetter = 'e';
 
-    // Extract Number from ID (p1 -> 1, t10 -> 10)
-    const match = game.id?.match(/(\d+)/);
-    const num = match ? match[1] : '';
+    // Prefer per-type display number (set by Collator), then sortOrder position, then filename number
+    let num;
+    if (game.displayOrder !== undefined) {
+        num = game.displayOrder;
+    } else if (game.sortOrder !== undefined) {
+        num = game.sortOrder / 10;
+    } else {
+        const match = game.id?.match(/(\d+)/);
+        num = match ? match[1] : '';
+    }
 
     if (num) return `${prefixLetter}${num}. ${rawName}`;
-    return rawName; // Fallback for Exhibition etc
+    return rawName;
 }
 
 export function getOrdinalSuffix(i) {

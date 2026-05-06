@@ -75,4 +75,12 @@ export function updateDashboardHeader() {
 
     // 2. Update Document Title (Browser Tab)
     document.title = meta.title ? `${meta.title} - Admin` : 'Camporee Collator';
+
+    // 3. Apply theme colors from cartridge meta
+    const colors = meta.theme_colors;
+    if (colors) {
+        if (colors.main) document.documentElement.style.setProperty('--brand-main', colors.main);
+        if (colors.header) document.documentElement.style.setProperty('--brand-header', colors.header);
+        if (colors.accent) document.documentElement.style.setProperty('--brand-accent', colors.accent);
+    }
 }

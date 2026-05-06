@@ -128,4 +128,22 @@ export class ApiClient {
         }
         return await res.json();
     }
+
+    /**
+     * Calls the AI update-game endpoint to rewrite specific content fields.
+     * @param {Object} payload { prompt, includeContent, currentContent }
+     * @returns {Promise<Object>} Partial game content update
+     */
+    async updateGame(payload) {
+        const res = await fetch(`${this.baseUrl}/ai/update-game`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || "AI update failed.");
+        }
+        return await res.json();
+    }
 }

@@ -20,6 +20,11 @@ scripts/demo/score-p*
 .env
 .env.local
 
+# TLS Certificates (never commit private keys)
+certs/*.pem
+certs/*.crt
+certs/*.key
+
 # OS Generated Files
 .DS_Store
 Thumbs.db

@@ -87,6 +87,79 @@ main.has-fixed-header {
     padding-top: 5.5rem !important;
 }
 
+/* ── Compact Judge Scoring Form ────────────────────────────────── */
+#view-scoring {
+    /* Bleed edge-to-edge — counteract main's 1rem side padding */
+    margin: -0.5rem -1rem 0 -1rem;
+}
+
+#scoring-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0;
+    padding: 0.3rem 0.75rem 0.1rem;
+    line-height: 1.2;
+}
+
+#scoring-team {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #555;
+    margin: 0;
+    padding: 0 0.75rem 0.3rem;
+}
+
+#score-form {
+    border-top: 2px solid var(--brand-main);
+}
+
+.score-field-row {
+    min-height: 40px;
+    background: #fff;
+}
+
+.score-field-row:nth-child(even) {
+    background: #f8f9fa;
+}
+
+.score-field-row.score-field-wide {
+    display: block;
+}
+
+.score-field-label {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.score-field-input {
+    flex: 0 0 120px;
+    width: 120px;
+}
+
+/* Override global judge-app input styles inside compact score rows */
+.score-field-input input[type="text"],
+.score-field-input input[type="number"],
+.score-field-input select {
+    padding: 0.25rem 0.4rem !important;
+    font-size: 0.875rem !important;
+    margin-bottom: 0 !important;
+    height: auto !important;
+}
+
+.score-field-wide textarea {
+    padding: 0.25rem 0.4rem !important;
+    font-size: 0.875rem !important;
+    margin-bottom: 0 !important;
+    min-height: 48px !important;
+    height: 48px !important;
+}
+
+#btn-submit {
+    display: block;
+    width: calc(100% - 1.5rem);
+    margin: 0.5rem 0.75rem;
+}
+
 .card {
     background: white;
     padding: 1rem;

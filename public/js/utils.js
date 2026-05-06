@@ -62,6 +62,61 @@ function setupNavigation() {
     const exportRawBtn = document.getElementById('btn-export-raw');
     const autoRefreshSwitch = document.getElementById('auto-refresh-switch');
 
+    // Theme Color Picker — seed pickers from current CSS variables then wire buttons
+    const sysColorMain = document.getElementById('sysColorMain');
+    const sysColorHeader = document.getElementById('sysColorHeader');
+    const sysColorAccent = document.getElementById('sysColorAccent');
+    if (sysColorMain) {
+        const rootStyle = getComputedStyle(document.documentElement);
+        const toHex = (cssVar) => {
+            const val = rootStyle.getPropertyValue(cssVar).trim();
+            // CSS vars may be hex or rgb; if hex just use it
+            if (val.startsWith('#')) return val;
+            return val || null;
+        };
+        const currentMain = toHex('--brand-main');
+        const currentHeader = toHex('--brand-header');
+        const currentAccent = toHex('--brand-accent');
+        if (currentMain) sysColorMain.value = currentMain;
+        if (currentHeader) sysColorHeader.value = currentHeader;
+        if (currentAccent) sysColorAccent.value = currentAccent;
+
+        document.getElementById('btn-apply-colors').onclick = () => {
+            document.documentElement.style.setProperty('--brand-main', sysColorMain.value);
+            document.documentElement.style.setProperty('--brand-header', sysColorHeader.value);
+            document.documentElement.style.setProperty('--brand-accent', sysColorAccent.value);
+            document.getElementById('color-save-status').textContent = 'Preview applied (not saved yet).';
+        };
+
+        document.getElementById('btn-save-colors').onclick = async () => {
+            const statusEl = document.getElementById('color-save-status');
+            try {
+                const res = await fetch(window.API_BASE + '/api/meta/theme-colors', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        main: sysColorMain.value,
+                        header: sysColorHeader.value,
+                        accent: sysColorAccent.value
+                    })
+                });
+                if (res.ok) {
+                    document.documentElement.style.setProperty('--brand-main', sysColorMain.value);
+                    document.documentElement.style.setProperty('--brand-header', sysColorHeader.value);
+                    document.documentElement.style.setProperty('--brand-accent', sysColorAccent.value);
+                    statusEl.textContent = 'Saved to cartridge. Judges will see new colors on next sync.';
+                    statusEl.className = 'mt-2 small text-center text-success';
+                } else {
+                    statusEl.textContent = 'Save failed — is an event loaded?';
+                    statusEl.className = 'mt-2 small text-center text-danger';
+                }
+            } catch (e) {
+                statusEl.textContent = 'Error: ' + e.message;
+                statusEl.className = 'mt-2 small text-center text-danger';
+            }
+        };
+    }
+
     // Inspector Buttons
     ['meta', 'config', 'scores', 'roster'].forEach(type => {
         const btn = document.getElementById(`btn-inspect-${type}`);
@@ -259,12 +314,17 @@ function switchView(viewName, pushToHistory = true) {
         if (urlInput && !urlInput.value) {
             urlInput.value = window.location.origin;
         }
+    } else if (viewName === 'scoresheets') {
+        document.getElementById('view-scoresheets').classList.remove('hidden');
+        setSubtitle('Print Scoresheets');
+        populateScoresheetSelect();
     }
 }
 
 window.switchView = switchView;
 window.utils = {
     switchView,
+    printScoresheets,
     copyInspector: () => {
         const output = document.getElementById('inspector-output');
         if (!output) return;
@@ -925,3 +985,132 @@ function initStickerControls() {
 }
 
 window.initStickerControls = initStickerControls;
+
+// --- SCORESHEETS ---
+
+function populateScoresheetSelect() {
+    const sel = document.getElementById('scoresheet-game-select');
+    if (!sel || sel.options.length > 1) return; // already populated
+    (appData.games || []).forEach(game => {
+        const opt = document.createElement('option');
+        opt.value = game.id;
+        opt.textContent = formatGameTitle(game);
+        sel.appendChild(opt);
+    });
+}
+
+function buildScoresheetHTML(games, rowCount, meta) {
+    const eventTitle = meta?.title || 'Camporee';
+    const eventTheme = meta?.theme || '';
+    const today = new Date().toLocaleDateString();
+
+    const sheets = games.map(game => {
+        const judgeFields = (game.fields || []).filter(f => f.audience !== 'admin');
+        const isPatrol = game.type === 'patrol';
+
+        const colDefs = [
+            { label: '#',          hint: '',        width: '24px',  cls: 'col-num' },
+            { label: 'Troop',      hint: '',        width: '48px',  cls: '' },
+            ...(isPatrol ? [{ label: 'Patrol', hint: '', width: '110px', cls: '' }] : []),
+            ...judgeFields.map(f => ({
+                label: f.label,
+                hint: fieldHint(f),
+                width: fieldWidth(f),
+                cls: f.type === 'textarea' ? 'col-notes' : ''
+            }))
+        ];
+
+        const headerCells = colDefs.map(c =>
+            `<th style="width:${c.width}" class="${c.cls}">${escH(c.label)}${c.hint ? `<span class="hint">${c.hint}</span>` : ''}</th>`
+        ).join('');
+
+        const blankRows = Array.from({ length: rowCount }, (_, i) =>
+            `<tr><td class="col-num">${i + 1}</td>${colDefs.slice(1).map(() => '<td></td>').join('')}</tr>`
+        ).join('');
+
+        return `
+<div class="sheet">
+  <div class="sheet-header">
+    <div class="sheet-title">${escH(formatGameTitle(game))}</div>
+    <div class="sheet-meta">${escH(eventTitle)}${eventTheme ? ' — ' + escH(eventTheme) : ''} &nbsp;|&nbsp; Printed: ${today}</div>
+  </div>
+  <table>
+    <thead><tr>${headerCells}</tr></thead>
+    <tbody>${blankRows}</tbody>
+  </table>
+</div>`;
+    }).join('\n');
+
+    return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Scoresheets — ${escH(eventTitle)}</title>
+<style>
+  @page { size: landscape; margin: 0.4in; }
+  * { box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; font-size: 9pt; margin: 0; }
+  .sheet { page-break-after: always; }
+  .sheet:last-child { page-break-after: avoid; }
+  .sheet-header { margin-bottom: 5px; }
+  .sheet-title { font-size: 13pt; font-weight: bold; }
+  .sheet-meta { font-size: 8pt; color: #555; margin-top: 1px; }
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  th {
+    background: #fff; color: #000; padding: 3px 4px;
+    text-align: center; font-size: 7.5pt; border: 1px solid #999;
+    vertical-align: bottom; line-height: 1.2; overflow: hidden;
+    word-wrap: break-word;
+  }
+  th .hint { font-size: 7pt; font-weight: normal; opacity: 0.65; display: block; }
+  td { border: 1px solid #bbb; height: 30px; padding: 0 2px; }
+  .col-num { text-align: center; background: #f0f0f0; font-size: 8pt; vertical-align: middle; }
+  .col-notes { min-width: 100px; }
+  tr:nth-child(even) td:not(.col-num) { background: #f7f7f7; }
+</style>
+</head>
+<body>${sheets}</body>
+</html>`;
+}
+
+function fieldHint(f) {
+    if (f.type === 'stopwatch' || f.type === 'timed') return '(time)';
+    if (f.type === 'checkbox') return '(✓/✗)';
+    if (f.type === 'textarea') return '(notes)';
+    if (f.type === 'number') {
+        if (f.min !== undefined && f.max !== undefined) return `(${f.min}–${f.max})`;
+        if (f.max !== undefined) return `(0–${f.max})`;
+    }
+    return '';
+}
+
+function fieldWidth(f) {
+    if (f.type === 'textarea') return '120px';
+    if (f.type === 'stopwatch' || f.type === 'timed') return '58px';
+    if (f.type === 'checkbox') return '36px';
+    if (f.type === 'select') return '80px';
+    return '52px';
+}
+
+function escH(str) {
+    return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function printScoresheets() {
+    const sel = document.getElementById('scoresheet-game-select');
+    const rowCount = parseInt(document.getElementById('scoresheet-rows').value) || 25;
+    const gameId = sel?.value || 'all';
+
+    const games = gameId === 'all'
+        ? (appData.games || []).filter(g => g.type !== 'exhibition')
+        : (appData.games || []).filter(g => g.id === gameId);
+
+    if (!games.length) { alert('No games loaded.'); return; }
+
+    const html = buildScoresheetHTML(games, rowCount, appData.metadata);
+    const win = window.open('', '_blank');
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    win.onload = () => win.print();
+}

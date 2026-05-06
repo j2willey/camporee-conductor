@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="css/bootstrap.min.css">
     <link rel="stylesheet" href="css/conductor.css">
     <link rel="stylesheet" href="css/spreadsheet.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="/js/qrcode.min.js"></script>
     <script type="module" src="js/utils.js" defer></script>
 </head>
 <body>
@@ -19,6 +19,7 @@
 
         <nav class="header-right">
             <button class="btn btn-sm btn-outline-light" onclick="utils.switchView('awards')" id="nav-awards">Awards</button>
+            <button class="btn btn-sm btn-outline-light" onclick="utils.switchView('scoresheets')" id="nav-scoresheets">Scoresheets</button>
             <button class="btn btn-sm btn-outline-light" onclick="utils.switchView('qrcode')" id="nav-qr">QR Codes</button>
             <button class="btn btn-sm btn-outline-light" onclick="utils.switchView('debug')" id="nav-debug">System</button>
         </nav>
@@ -177,6 +178,28 @@
             </div>
         </section>
 
+        <!-- View: Scoresheets -->
+        <section id="view-scoresheets" class="hidden">
+            <div style="max-width: 600px; margin: 40px auto;">
+                <h2>Print Scoresheets</h2>
+                <p class="text-muted">Generate a blank paper scoresheet for one game or all games. Print landscape for best results.</p>
+                <div class="card p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Game</label>
+                        <select id="scoresheet-game-select" class="form-select">
+                            <option value="all">All Games (one sheet each)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Blank rows</label>
+                        <input type="number" id="scoresheet-rows" class="form-control" value="20" min="5" max="60">
+                        <div class="form-text">Number of empty rows for patrols/troops to score.</div>
+                    </div>
+                    <button class="btn btn-primary w-100" onclick="utils.printScoresheets()">🖨 Open Print Preview</button>
+                </div>
+            </div>
+        </section>
+
         <!-- View 7: System & Debug -->
         <section id="view-debug" class="hidden">
             <div style="max-width: 800px; margin: 40px auto; text-align: center;">
@@ -187,6 +210,43 @@
                 </div>
 
                 <div style="display: flex; flex-direction: column; gap: 20px; align-items: center;">
+
+                    <div class="card p-4" style="width: 100%; max-width: 500px; border-color: #9b59b6;">
+                        <h4><span style="color:#9b59b6;">&#x1F3A8;</span> Theme Colors</h4>
+                        <p class="text-muted">Override the brand colors for judge and admin screens. Saves to the active cartridge.</p>
+                        <div class="row g-3 text-center mb-3">
+                            <div class="col-4">
+                                <label class="form-label small fw-bold d-block">Primary</label>
+                                <input type="color" class="form-control form-control-color mx-auto" id="sysColorMain" value="#0d6efd">
+                                <div class="text-muted" style="font-size:0.7rem;">--brand-main</div>
+                            </div>
+                            <div class="col-4">
+                                <label class="form-label small fw-bold d-block">Header</label>
+                                <input type="color" class="form-control form-control-color mx-auto" id="sysColorHeader" value="#34495e">
+                                <div class="text-muted" style="font-size:0.7rem;">--brand-header</div>
+                            </div>
+                            <div class="col-4">
+                                <label class="form-label small fw-bold d-block">Accent</label>
+                                <input type="color" class="form-control form-control-color mx-auto" id="sysColorAccent" value="#3498db">
+                                <div class="text-muted" style="font-size:0.7rem;">--brand-accent</div>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button id="btn-apply-colors" class="btn btn-outline-secondary flex-grow-1">Preview</button>
+                            <button id="btn-save-colors" class="btn btn-primary flex-grow-1">Save to Cartridge</button>
+                        </div>
+                        <div id="color-save-status" class="mt-2 small text-center"></div>
+                    </div>
+
+                    <div class="card p-4" style="width: 100%; max-width: 500px; border-color: #27ae60;">
+                        <h4 class="text-success">Load Cartridge</h4>
+                        <p class="text-muted">Upload a new <code>CamporeeConfig.zip</code>. If the cartridge ID matches the active event, you'll be prompted to keep or wipe existing scores.</p>
+                        <form action="/collator/api/setup/upload" method="post" enctype="multipart/form-data">
+                            <input class="form-control mb-3" type="file" name="configZip" accept=".zip" required>
+                            <button type="submit" class="btn btn-success w-100">Upload Cartridge</button>
+                        </form>
+                    </div>
+
                     <div class="card p-4" style="width: 100%; max-width: 500px;">
                         <h4>Data Backup</h4>
                         <p class="text-muted">Download a raw dump of the entire database (Scores + Entities).</p>

@@ -104,6 +104,16 @@ db.exec(`
     FOREIGN KEY(tournament_id) REFERENCES game_status(game_id),
     FOREIGN KEY(entity_id) REFERENCES entities(id)
   );
+
+  CREATE TABLE IF NOT EXISTS game_closures (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    game_id TEXT NOT NULL,
+    judge_id INTEGER,
+    score_count INTEGER,
+    closed_at TEXT,
+    server_received_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY(judge_id) REFERENCES judges(id)
+  );
 `);
 
 // --- MIGRATIONS ---
@@ -201,7 +211,7 @@ function archiveDatabase() {
 
 function applyTemplate(str, variables) {
     if (!str) return str;
-    return str.replace(/\{\{(\w+)\}\}/g, (_, key) => variables[key] || key);
+    return str.replace(/\{\{(\w+)\}\}/g, (_, key) => variables[key] || '___');
 }
 
 function injectCommonFields(normalizedGame, presets, typeDefaults) {
@@ -263,7 +273,7 @@ function loadCamporeeData() {
 
         if (manifest.playlist) {
             manifest.playlist.forEach(item => {
-                if (item.enabled) {
+                if (item.enabled !== false) {
                     const gamePath = path.join(ACTIVE_DIR, 'games', `${item.gameId}.json`);
                     if (fs.existsSync(gamePath)) {
                         const gameDef = JSON.parse(fs.readFileSync(gamePath, 'utf8'));
@@ -289,6 +299,15 @@ function loadCamporeeData() {
         }
 
         games.sort((a, b) => a.sortOrder - b.sortOrder);
+
+        // Assign per-type display numbers so p1/p2/p3 count only patrol games, etc.
+        const typeCounters = {};
+        games.forEach(game => {
+            const t = game.type || 'g';
+            typeCounters[t] = (typeCounters[t] || 0) + 1;
+            game.displayOrder = typeCounters[t];
+        });
+
         return {
             metadata: manifest.meta,
             games: games
@@ -787,6 +806,24 @@ app.post('/api/admin/game-status', (req, res) => {
     }
 });
 
+app.patch('/api/meta/theme-colors', (req, res) => {
+    const { main, header, accent } = req.body || {};
+    const manifestPath = path.join(ACTIVE_DIR, 'camporee.json');
+    if (!fs.existsSync(manifestPath)) {
+        return res.status(404).json({ error: 'No active event loaded' });
+    }
+    try {
+        const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+        if (!manifest.meta) manifest.meta = {};
+        manifest.meta.theme_colors = { main, header, accent };
+        fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+        res.json({ ok: true, theme_colors: manifest.meta.theme_colors });
+    } catch (err) {
+        console.error('Error saving theme colors:', err);
+        res.status(500).json({ error: 'Failed to save theme colors' });
+    }
+});
+
 app.delete('/api/admin/scores', (req, res) => {
     try {
         db.transaction(() => {
@@ -892,6 +929,22 @@ app.post('/api/entities', (req, res) => {
 
     } catch (err) {
         res.status(500).json({ error: 'Database error' });
+    }
+});
+
+app.post('/api/scores/close-game', (req, res) => {
+    const { game_id, judge_id, score_count, closed_at } = req.body || {};
+    if (!game_id) return res.status(400).json({ error: 'game_id required' });
+
+    try {
+        db.prepare(`
+            INSERT INTO game_closures (game_id, judge_id, score_count, closed_at)
+            VALUES (?, ?, ?, ?)
+        `).run(game_id, judge_id || null, score_count || 0, closed_at || new Date().toISOString());
+
+        res.json({ received: true, message: 'Scores confirmed. Thank you!' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 

@@ -1,12 +1,30 @@
 version: '3.8'
 
 services:
+  # 0. CADDY — TLS reverse proxy (HTTPS for judge PWA)
+  #    Requires: CADDY_DOMAIN set in .env + certs/fullchain.pem + certs/privkey.pem
+  #    To skip Caddy: comment out this service and its depends_on references
+  caddy:
+    container_name: camporee-caddy
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./certs:/certs:ro
+    environment:
+      - CADDY_DOMAIN=${CADDY_DOMAIN:-localhost}
+    depends_on:
+      - collator
+    restart: unless-stopped
+
   # 1. THE COLLATOR (Scorer) - Port 3000
   collator:
     container_name: camporee-collator
     build: .
     ports:
-      - "3000:3000"
+      - "3000:3000"   # Keep direct access for local dev / Composer
     environment:
       - PORT=3000
       - ACTIVE_SERVICES=collator     # <--- Identity Assignment

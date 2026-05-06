@@ -459,6 +459,60 @@ app.post('/api/ai/theme-game', async (req, res) => {
     }
 });
 
+app.post('/api/ai/update-game', async (req, res) => {
+    try {
+        const { prompt, model, includeContent, currentContent } = req.body;
+
+        if (!process.env.GEMINI_API_KEY) {
+            return res.status(500).json({ error: "GEMINI_API_KEY is not configured in .env" });
+        }
+        if (!prompt) {
+            return res.status(400).json({ error: "prompt is required" });
+        }
+
+        const ALLOWED_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
+        const selectedModel = ALLOWED_MODELS.includes(model) ? model : 'gemini-2.5-flash';
+
+        const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+        const fullPrompt = `You are a game designer assistant for Scouting America skill competitions (age 11-17, G-rated, Scout values).
+Update the game content fields based on the user's instructions.
+
+Return ONLY a valid JSON object containing any of these keys (omit keys you are not changing):
+- game_title (string)
+- challenge (string — one-sentence objective)
+- story (string — thematic narrative, markdown OK)
+- description (string — step-by-step instructions, markdown OK)
+- rules (array of strings — each item is one rule)
+- time_and_scoring (string — scoring overview, markdown OK)
+- scoring_notes (string — tips for the judge, markdown OK)
+- staffing (string — staff requirements, markdown OK)
+- setup (string — physical setup instructions, markdown OK)
+- reset (string — how to reset between groups, markdown OK)
+- supplies_text (string — equipment list, markdown OK)
+
+Return ONLY the JSON object. No markdown code fences. No explanation text.
+
+User Instruction:
+${prompt}
+${includeContent && currentContent ? `\nCurrent Game Content:\n${JSON.stringify(currentContent, null, 2)}` : ''}`;
+
+        const response = await genAI.models.generateContent({
+            model: selectedModel,
+            contents: fullPrompt
+        });
+
+        const text = response.text;
+        const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/) || text.match(/```\n([\s\S]*?)\n```/);
+        const parsed = JSON.parse(jsonMatch ? jsonMatch[1] : text);
+
+        res.json(parsed);
+    } catch (err) {
+        console.error("AI Update Game Error:", err);
+        res.status(500).json({ error: err.message || "Failed to update game via AI" });
+    }
+});
+
 // --- START SERVER ---
 // We no longer call app.listen directly. Instead, we export the configured app
 // to be mounted by the root server.js

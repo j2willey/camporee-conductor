@@ -36,6 +36,7 @@ const DEFAULT_TYPE_DEFAULTS = {
 
 const composer = {
     serverMode: false,
+    isDirty: false,
     cachedCamporee: null,
     api: new ApiClient('/composer/api'),
     data: {
@@ -54,6 +55,7 @@ const composer = {
     pendingImportGames: [],
     dragSrcGameId: null,
     libraryCatalog: null,
+    aiUpdateSnapshot: null,
 
     init: async function () {
         console.log("Composer App Initialized");
@@ -103,6 +105,7 @@ const composer = {
                     const key = id === "metaTitle" ? "title" :
                         id === "metaTheme" ? "theme" : "council";
                     this.data.meta[key] = e.target.value;
+                    this._markDirty();
                 });
             }
         });
@@ -115,6 +118,7 @@ const composer = {
                     if (!this.data.meta.location) this.data.meta.location = {};
                     const key = id === "metaLocName" ? "name" : "address";
                     this.data.meta.location[key] = e.target.value;
+                    this._markDirty();
                 });
             }
         });
@@ -127,6 +131,22 @@ const composer = {
                     if (!this.data.meta.dates) this.data.meta.dates = {};
                     const key = id === "metaStartDate" ? "start" : "end";
                     this.data.meta.dates[key] = e.target.value;
+                    this._markDirty();
+                });
+            }
+        });
+
+        // Theme color pickers
+        const colorVarMap = { colorBrandMain: '--brand-main', colorBrandHeader: '--brand-header', colorBrandAccent: '--brand-accent' };
+        const colorKeyMap = { colorBrandMain: 'main', colorBrandHeader: 'header', colorBrandAccent: 'accent' };
+        Object.keys(colorVarMap).forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('input', (e) => {
+                    if (!this.data.meta.theme_colors) this.data.meta.theme_colors = {};
+                    this.data.meta.theme_colors[colorKeyMap[id]] = e.target.value;
+                    document.documentElement.style.setProperty(colorVarMap[id], e.target.value);
+                    this._markDirty();
                 });
             }
         });
@@ -144,6 +164,7 @@ const composer = {
             });
             mde.codemirror.on("change", () => {
                 this.data.meta.introduction = mde.value();
+                this._markDirty();
             });
             this.welcomeEditor = mde;
 
@@ -178,31 +199,114 @@ const composer = {
     },
 
     renderServerControls: function () {
-        if (!this.serverMode) return;
+        this._updateNavbar();
+    },
 
-        const container = document.querySelector(".d-flex.gap-2");
-        if (container) {
-            const existing = document.getElementById("server-controls");
-            if (existing) existing.remove();
+    _updateNavbar: function () {
+        const nameDisplay = document.getElementById('workspace-name-display');
+        const nameText = document.getElementById('workspace-name-text');
+        const dirtyIndicator = document.getElementById('workspace-dirty-indicator');
 
-            const group = document.createElement("div");
-            group.id = "server-controls";
-            group.className = "btn-group ms-2";
-            group.innerHTML = `
-                <button class="btn btn-outline-light" onclick="composer.initiateServerSave()" title="Save to Server">
-                    <i class="fas fa-cloud-upload-alt"></i> Save
-                </button>
-                <button class="btn btn-outline-light" onclick="composer.openServerLoadModal()" title="Load from Server">
-                    <i class="fas fa-cloud-download-alt"></i> Load
-                </button>
-                <button class="btn btn-outline-light dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"></button>
-                <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="#" onclick="composer.duplicateCamporee()"><i class="fas fa-copy"></i> Duplicate</a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="#" onclick="composer.newCamporee()"><i class="fas fa-file"></i> New Empty</a></li>
-                </ul>`;
-            container.appendChild(group);
+        const id = this.data.meta.camporeeId;
+        if (nameDisplay && nameText) {
+            if (id) {
+                nameText.textContent = id;
+                nameDisplay.classList.remove('d-none');
+            } else {
+                nameDisplay.classList.add('d-none');
+            }
         }
+        if (dirtyIndicator) {
+            if (this.isDirty) {
+                dirtyIndicator.classList.remove('d-none');
+            } else {
+                dirtyIndicator.classList.add('d-none');
+            }
+        }
+    },
+
+    _markDirty: function () {
+        this.isDirty = true;
+        const indicator = document.getElementById('workspace-dirty-indicator');
+        if (indicator) indicator.classList.remove('d-none');
+    },
+
+    _markClean: function () {
+        this.isDirty = false;
+        const indicator = document.getElementById('workspace-dirty-indicator');
+        if (indicator) indicator.classList.add('d-none');
+        this._clearAiUpdateSnapshot();
+    },
+
+    saveWorkspace: async function () {
+        await this.initiateServerSave();
+    },
+
+    validateNewWorkspaceName: async function (val) {
+        const statusEl = document.getElementById('newWorkspaceStatus');
+        const confirmBtn = document.getElementById('newWorkspaceConfirmBtn');
+
+        if (!val) {
+            statusEl.innerHTML = '';
+            confirmBtn.disabled = true;
+            return;
+        }
+
+        if (!/^[a-zA-Z0-9_-]+$/.test(val)) {
+            statusEl.innerHTML = '<span class="text-danger"><i class="fas fa-times-circle me-1"></i>Invalid characters. Use letters, numbers, hyphens, and underscores only.</span>';
+            confirmBtn.disabled = true;
+            return;
+        }
+
+        statusEl.innerHTML = '<span class="text-muted"><i class="fas fa-spinner fa-spin me-1"></i>Checking availability...</span>';
+        confirmBtn.disabled = true;
+
+        try {
+            const check = await this.api.getCamporeeMeta(val);
+            if (check.exists) {
+                statusEl.innerHTML = `<span class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Workspace "<strong>${val}</strong>" already exists — creating will overwrite it.</span>`;
+                confirmBtn.innerHTML = '<i class="fas fa-check"></i> Create (Overwrite)';
+            } else {
+                statusEl.innerHTML = '<span class="text-success"><i class="fas fa-check-circle me-1"></i>Workspace ID is available.</span>';
+                confirmBtn.innerHTML = '<i class="fas fa-check"></i> Create';
+            }
+            confirmBtn.disabled = false;
+        } catch (e) {
+            statusEl.innerHTML = '<span class="text-muted small"><i class="fas fa-info-circle me-1"></i>Could not verify availability — server may be offline.</span>';
+            confirmBtn.innerHTML = '<i class="fas fa-check"></i> Create';
+            confirmBtn.disabled = false;
+        }
+    },
+
+    confirmNewWorkspace: function () {
+        const idInput = document.getElementById('newWorkspaceId');
+        const newId = idInput ? idInput.value.trim() : '';
+        if (!newId) return;
+
+        const modalEl = document.getElementById('newWorkspaceModal');
+        if (modalEl) {
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
+        }
+
+        this.data.games = [];
+        this.data.meta = {
+            camporeeId: newId,
+            title: "New Camporee",
+            theme: "",
+            year: new Date().getFullYear(),
+            theme_colors: { main: '#0d6efd', header: '#34495e', accent: '#3498db' }
+        };
+        this.data.type_defaults = JSON.parse(JSON.stringify(DEFAULT_TYPE_DEFAULTS));
+        this.presets = JSON.parse(JSON.stringify(SYSTEM_PRESETS));
+        this.activeGameId = null;
+        this._markDirty();
+        this._updateNavbar();
+        this.updateMetaUI();
+        this.renderGameLists();
+        const editorContainer = document.getElementById("editor-container");
+        if (editorContainer) editorContainer.innerHTML = '<p class="text-muted">Select a game to edit.</p>';
+        this.showPane('meta-pane', document.getElementById('btn-meta'));
     },
 
     openServerLoadModal: async function () {
@@ -231,14 +335,12 @@ const composer = {
     },
 
     promptLoadWorkspace: async function () {
-        const id = prompt("Enter Workspace Name/ID to load (e.g. camp0002):");
-        if (!id) return;
-
-        await this.loadFromServer(id);
+        await this.openServerLoadModal();
     },
 
     loadFromServer: async function (id) {
-        if (!confirm(`Load workspace '${id}'? Unsaved changes will be lost.`)) return;
+        const dirtyWarning = this.isDirty ? ` (you have unsaved changes in "${this.data.meta.camporeeId || 'current workspace'}")` : '';
+        if (!confirm(`Load workspace '${id}'?${dirtyWarning} Unsaved changes will be lost.`)) return;
 
         try {
             const camporee = await this.api.getCamporee(id);
@@ -255,6 +357,8 @@ const composer = {
 
             this.ensureSystemPresets();
             this.normalizeGameSortOrders();
+            this._markClean();
+            this._updateNavbar();
             this.updateMetaUI();
             this.renderGameLists();
             this.renderPresetManager();
@@ -264,7 +368,6 @@ const composer = {
                 const loadModal = bootstrap.Modal.getInstance(loadModalEl);
                 if (loadModal) loadModal.hide();
             }
-            alert("Loaded from Server!");
         } catch (e) {
             alert("Error: " + e.message);
         }
@@ -313,7 +416,8 @@ const composer = {
             }
 
             if (result.success) {
-                alert("Saved Successfully!");
+                this._markClean();
+                this._updateNavbar();
             } else {
                 alert("Error: " + result.error);
             }
@@ -391,11 +495,14 @@ const composer = {
                 <div class="modal-dialog">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title">Load Server</h5>
+                            <h5 class="modal-title"><i class="fas fa-server me-1"></i> Load Workspace</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
-                        <div class="modal-body">
-                            <div class="list-group" id="serverLoadList"></div>
+                        <div class="modal-body p-0">
+                            <div class="list-group list-group-flush" id="serverLoadList"></div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                         </div>
                     </div>
                 </div>
@@ -481,22 +588,25 @@ const composer = {
             g.sortOrder = (i + 1) * 10;
         });
 
+        this._markDirty();
         this.renderGameLists();
     },
 
     newCamporee: function () {
-        if (confirm("Start new Camporee?")) {
-            this.data.games = [];
-            this.data.meta = {
-                camporeeId: this.generateUUID(),
-                title: "New Camporee",
-                theme: "",
-                year: new Date().getFullYear()
-            };
-            this.activeGameId = null;
-            this.updateMetaUI();
-            this.renderGameLists();
-            document.getElementById("editor-container").innerHTML = '<p class="text-muted">Select a game to edit.</p>';
+        const modalEl = document.getElementById('newWorkspaceModal');
+        if (modalEl) {
+            const idInput = document.getElementById('newWorkspaceId');
+            const statusEl = document.getElementById('newWorkspaceStatus');
+            const confirmBtn = document.getElementById('newWorkspaceConfirmBtn');
+            const dirtyAlert = document.getElementById('newWorkspaceDirtyAlert');
+            if (idInput) idInput.value = '';
+            if (statusEl) statusEl.innerHTML = '';
+            if (confirmBtn) { confirmBtn.disabled = true; confirmBtn.innerHTML = '<i class="fas fa-check"></i> Create'; }
+            if (dirtyAlert) {
+                if (this.isDirty) dirtyAlert.classList.remove('d-none');
+                else dirtyAlert.classList.add('d-none');
+            }
+            new bootstrap.Modal(modalEl).show();
         }
     },
 
@@ -510,6 +620,7 @@ const composer = {
             type: type,
             enabled: true,
             bracketMode: false,
+            scoring_mode: "sequential",
             match_label: "",
             tags: [],
             content: {
@@ -546,8 +657,18 @@ const composer = {
 
         this.data.games.push(newGame);
         this.normalizeGameSortOrders();
+        this._markDirty();
         this.renderGameLists();
         this.editGame(id);
+    },
+
+    toggleGameEnabled: function (id) {
+        const game = this.data.games.find(g => g.id === id);
+        if (!game) return;
+        game.enabled = !game.enabled;
+        this._markDirty();
+        this.renderGameLists();
+        if (this.activeGameId === id) this.editGame(id);
     },
 
     duplicateGame: function (id) {
@@ -566,6 +687,7 @@ const composer = {
 
         this.data.games.push(copy);
         this.normalizeGameSortOrders();
+        this._markDirty();
         this.renderGameLists();
         this.editGame(copy.id);
     },
@@ -577,6 +699,7 @@ const composer = {
                 this.activeGameId = null;
                 document.getElementById("editor-container").innerHTML = '<p class="text-muted">Select a game to edit.</p>';
             }
+            this._markDirty();
             this.renderGameLists();
         }
     },
@@ -612,6 +735,18 @@ const composer = {
         }
 
         this.renderContacts();
+
+        const colors = this.data.meta.theme_colors || {};
+        const colorDefaults = { main: '#0d6efd', header: '#34495e', accent: '#3498db' };
+        const colorEls = { colorBrandMain: 'main', colorBrandHeader: 'header', colorBrandAccent: 'accent' };
+        const colorVars = { main: '--brand-main', header: '--brand-header', accent: '--brand-accent' };
+        Object.entries(colorEls).forEach(([elId, key]) => {
+            const el = document.getElementById(elId);
+            if (el) {
+                el.value = colors[key] || colorDefaults[key];
+                document.documentElement.style.setProperty(colorVars[key], el.value);
+            }
+        });
     },
 
     renderContacts: function () {
@@ -766,6 +901,7 @@ const composer = {
 
             this.data.games.push(newGame);
             this.normalizeGameSortOrders();
+            this._markDirty();
             this.renderGameLists();
             this.editGame(newId);
         } catch (e) {
@@ -798,13 +934,18 @@ const composer = {
 
         this.data.games.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
 
+        const typeCounters = {};
         this.data.games.forEach(game => {
             const activeClass = game.id === this.activeGameId ? "active" : "";
-            const statusClass = game.enabled ? "text-success" : "text-secondary";
-            const isPatrol = !game.type || game.type === "patrol";
+            const type = game.type || 'patrol';
+            const isPatrol = type === 'patrol';
             const targetList = isPatrol ? patrolList : troopList;
 
             if (isPatrol) pCount++; else tCount++;
+
+            const prefixLetter = type === 'troop' ? 't' : type === 'exhibition' ? 'e' : 'p';
+            typeCounters[prefixLetter] = (typeCounters[prefixLetter] || 0) + 1;
+            const displayPrefix = `${prefixLetter}${typeCounters[prefixLetter]}`;
 
             const item = document.createElement("div");
             item.className = `list-group-item list-group-item-action d-flex align-items-center ${activeClass}`;
@@ -834,19 +975,24 @@ const composer = {
                 this.editGame(game.id);
             };
 
+            const enabledIcon = game.enabled ? "fa-toggle-on text-success" : "fa-toggle-off text-secondary";
+            const enabledTitle = game.enabled ? "Enabled — click to disable" : "Disabled — click to enable";
             item.innerHTML = `
                 <div class="me-3 text-muted" style="cursor: grab;"><i class="fas fa-grip-vertical"></i></div>
                 <div class="flex-grow-1 text-truncate">
-                    <strong>${game.game_title || game.content?.title || "Untitled Game"}</strong><br>
+                    <strong><span class="text-muted me-1">${displayPrefix}</span>${game.game_title || game.content?.title || "Untitled Game"}</strong><br>
                     <small class="text-muted">${game.content?.game_uuid || game.id}</small>
                 </div>
                 <div class="d-flex align-items-center gap-1">
-                    <i class="fas fa-circle ${statusClass} me-2" style="font-size: 0.5rem;"></i>
-                    <button class="btn btn-sm btn-outline-secondary border-0" 
+                    <button class="btn btn-sm border-0" title="${enabledTitle}"
+                            onclick="event.stopPropagation(); composer.toggleGameEnabled('${game.id}')">
+                        <i class="fas ${enabledIcon}"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary border-0"
                             onclick="event.stopPropagation(); composer.duplicateGame('${game.id}')" title="Copy">
                         <i class="fas fa-copy"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-danger border-0" 
+                    <button class="btn btn-sm btn-outline-danger border-0"
                             onclick="event.stopPropagation(); composer.deleteGame('${game.id}')" title="Delete">
                         <i class="fas fa-trash"></i>
                     </button>
@@ -865,7 +1011,9 @@ const composer = {
         if (!game) return;
 
         if (!game.type) game.type = "patrol";
+        if (!game.game_title) game.game_title = game.content?.title || "";
 
+        this.renderGameLists();
         this.showPane('editor-pane');
 
         const container = document.getElementById("editor-container");
@@ -882,7 +1030,13 @@ const composer = {
                  <button class="btn btn-info text-white btn-sm fw-bold shadow-sm" onclick="composer.openThemeModal('${id}')">
                      ✨ AI Theme
                  </button>
+                 <button class="btn btn-sm fw-bold shadow-sm" style="background:#6f42c1;color:#fff;" onclick="composer.openAiUpdateModal('${id}')">
+                     <i class="fas fa-magic me-1"></i>AI Update
+                 </button>
              </div>
+             <button class="btn btn-warning btn-sm w-100 d-none" id="aiUpdateRevertBtn" onclick="composer.undoAiUpdate()">
+                 <i class="fas fa-undo me-1"></i>Undo AI Update
+             </button>
         </div>
     </div>
 
@@ -1055,17 +1209,19 @@ const composer = {
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-3 d-flex align-items-center">
-                            <div class="form-check form-switch text-success">
-                                <input class="form-check-input" type="checkbox" id="gameEnabled" ${game.enabled ? "checked" : ""}>
-                                <label class="form-check-label fw-bold">Enabled</label>
-                            </div>
-                        </div>
-                        <div class="col-md-4 d-flex align-items-center border-start">
                              <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="gameBracketMode" 
-                                       ${game.bracketMode ? "checked" : ""} 
+                                <input class="form-check-input" type="checkbox" id="gameBracketMode"
+                                       ${game.bracketMode ? "checked" : ""}
                                        onchange="composer.toggleBracketMode('${id}', this.checked)">
                                 <label class="form-check-label fw-bold text-primary">Bracket Mode</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-center border-start" title="Two-phase scoring: judges score each patrol individually (Phase 1), then rate all submissions comparatively (Phase 2).">
+                             <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="gameScoringMode"
+                                       ${game.scoring_mode === 'submission' ? "checked" : ""}
+                                       onchange="composer.toggleScoringMode('${id}', this.checked)">
+                                <label class="form-check-label fw-bold text-warning">Submission Mode</label>
                             </div>
                         </div>
                         <div id="matchLabelContainer" class="col-md-5 border-start ${game.bracketMode ? "" : "d-none"}">
@@ -1099,7 +1255,9 @@ const composer = {
                     </div>
                 </div>
                 <div class="card-body bg-light">
+                    <div id="common-prefix-preview" class="mb-2"></div>
                     <div id="scoring-editor" class="d-flex flex-column gap-3"></div>
+                    <div id="common-suffix-preview" class="mt-2"></div>
                     <div class="mt-4 text-center">
                          <div class="btn-group shadow-sm">
                             <button class="btn btn-primary" onclick="composer.addGenericField('${id}', 'game')">
@@ -1246,12 +1404,13 @@ const composer = {
             game.scoring_model.method = e.target.value;
         };
 
-        document.getElementById("gameEnabled").onchange = (e) => {
-            game.enabled = e.target.checked;
-            this.renderGameLists();
-        };
+        const scoringModeEl = document.getElementById("gameScoringMode");
+        if (scoringModeEl) {
+            scoringModeEl.checked = game.scoring_mode === 'submission';
+        }
 
         this.renderScoringInputs(game.scoring_model.inputs, game.id, "game");
+        this.renderCommonFieldsPreview(game);
         this.renderListEditor('rules', game.content.rules);
         this.renderVariables(game);
 
@@ -1275,6 +1434,12 @@ const composer = {
                 }
             });
         });
+
+        // Restore undo button if an AI update snapshot exists for this game
+        const aiRevertBtn = document.getElementById('aiUpdateRevertBtn');
+        if (aiRevertBtn && this.aiUpdateSnapshot && this.aiUpdateSnapshot._gameId === id) {
+            aiRevertBtn.classList.remove('d-none');
+        }
     },
 
     renderListEditor: function (type, items) {
@@ -1310,6 +1475,10 @@ const composer = {
         if (!this.activeGameId) return;
         const game = this.data.games.find(g => g.id === this.activeGameId);
         if (!game) return;
+
+        if (this.aiUpdateSnapshot && this.aiUpdateSnapshot._gameId === this.activeGameId) {
+            this._clearAiUpdateSnapshot();
+        }
 
         if (game.content[type]) {
             game.content[type][index] = value;
@@ -1402,10 +1571,130 @@ const composer = {
         this.renderVariables(game);
     },
 
+    renderCommonFieldsPreview: function (game) {
+        const prefixEl = document.getElementById('common-prefix-preview');
+        const suffixEl = document.getElementById('common-suffix-preview');
+        if (!prefixEl || !suffixEl) return;
+
+        const typeDefaults = this.data.type_defaults || {};
+        const defaults = typeDefaults[game.type];
+
+        if (!defaults || game.type === 'exhibition') {
+            prefixEl.innerHTML = '';
+            suffixEl.innerHTML = '';
+            return;
+        }
+
+        const presetsById = Object.fromEntries((this.presets || []).map(p => [p.id, p]));
+
+        const renderChips = (ids) => {
+            if (!ids || ids.length === 0) return '<em class="text-muted small">None</em>';
+            return ids.map(id => {
+                const p = presetsById[id];
+                if (!p) return `<span class="badge bg-secondary me-1">${id}</span>`;
+                const badgeClass = p.kind === 'penalty' ? 'bg-danger' : p.audience === 'admin' ? 'bg-warning text-dark' : 'bg-success';
+                return `<span class="badge ${badgeClass} me-1" title="${p.kind} | ${p.audience}">${p.label}</span>`;
+            }).join('');
+        };
+
+        const prefixIds = defaults.prefix || [];
+        const suffixIds = defaults.suffix || [];
+
+        const editBtn = `<button class="btn btn-outline-secondary btn-sm ms-2 py-0 px-2" style="font-size:0.7rem;" onclick="composer.openCommonFieldsModal('${game.type}')"><i class="fas fa-pencil-alt"></i> Edit</button>`;
+
+        prefixEl.innerHTML = `
+            <div class="border rounded px-2 py-1 bg-white mb-1" style="border-style: dashed !important; opacity: 0.85;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted fw-bold"><i class="fas fa-arrow-down fa-fw"></i> Injected Prefix (${game.type}):</small>
+                    ${editBtn}
+                </div>
+                <div class="mt-1">${prefixIds.length ? renderChips(prefixIds) : '<em class="text-muted small">None</em>'}</div>
+            </div>`;
+
+        suffixEl.innerHTML = `
+            <div class="border rounded px-2 py-1 bg-white mt-1" style="border-style: dashed !important; opacity: 0.85;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted fw-bold"><i class="fas fa-arrow-up fa-fw"></i> Injected Suffix (${game.type}):</small>
+                    ${editBtn}
+                </div>
+                <div class="mt-1">${suffixIds.length ? renderChips(suffixIds) : '<em class="text-muted small">None</em>'}</div>
+            </div>`;
+    },
+
+    resetThemeColors: function () {
+        const defaults = { main: '#0d6efd', header: '#34495e', accent: '#3498db' };
+        this.data.meta.theme_colors = { ...defaults };
+        document.getElementById('colorBrandMain').value = defaults.main;
+        document.getElementById('colorBrandHeader').value = defaults.header;
+        document.getElementById('colorBrandAccent').value = defaults.accent;
+        document.documentElement.style.setProperty('--brand-main', defaults.main);
+        document.documentElement.style.setProperty('--brand-header', defaults.header);
+        document.documentElement.style.setProperty('--brand-accent', defaults.accent);
+    },
+
+    openCommonFieldsModal: function (gameType) {
+        const typeDefaults = this.data.type_defaults || {};
+        const presetsById = Object.fromEntries((this.presets || []).map(p => [p.id, p]));
+        // Only show presets that are not bracket-specific
+        const eligiblePresets = (this.presets || []).filter(p => p.id !== 'bracket_result');
+
+        const renderSection = (type, position, label) => {
+            const currentIds = (typeDefaults[type]?.[position] || []);
+            const rows = eligiblePresets.map(p => {
+                const checked = currentIds.includes(p.id) ? 'checked' : '';
+                const badgeClass = p.kind === 'penalty' ? 'bg-danger' : p.audience === 'admin' ? 'bg-warning text-dark' : 'bg-success';
+                return `<div class="form-check py-1 border-bottom d-flex align-items-center gap-2">
+                    <input class="form-check-input cf-check" type="checkbox" id="cf_${type}_${position}_${p.id}"
+                           data-type="${type}" data-position="${position}" data-preset="${p.id}" ${checked}>
+                    <label class="form-check-label flex-grow-1 small" for="cf_${type}_${position}_${p.id}">
+                        <span class="badge ${badgeClass} me-1" style="font-size:0.65rem;">${p.kind}</span>
+                        ${p.label}
+                    </label>
+                    <span class="text-muted" style="font-size:0.7rem;">${p.type}</span>
+                </div>`;
+            }).join('');
+            return `<div class="mb-4">
+                <h6 class="fw-bold text-muted text-uppercase small mb-2">${label}</h6>
+                <div class="border rounded p-2 bg-light">${rows}</div>
+            </div>`;
+        };
+
+        document.getElementById('common-fields-editor-body').innerHTML =
+            renderSection('patrol', 'prefix', '🔵 Patrol — Prefix (before game fields)') +
+            renderSection('patrol', 'suffix', '🔵 Patrol — Suffix (after game fields)') +
+            renderSection('troop', 'prefix', '🟢 Troop — Prefix (before game fields)') +
+            renderSection('troop', 'suffix', '🟢 Troop — Suffix (after game fields)');
+
+        window.bootstrap.Modal.getOrCreateInstance(document.getElementById('commonFieldsModal')).show();
+    },
+
+    saveCommonFields: function () {
+        const typeDefaults = { patrol: { prefix: [], suffix: [] }, troop: { prefix: [], suffix: [] } };
+
+        document.querySelectorAll('.cf-check:checked').forEach(el => {
+            const { type, position, preset } = el.dataset;
+            if (typeDefaults[type] && typeDefaults[type][position]) {
+                typeDefaults[type][position].push(preset);
+            }
+        });
+
+        this.data.type_defaults = typeDefaults;
+        this._markDirty();
+        window.bootstrap.Modal.getOrCreateInstance(document.getElementById('commonFieldsModal')).hide();
+
+        // Re-render preview for current game
+        const game = this.data.games.find(g => g.id === this.activeGameId);
+        if (game) this.renderCommonFieldsPreview(game);
+    },
+
     updateGameField: function (field, value) {
         if (!this.activeGameId) return;
         const game = this.data.games.find(g => g.id === this.activeGameId);
         if (!game) return;
+
+        if (this.aiUpdateSnapshot && this.aiUpdateSnapshot._gameId === this.activeGameId) {
+            this._clearAiUpdateSnapshot();
+        }
 
         if (field === "id") {
             game.id = value;
@@ -1425,6 +1714,7 @@ const composer = {
             game.content[field] = value;
         }
 
+        this._markDirty();
         if (field === "game_title" || field === "title" || field === "id") {
             this.renderGameLists();
         }
@@ -1454,6 +1744,16 @@ const composer = {
                 }
             }
         }
+        this._markDirty();
+        this.renderScoringInputs(game.scoring_model.inputs, game.id, "game");
+    },
+
+    toggleScoringMode: function (gameId, isSubmission) {
+        const game = this.data.games.find(g => g.id === gameId);
+        if (!game) return;
+        game.scoring_mode = isSubmission ? 'submission' : 'sequential';
+        this._markDirty();
+        // Re-render fields so the Phase selector appears/disappears
         this.renderScoringInputs(game.scoring_model.inputs, game.id, "game");
     },
 
@@ -1480,6 +1780,10 @@ const composer = {
         const containerId = contextType === "preset_manager" ? "preset-editor-list" : "scoring-editor";
         const container = document.getElementById(containerId);
         if (!container) return;
+
+        // Determine if submission mode is active for this game
+        const game = contextType === "game" ? this.data.games.find(g => g.id === contextId) : null;
+        const isSubmissionMode = game?.scoring_mode === 'submission';
 
         container.innerHTML = "";
 
@@ -1559,12 +1863,21 @@ const composer = {
                     </div>
                     <div class="d-flex flex-column align-items-end gap-3 mt-4" style="min-width: 110px;">
                       <div class="form-check form-switch text-end">
-                        <input class="form-check-input float-end ms-2" type="checkbox" 
-                               id="visSwitch${index}" 
-                               ${comp.audience === "admin" ? "checked" : ""} 
+                        <input class="form-check-input float-end ms-2" type="checkbox"
+                               id="visSwitch${index}"
+                               ${comp.audience === "admin" ? "checked" : ""}
                                onchange="composer.updateComponent('${contextId}', ${index}, 'audience', this.checked ? 'admin' : 'judge', '${contextType}')">
                         <label class="form-check-label small fw-bold text-muted d-block me-4">Official Only</label>
                       </div>
+                      ${isSubmissionMode ? `
+                      <div class="text-end">
+                        <label class="small fw-bold text-muted d-block">Phase</label>
+                        <select class="form-select form-select-sm" style="width:90px;"
+                                onchange="composer.updateComponent('${contextId}', ${index}, 'phase', parseInt(this.value), '${contextType}')">
+                          <option value="1" ${(comp.phase || 1) === 1 ? 'selected' : ''}>1 – Per Patrol</option>
+                          <option value="2" ${comp.phase === 2 ? 'selected' : ''}>2 – Comparative</option>
+                        </select>
+                      </div>` : ''}
                       <div class="btn-group btn-group-sm">
                         <button class="btn btn-outline-secondary" onclick="composer.duplicateComponent('${contextId}', ${index}, '${contextType}')">
                             <i class="fas fa-copy"></i>
@@ -1624,6 +1937,7 @@ const composer = {
             config: { min: 0, max: 10, placeholder: "" }
         });
 
+        this._markDirty();
         this.renderScoringInputs(list, contextId, contextType);
     },
 
@@ -1644,6 +1958,7 @@ const composer = {
             comp[field] = value;
         }
 
+        this._markDirty();
         if (field === "type") {
             this.renderScoringInputs(list, contextId, contextType);
         }
@@ -1666,6 +1981,7 @@ const composer = {
         } else {
             list[index].config[key] = value;
         }
+        this._markDirty();
     },
 
     handleKindChange: function (contextId, index, value, contextType = "game") {
@@ -1678,6 +1994,7 @@ const composer = {
             list = game.scoring_model.inputs;
         }
         list[index].kind = value;
+        this._markDirty();
         this.renderScoringInputs(list, contextId, contextType);
     },
 
@@ -1694,6 +2011,7 @@ const composer = {
         }
 
         list.splice(index, 1);
+        this._markDirty();
         this.renderScoringInputs(list, contextId, contextType);
     },
 
@@ -1712,6 +2030,7 @@ const composer = {
         copy.label += " (Copy)";
         list.splice(index + 1, 0, copy);
 
+        this._markDirty();
         this.renderScoringInputs(list, contextId, contextType);
     },
 
@@ -1727,6 +2046,7 @@ const composer = {
 
         const [moved] = list.splice(srcIndex, 1);
         list.splice(destIndex, 0, moved);
+        this._markDirty();
         this.renderScoringInputs(list, contextId, contextType);
     },
 
@@ -1754,6 +2074,7 @@ const composer = {
             if (!game.scoring_model.inputs) game.scoring_model.inputs = [];
             game.scoring_model.inputs.push(copy);
 
+            this._markDirty();
             this.renderScoringInputs(game.scoring_model.inputs, game.id, "game");
         }
         bootstrap.Modal.getInstance(document.getElementById("presetModal")).hide();
@@ -1764,7 +2085,39 @@ const composer = {
         if (!game) return;
 
         const normalized = normalizeGameDefinition(game);
-        const html = normalized.fields.map(f => generateFieldHTML(f)).join("");
+
+        // Inject common prefix/suffix fields from presets, mirroring Collator runtime behavior
+        const typeDefaults = this.data.type_defaults || {};
+        const defaults = typeDefaults[normalized.type] || {};
+        const presetsById = Object.fromEntries((this.presets || []).map(p => [p.id, p]));
+        const variables = normalized.variables || {};
+
+        function applyTemplate(str) {
+            if (!str) return str;
+            return str.replace(/\{\{(\w+)\}\}/g, (_, key) => variables[key] || '___');
+        }
+
+        function resolvePreset(presetId) {
+            const p = presetsById[presetId];
+            if (!p) return null;
+            const { config = {}, position, sortOrder, ...rest } = p;
+            return {
+                ...rest,
+                label: applyTemplate(p.label),
+                placeholder: applyTemplate(config.placeholder),
+                ...(config.min !== undefined ? { min: config.min } : {}),
+                ...(config.max !== undefined ? { max: config.max } : {}),
+                ...(config.options ? { options: config.options } : {}),
+                ...(config.defaultValue !== undefined ? { defaultValue: config.defaultValue } : {})
+            };
+        }
+
+        const prefixFields = (defaults.prefix || []).map(resolvePreset).filter(Boolean);
+        const suffixFields = (defaults.suffix || []).map(resolvePreset).filter(Boolean);
+        const allFields = [...prefixFields, ...normalized.fields, ...suffixFields]
+            .filter(f => f.audience !== 'admin');
+
+        const html = allFields.map(f => generateFieldHTML(f)).join("");
 
         const modalBody = document.getElementById("previewModalBody");
         const modalTitle = document.getElementById("previewModalTitle");
@@ -1823,6 +2176,80 @@ const composer = {
         } catch (e) {
             console.error(e);
             alert("Error rendering preview: " + e.message);
+        }
+    },
+
+    printAllGuides: async function (type) {
+        const games = this.data.games
+            .filter(g => (g.type || 'patrol') === type)
+            .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+
+        if (!games.length) { alert(`No ${type} games found.`); return; }
+
+        try {
+            if (!this._gameGuideTemplate) {
+                const res = await fetch('/templates/gameguide.md');
+                if (!res.ok) throw new Error("Could not fetch gameguide template");
+                this._gameGuideTemplate = await res.text();
+            }
+
+            const template = Handlebars.compile(this._gameGuideTemplate);
+            const workspaceId = this.data.meta.camporeeId || 'camp0002';
+
+            const prefixLetter = type === 'troop' ? 't' : type === 'exhibition' ? 'e' : 'p';
+            const sections = games.map((game, i) => {
+                const context = { ...game, displayPrefix: `${prefixLetter}${i + 1}` };
+                const markdown = template(context);
+                return marked.parse(markdown, {
+                    baseUrl: `/api/camporee/${workspaceId}/games/`
+                });
+            });
+
+            // Wrap each section so it always starts on an odd (right-hand) page.
+            // Insert a blank page after any section that ends on an odd page.
+            const sectionDivs = sections.map((s, i) =>
+                `<div class="guide-section">${s}</div><div class="page-fill"></div>`
+            ).join('\n');
+
+            const win = window.open('', '_blank');
+            win.document.write(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>${type === 'patrol' ? 'Patrol Game Guides' : 'Troop Event Guides'} — ${this.data.meta.title || 'Camporee'}</title>
+<style>
+  @page { size: portrait; margin: 0.75in; }
+  body { font-family: Georgia, serif; font-size: 11pt; color: #111; }
+  .guide-section {
+    page-break-before: right;
+    break-before: right;
+  }
+  .guide-section:first-child {
+    page-break-before: auto;
+    break-before: auto;
+  }
+  .page-fill {
+    page-break-after: always;
+    break-after: always;
+    height: 0;
+  }
+  h1 { font-size: 18pt; margin-bottom: 4px; }
+  h2 { font-size: 14pt; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
+  h3 { font-size: 12pt; }
+  ul, ol { margin-left: 20px; }
+  p { margin: 6px 0; }
+</style>
+</head>
+<body>
+${sectionDivs}
+</body>
+</html>`);
+            win.document.close();
+            win.focus();
+            win.onload = () => win.print();
+        } catch (e) {
+            console.error(e);
+            alert("Error generating guides: " + e.message);
         }
     },
 
@@ -2016,11 +2443,12 @@ const composer = {
         this.pendingThemedDraft = null;
         this.activeThemeGameId = null;
 
+        this._markDirty();
+
         // Rerender editor
         this.editGame(id);
 
         window.bootstrap.Modal.getInstance(document.getElementById('themeModal')).hide();
-        setTimeout(() => alert("Theme committed to active workspace cartridge!"), 300);
     },
 
     revertTheme: function () {
@@ -2054,6 +2482,131 @@ const composer = {
         } else {
             alert("This game does not have an original generic snapshot to revert to.");
         }
+    },
+
+    // --- AI UPDATE ---
+
+    _clearAiUpdateSnapshot: function () {
+        this.aiUpdateSnapshot = null;
+        const btn = document.getElementById('aiUpdateRevertBtn');
+        if (btn) btn.classList.add('d-none');
+    },
+
+    openAiUpdateModal: function (id) {
+        if (!id) id = this.activeGameId;
+        if (!this.data.games.find(g => g.id === id)) return;
+
+        document.getElementById('aiUpdatePrompt').value = '';
+        document.getElementById('aiUpdateIncludeContent').checked = true;
+        document.getElementById('aiUpdateModel').value = 'gemini-2.5-flash';
+        document.getElementById('aiUpdateSubmitBtn').disabled = false;
+        document.getElementById('aiUpdateSubmitBtn').innerHTML = '<i class="fas fa-bolt me-1"></i>Submit';
+        document.getElementById('aiUpdateStatus').textContent = '';
+        document.getElementById('aiUpdateStatus').className = 'mt-3 small text-center';
+
+        window.bootstrap.Modal.getOrCreateInstance(document.getElementById('aiUpdateModal')).show();
+    },
+
+    submitAiUpdate: async function () {
+        const id = this.activeGameId;
+        const game = this.data.games.find(g => g.id === id);
+        if (!game) return;
+
+        const prompt = document.getElementById('aiUpdatePrompt').value.trim();
+        const statusEl = document.getElementById('aiUpdateStatus');
+        if (!prompt) {
+            statusEl.textContent = 'Please enter a prompt.';
+            statusEl.className = 'mt-3 small text-center text-danger';
+            return;
+        }
+
+        const includeContent = document.getElementById('aiUpdateIncludeContent').checked;
+        const model = document.getElementById('aiUpdateModel').value;
+        const currentContent = {
+            game_title: game.game_title || '',
+            challenge: game.content.challenge || '',
+            story: game.content.story || '',
+            description: game.content.description || '',
+            rules: game.content.rules || [],
+            time_and_scoring: game.content.time_and_scoring || '',
+            scoring_notes: game.content.scoring_notes || '',
+            staffing: game.content.staffing || '',
+            setup: game.content.setup || '',
+            reset: game.content.reset || '',
+            supplies_text: game.content.supplies_text || '',
+        };
+
+        // Save snapshot for undo before making any changes
+        this.aiUpdateSnapshot = { ...JSON.parse(JSON.stringify(currentContent)), _gameId: id };
+
+        const submitBtn = document.getElementById('aiUpdateSubmitBtn');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Working…';
+        statusEl.textContent = 'Sending to AI…';
+        statusEl.className = 'mt-3 small text-center text-muted';
+
+        try {
+            const result = await this.api.updateGame({
+                prompt,
+                model,
+                includeContent,
+                currentContent: includeContent ? currentContent : null
+            });
+
+            this.applyAiUpdate(id, result);
+            window.bootstrap.Modal.getInstance(document.getElementById('aiUpdateModal')).hide();
+
+        } catch (err) {
+            statusEl.textContent = err.message || 'AI update failed. Check server logs.';
+            statusEl.className = 'mt-3 small text-center text-danger';
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-bolt me-1"></i>Submit';
+            this.aiUpdateSnapshot = null;
+        }
+    },
+
+    applyAiUpdate: function (id, data) {
+        const game = this.data.games.find(g => g.id === id);
+        if (!game) return;
+
+        if (data.game_title !== undefined) {
+            game.game_title = data.game_title;
+            if (game.content) game.content.title = data.game_title;
+        }
+
+        const contentFields = ['challenge', 'story', 'description', 'time_and_scoring',
+            'scoring_notes', 'staffing', 'setup', 'reset', 'supplies_text'];
+        contentFields.forEach(key => {
+            if (data[key] !== undefined) game.content[key] = data[key];
+        });
+
+        if (Array.isArray(data.rules)) game.content.rules = data.rules;
+
+        this._markDirty();
+        this.editGame(id);
+        // editGame re-renders the header, so show undo button after the DOM is rebuilt
+        const revertBtn = document.getElementById('aiUpdateRevertBtn');
+        if (revertBtn) revertBtn.classList.remove('d-none');
+    },
+
+    undoAiUpdate: function () {
+        if (!this.aiUpdateSnapshot) return;
+        const id = this.aiUpdateSnapshot._gameId;
+        const game = this.data.games.find(g => g.id === id);
+        if (!game) return;
+
+        const snap = this.aiUpdateSnapshot;
+        game.game_title = snap.game_title;
+        if (game.content) game.content.title = snap.game_title;
+
+        ['challenge', 'story', 'description', 'rules', 'time_and_scoring',
+            'scoring_notes', 'staffing', 'setup', 'reset', 'supplies_text'].forEach(key => {
+            game.content[key] = snap[key];
+        });
+
+        this._clearAiUpdateSnapshot();
+        this._markDirty();
+        this.editGame(id);
     },
 
     exportCamporee: async function () {
@@ -2203,12 +2756,13 @@ const composer = {
 
                 this.ensureSystemPresets();
                 this.normalizeGameSortOrders();
+                this._markClean();
+                this._updateNavbar();
                 this.updateMetaUI();
                 this.renderGameLists();
 
                 this.activeGameId = null;
                 document.getElementById("editor-container").innerHTML = '<p class="text-muted">Select a game to edit.</p>';
-                alert("Camporee Loaded Successfully!");
             });
         };
         reader.readAsArrayBuffer(file);
@@ -2236,9 +2790,9 @@ const composer = {
                     game.content.title += " (Imported)";
                     this.data.games.push(game);
                     this.normalizeGameSortOrders();
+                    this._markDirty();
                     this.renderGameLists();
                     this.editGame(game.id);
-                    alert("Game Imported!");
                 } catch (err) {
                     alert("Invalid JSON");
                 }
@@ -2287,6 +2841,7 @@ const composer = {
         });
 
         this.normalizeGameSortOrders();
+        this._markDirty();
         this.renderGameLists();
         bootstrap.Modal.getInstance(document.getElementById("importModal")).hide();
     }

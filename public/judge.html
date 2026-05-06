@@ -88,6 +88,22 @@
             <button id="btn-submit" class="btn btn-large btn-secondary">Submit Score</button>
         </div>
 
+        <div id="view-submission-phase2" class="hidden d-flex flex-column" style="height: calc(100vh - 60px);">
+            <div class="flex-shrink-0 pb-2 pt-1">
+                <h2 id="phase2-title" class="mb-0">Phase 2: Judge Submissions</h2>
+                <p class="text-muted small mb-0">Score all submissions comparatively below.</p>
+            </div>
+            <div class="d-flex align-items-center bg-light border-bottom border-top py-2 fw-bold text-muted small text-uppercase">
+                <div style="width: 45%;" class="ps-2">Patrol</div>
+                <div id="phase2-field-headers" class="d-flex flex-grow-1 gap-1"></div>
+            </div>
+            <div id="phase2-scoring-rows" class="flex-grow-1 overflow-auto bg-white"></div>
+            <div class="flex-shrink-0 border-top pt-3 pb-2 bg-white mt-auto d-flex gap-2 px-2">
+                <button class="btn btn-outline-secondary flex-grow-1 py-3 fw-bold" onclick="app.navigate('entity')">Back</button>
+                <button class="btn btn-success flex-grow-1 py-3 fw-bold" onclick="app.submitAllPhase2()">SUBMIT ALL SCORES</button>
+            </div>
+        </div>
+
         <div id="view-bracket-lobby" class="hidden d-flex flex-column" style="height: calc(100vh - 60px);">
 
             <div class="flex-shrink-0 bg-white border-bottom pb-3 pt-2 px-1 mb-0 sticky-top" style="z-index: 10;">
@@ -195,7 +211,19 @@
         </div>
     </div>
 
-    <script type="module" src="js/judge.js?v=4"></script>
+    <div id="game-closed-modal" class="judge-modal hidden" style="z-index: 5000;">
+        <div class="card text-center border-0 shadow-lg" style="max-width: 360px; border-left: none !important; padding: 2rem;">
+            <div style="font-size: 4rem; margin-bottom: 0.5rem;">✅</div>
+            <h2 class="text-success fw-bold mb-1">Scores Received!</h2>
+            <p id="closed-game-title" class="fw-bold mb-1" style="font-size:1.1rem;"></p>
+            <p id="closed-score-count" class="text-muted mb-0"></p>
+            <p id="closed-judge-name" class="text-muted small mb-3"></p>
+            <p class="text-secondary small border-top pt-3">You may return to Camporee HQ.</p>
+            <button class="btn btn-success w-100 fw-bold mt-1" onclick="app.dismissGameClosed()">Done</button>
+        </div>
+    </div>
+
+    <script type="module" src="js/judge.js?v=14"></script>
 
 </body>
 </html>
