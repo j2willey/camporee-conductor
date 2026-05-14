@@ -4,98 +4,248 @@
 
 This document describes the structure of the **Camporee Config Zip** (`CamporeeConfig.zip`). This archive acts as the bridge between the **Camporee Composer** (Design Tool) and the **Camporee Collator** (Runtime Engine).
 
+---
+
 ## 1. Archive Structure
 
 The Zip file must contain the following flat structure (no sub-folders except `games/`):
 
-* **`camporee.json`**: The root manifest containing event metadata and the master playlist.
-* **`presets.json`**: A library of reusable "Atomic" scoring fields (e.g., "Patrol Flag", "Yell").
+* **`camporee.json`**: The root manifest containing event metadata, the master playlist, and common field injection configuration.
+* **`presets.json`**: A library of reusable common scoring fields (e.g., "Patrol Flag", "Scout Spirit"). Defines the shared fields injected at runtime — not baked into game files.
 * **`games/`**: A directory containing the individual game definitions.
-    * `games/{gameId}.json`: The self-contained definition for a single station.
+    * `games/{gameId}.json`: The game-specific definition for a single station (common fields are NOT stored here).
 
 ---
 
 ## 2. The Manifest (`camporee.json`)
 
-This file is the entry point. It tells the Conductor which games to load and in what order.
+This file is the entry point. It tells the Collator which games to load, in what order, and how to inject common fields per game type.
 
-    {
-      "schemaVersion": "2.9",
-      "meta": {
-        "camporeeId": "550e8400-e29b-41d4-a716-446655440000",
-        "title": "Silicon Valley Camporee 2026",
-        "theme": "CyberScouts",
-        "year": 2026,
-        "director": "Jim Willey"
-      },
-      "playlist": [
-        {
-          "gameId": "game_170830123",
-          "enabled": true,
-          "order": 1
-        }
-      ]
+```json
+{
+  "schemaVersion": "2.9",
+  "meta": {
+    "camporeeId": "550e8400-e29b-41d4-a716-446655440000",
+    "title": "Coyote Creek Camporee 2026",
+    "theme": "The Circus",
+    "year": 2026,
+    "director": "Jim Willey",
+    "theme_colors": {
+      "main": "#C62828",
+      "header": "#1565C0",
+      "accent": "#F9A825"
+    },
+    "awards_config": {
+      "line1": "Coyote Creek District Camporee 2026",
+      "line2": "The Circus",
+      "sync": false,
+      "styles": {
+        "1": { "fontSize": "24px", "fontWeight": "bold" },
+        "2": { "fontSize": "18px" }
+      }
     }
+  },
+  "playlist": [
+    { "gameId": "the-high-wire-fire-act", "order": 1 }
+  ],
+  "type_defaults": {
+    "patrol": {
+      "prefix": ["p_flag", "p_yell", "p_spirit", "ten_ess"],
+      "suffix": ["unscout", "off_notes", "off_score", "final_rank", "overall_points"]
+    },
+    "troop": {
+      "prefix": [],
+      "suffix": ["off_score", "final_rank", "overall_points"]
+    }
+  }
+}
+```
 
 ### Key Attributes
+
 * **`meta.camporeeId`**: (UUID) The unique link between the Design Server and the Runtime Server.
+* **`meta.theme_colors`**: CSS variable overrides applied to the Judge PWA and Collator dashboard UI. Keys map to `--theme-main`, `--theme-header`, `--theme-accent`.
+* **`meta.awards_config`**: Configuration for the awards certificate renderer (text lines and per-placement styles).
 * **`playlist`**: Defines the runtime sequence.
     * **`gameId`**: Must match a filename in the `games/` folder (minus extension).
-    * **`order`**: The integer sort order (1, 2, 3...). The Runtime multiplies this by 10 for spacing.
+    * **`order`**: The integer sort order (1, 2, 3...).
+* **`type_defaults`**: Maps each game type to an ordered list of preset IDs. The Collator's `injectCommonFields()` function reads this at serve time to prepend prefix fields and append suffix fields around the game's own scoring inputs. `exhibition` games are not listed here and receive no injected fields.
 
 ---
 
-## 3. Game Definitions (`games/*.json`)
+## 3. The Presets File (`presets.json`)
 
-Each file represents a single station. Unlike the legacy format, these are **self-contained** (no "includes" or "appends"). The Composer "bakes" all shared presets directly into the file definition.
+This file defines common reusable scoring fields **once**. Game files do NOT store copies of these fields. Instead, the Collator injects them at runtime based on `type_defaults`.
 
+Each preset entry supports template syntax: `{{variable_name}}` in `label` or `placeholder` strings is substituted at serve time from the game's `variables` object.
+
+```json
+{
+  "presets": [
     {
-      "id": "game_170830123",
-      "type": "patrol",
+      "id": "ten_ess",
+      "label": "10 Essentials: {{ten_essentials}}",
+      "type": "number",
+      "kind": "points",
+      "weight": 1,
+      "sortOrder": 40,
+      "position": "prefix",
+      "config": { "min": 0, "max": 5 }
+    },
+    {
+      "id": "p_flag",
+      "label": "Patrol Flag",
+      "type": "checkbox",
+      "kind": "points",
+      "weight": 1,
       "sortOrder": 10,
-      "schemaVersion": "2.9",
-      "content": {
-        "title": "Knot Tying Relay",
-        "story": "You are stranded on a desert island...",
-        "instructions": "Tie 3 knots in under 2 minutes."
+      "position": "prefix",
+      "config": {}
+    },
+    {
+      "id": "off_score",
+      "label": "Official Score",
+      "type": "number",
+      "kind": "points",
+      "weight": 1,
+      "sortOrder": 600,
+      "position": "suffix",
+      "audience": "admin",
+      "config": { "min": 0 }
+    }
+  ]
+}
+```
+
+### Key Preset Attributes
+
+* **`position`**: `"prefix"` — injected before game-specific fields. `"suffix"` — injected after game-specific fields.
+* **`sortOrder`**: Used to order fields within the prefix or suffix group.
+* **`audience`**: `"judge"` (default, visible to field judges) or `"admin"` (Collator dashboard only, e.g., Official Score, Final Ranking).
+
+---
+
+## 4. Game Definitions (`games/*.json`)
+
+Each file represents a single station. Game files contain **only game-specific scoring inputs**. Common fields (Patrol Flag, Scout Spirit, 10 Essentials, Official Score, etc.) are **not stored here** — they are injected by the Collator at runtime from `presets.json` based on `type_defaults`.
+
+### 4a. Composer Storage Format
+
+This is the format written to disk by the Composer and stored inside the `CamporeeConfig.zip`.
+
+```json
+{
+  "id": "the-high-wire-fire-act",
+  "type": "patrol",
+  "sortOrder": 10,
+  "schemaVersion": "2.9",
+  "content": {
+    "title": "The High-Wire Fire Act",
+    "story": "The circus needs fire...",
+    "challenge": "Light a fire and keep it burning.",
+    "description": "Each patrol must...",
+    "rules": ["No lighter fluid.", "Fire must be self-sustaining for 60 seconds."],
+    "time_and_scoring": "15 minutes. Points for speed and technique.",
+    "setup": "Clear a 10-foot circle.",
+    "reset": "Douse fire and clear ash.",
+    "staffing": "2 judges minimum.",
+    "supplies": "Tinder bundle, kindling, wood.",
+    "notes": "Have water bucket on standby."
+  },
+  "variables": {
+    "ten_essentials": "matches"
+  },
+  "scoring_model": {
+    "method": "points_desc",
+    "inputs": [
+      {
+        "id": "fire_lit",
+        "label": "Fire Lit",
+        "type": "checkbox",
+        "kind": "points",
+        "weight": 50,
+        "sortOrder": 100,
+        "config": {}
       },
-      "scoring": {
-        "method": "points_desc",
-        "components": [
-          ... // Array of Scoring Component Objects
-        ]
+      {
+        "id": "burn_time",
+        "label": "Burn Time (seconds)",
+        "type": "number",
+        "kind": "points",
+        "weight": 1,
+        "sortOrder": 110,
+        "config": { "min": 0, "max": 60 }
       }
-    }
+    ]
+  }
+}
+```
 
-### Key Attributes
-* **`type`**: The competition track.
-    * `"patrol"`: Standard Patrol games.
-    * **`"troop"`**: Troop-wide events (e.g., Gateway construction).
-    * `"exhibition"`: Non-scored or individual activities.
-* **`scoring.method`**: Win condition.
-    * `"points_desc"`: Highest Score Wins.
-    * `"timed_asc"`: Lowest Time Wins.
+### 4b. Collator Runtime Format
+
+The Collator's `/games.json` endpoint serves a transformed version. `normalizeGameDefinition()` in `public/js/core/schema.js` performs this translation:
+
+* `scoring_model.inputs[]` is renamed to `fields[]`
+* Each field's `config` sub-object is **spread to root** — `min`, `max`, `placeholder`, `options`, `defaultValue` appear at the top level of each field object alongside `id`, `label`, `type`, etc.
+* Common fields are **injected** around the game-specific fields: `[prefix presets] → [game-specific fields] → [suffix presets]`
+* `{{variable_name}}` template strings in preset labels/placeholders are substituted from `game.variables`
+
+Example of a field in Collator format (after normalization and injection):
+
+```json
+{
+  "id": "burn_time",
+  "label": "Burn Time (seconds)",
+  "type": "number",
+  "kind": "points",
+  "weight": 1,
+  "sortOrder": 110,
+  "min": 0,
+  "max": 60
+}
+```
+
+### 4c. Key Game Attributes
+
+* **`variables`**: Optional `{ key: value }` map. Values are substituted into `{{variable_name}}` placeholders in injected preset labels. For example, `"ten_essentials": "matches"` causes the "10 Essentials: {{ten_essentials}}" preset label to render as "10 Essentials: matches".
+* **`scoring_model.method`**: Win condition.
+    * `"points_desc"`: Highest score wins.
+    * `"points_asc"`: Lowest score wins.
+    * `"timed_asc"`: Lowest time wins.
+    * `"timed_desc"`: Highest time wins.
 
 ---
 
-## 4. Scoring Component Object (The Field)
+## 5. Game Types
 
-This object defines a single input widget on the Judge's tablet. It is used in both `games/*.json` and `presets.json`.
+| Type | Common Fields Injected | In-App Scoring | Description |
+| :--- | :--- | :--- | :--- |
+| `patrol` | Full prefix + suffix (flag, yell, spirit, 10 essentials, etc.) | Yes | Standard patrol competition station. The most common type. |
+| `troop` | Suffix only (admin fields: Official Score, Final Ranking, Overall Points) | Yes | Troop-wide events, e.g., Gateway construction. No per-patrol common fields. |
+| `exhibition` | None | No | Activities with no patrol scoring (e.g., slack line, climbing wall). Results entered manually outside the app. |
 
-    {
-      "id": "field_17024332",
-      "label": "Knot Time",
-      "type": "stopwatch",
-      "kind": "metric",
-      "weight": 0,
-      "audience": "judge",
-      "sortOrder": 10,
-      "config": {
-        "min": 0,
-        "max": 300,
-        "placeholder": "Enter seconds..."
-      }
-    }
+---
+
+## 6. Scoring Field Object
+
+This object defines a single input widget on the Judge's tablet. It is used in `scoring_model.inputs[]` (Composer format) and in `presets.json`. In the Collator runtime format (`fields[]`), the `config` sub-object is spread to root.
+
+```json
+{
+  "id": "field_17024332",
+  "label": "Knot Time",
+  "type": "stopwatch",
+  "kind": "metric",
+  "weight": 0,
+  "audience": "judge",
+  "sortOrder": 10,
+  "config": {
+    "min": 0,
+    "max": 300,
+    "placeholder": "Enter seconds..."
+  }
+}
+```
 
 ### Supported Field Types (`type`)
 
@@ -103,22 +253,23 @@ This object defines a single input widget on the Judge's tablet. It is used in b
 | :--- | :--- |
 | **`number`** | Numeric keypad input. Used for points, counts, and deductions. |
 | **`stopwatch`** | A specialized widget with "Start/Stop" and MM:SS input. |
-| **`text`** | Single-line text input (Short notes). |
-| **`textarea`** | Multi-line text block (Judge comments). |
-| **`range`** | A slider control (requires `min` and `max` in config). |
-| **`select`** | A dropdown menu (requires `options` array in config). |
-| **`checkbox`** | A simple Toggle Switch (True/False). |
+| **`text`** | Single-line text input (short notes). |
+| **`textarea`** | Multi-line text block (judge comments). |
+| **`range`** | A slider control (requires `min` and `max` in `config`). |
+| **`select`** | A dropdown menu (requires `options` array in `config`). |
+| **`checkbox`** | A simple toggle switch (True/False). |
 
 ### Scoring Logic (`kind`)
 
 | Kind | Behavior |
 | :--- | :--- |
 | **`points`** | Value is **added** (+) to the total score. |
-| **`penalty`** | Value is **subtracted** (-) from the total score (rendered in red). |
-| **`metric`** | Value is recorded but **ignored** for scoring (e.g., Time in a Points game). |
-| **`info`** | Metadata only (e.g., "Patrol Leader Name"). |
+| **`penalty`** | Value is **subtracted** (−) from the total score (rendered in red). |
+| **`metric`** | Value is recorded but **ignored** for scoring (e.g., time recorded in a points-based game). |
+| **`info`** | Metadata only (e.g., judge name). Not scored. |
+| **`entryname`** | Captures the patrol or troop name. Not scored. |
 
 ### Visibility (`audience`)
 
-* **`judge`**: Visible to everyone.
-* **`admin`**: Hidden on the field. Visible only in the "Conductor" dashboard (e.g., for official adjustments).
+* **`judge`**: Visible to field judges and all dashboard views. This is the default.
+* **`admin`**: Hidden on the field tablet. Visible only in the Collator dashboard (used for official adjustments, final rankings, and overall points).

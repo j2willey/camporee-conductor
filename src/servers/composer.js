@@ -245,6 +245,9 @@ app.post('/api/camporee/:id', (req, res) => {
                 bracketMode: game.bracketMode || false,
                 match_label: game.match_label || ''
             };
+            if (game.variables && Object.keys(game.variables).length > 0) {
+                gameFile.variables = game.variables;
+            }
             fs.writeFileSync(path.join(gamesDir, `${game.id}.json`), JSON.stringify(gameFile, null, 2));
         });
 

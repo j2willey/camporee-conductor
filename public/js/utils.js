@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 switchView(event.state.view, false);
             }
         } else {
-            switchView('dashboard', false);
+            window.location.href = 'admin.html';
         }
     });
 });
@@ -123,11 +123,10 @@ function setupNavigation() {
         if(btn) btn.onclick = () => renderInspector(type);
     });
 
-    // Branding click goes back to dashboard
     const brand = document.querySelector('header h1');
     if (brand) {
         brand.style.cursor = 'pointer';
-        brand.onclick = () => switchView('dashboard');
+        brand.onclick = () => { window.location.href = 'admin.html'; };
     }
 
     if (exportRawBtn) {
@@ -180,7 +179,7 @@ function setupNavigation() {
     }
 
     if (navDashboard) {
-        navDashboard.addEventListener('click', () => switchView('dashboard'));
+        navDashboard.addEventListener('click', () => { window.location.href = 'admin.html'; });
     }
 
     const exportAwardsBtn = document.getElementById('btn-export-awards');
@@ -299,7 +298,8 @@ function switchView(viewName, pushToHistory = true) {
     }
 
     if (viewName === 'dashboard') {
-        document.getElementById('view-dashboard').classList.remove('hidden');
+        window.location.href = 'admin.html';
+        return;
     } else if (viewName === 'awards') {
         document.getElementById('view-awards').classList.remove('hidden');
         setSubtitle('Awards & Exports');
@@ -317,7 +317,7 @@ function switchView(viewName, pushToHistory = true) {
     } else if (viewName === 'scoresheets') {
         document.getElementById('view-scoresheets').classList.remove('hidden');
         setSubtitle('Print Scoresheets');
-        populateScoresheetSelect();
+        populateScoresheetGroups();
     }
 }
 
@@ -325,6 +325,9 @@ window.switchView = switchView;
 window.utils = {
     switchView,
     printScoresheets,
+    ssToggleGroup,
+    ssSelectAll,
+    ssDeselectAll,
     copyInspector: () => {
         const output = document.getElementById('inspector-output');
         if (!output) return;
@@ -988,15 +991,47 @@ window.initStickerControls = initStickerControls;
 
 // --- SCORESHEETS ---
 
-function populateScoresheetSelect() {
-    const sel = document.getElementById('scoresheet-game-select');
-    if (!sel || sel.options.length > 1) return; // already populated
+function populateScoresheetGroups() {
+    const groups = { patrol: [], troop: [], exhibition: [] };
     (appData.games || []).forEach(game => {
-        const opt = document.createElement('option');
-        opt.value = game.id;
-        opt.textContent = formatGameTitle(game);
-        sel.appendChild(opt);
+        const t = game.type || 'patrol';
+        if (groups[t]) groups[t].push(game);
     });
+
+    Object.entries(groups).forEach(([type, games]) => {
+        const list = document.getElementById(`ss-list-${type}`);
+        const badge = document.getElementById(`ss-badge-${type}`);
+        if (!list) return;
+        if (badge) badge.textContent = games.length;
+        list.innerHTML = games.map(g =>
+            `<div class="form-check">
+                <input class="form-check-input ss-game-cb" type="checkbox"
+                    id="ss-cb-${g.id}" value="${g.id}" data-group="${type}" checked>
+                <label class="form-check-label" for="ss-cb-${g.id}">${escH(formatGameTitle(g))}</label>
+            </div>`
+        ).join('');
+    });
+}
+
+function ssToggleGroup(type, checked) {
+    const list = document.getElementById(`ss-list-${type}`);
+    if (!list) return;
+    list.style.display = checked ? 'block' : 'none';
+    list.querySelectorAll('.ss-game-cb').forEach(cb => { cb.checked = checked; });
+}
+
+function ssSelectAll(type) {
+    const toggle = document.getElementById(`ss-toggle-${type}`);
+    if (toggle && !toggle.checked) {
+        toggle.checked = true;
+        ssToggleGroup(type, true);
+        return;
+    }
+    document.querySelectorAll(`#ss-list-${type} .ss-game-cb`).forEach(cb => { cb.checked = true; });
+}
+
+function ssDeselectAll(type) {
+    document.querySelectorAll(`#ss-list-${type} .ss-game-cb`).forEach(cb => { cb.checked = false; });
 }
 
 function buildScoresheetHTML(games, rowCount, meta) {
@@ -1007,8 +1042,16 @@ function buildScoresheetHTML(games, rowCount, meta) {
     const sheets = games.map(game => {
         const judgeFields = (game.fields || []).filter(f => f.audience !== 'admin');
         const isPatrol = game.type === 'patrol';
+        const isExhibition = game.type === 'exhibition';
 
-        const colDefs = [
+        const colDefs = isExhibition ? [
+            { label: '#',                    hint: '', width: '24px',  cls: 'col-num' },
+            { label: 'Troop #',              hint: '', width: '52px',  cls: '' },
+            { label: 'Patrol #',             hint: '', width: '52px',  cls: '' },
+            { label: 'Patrol Name',          hint: '', width: '130px', cls: '' },
+            { label: '# Members',            hint: '', width: '64px',  cls: '' },
+            { label: '# Participating',      hint: '', width: '80px',  cls: '' },
+        ] : [
             { label: '#',          hint: '',        width: '24px',  cls: 'col-num' },
             { label: 'Troop',      hint: '',        width: '48px',  cls: '' },
             ...(isPatrol ? [{ label: 'Patrol', hint: '', width: '110px', cls: '' }] : []),
@@ -1069,7 +1112,9 @@ function buildScoresheetHTML(games, rowCount, meta) {
   tr:nth-child(even) td:not(.col-num) { background: #f7f7f7; }
 </style>
 </head>
-<body>${sheets}</body>
+<body>${sheets}
+<script>setTimeout(window.print, 250);</script>
+</body>
 </html>`;
 }
 
@@ -1078,8 +1123,8 @@ function fieldHint(f) {
     if (f.type === 'checkbox') return '(✓/✗)';
     if (f.type === 'textarea') return '(notes)';
     if (f.type === 'number') {
-        if (f.min !== undefined && f.max !== undefined) return `(${f.min}–${f.max})`;
-        if (f.max !== undefined) return `(0–${f.max})`;
+        if (f.min !== undefined && f.min < 0) return `(${f.min}–${f.max})`;
+        if (f.max !== undefined) return `(${f.max})`;
     }
     return '';
 }
@@ -1087,7 +1132,7 @@ function fieldHint(f) {
 function fieldWidth(f) {
     if (f.type === 'textarea') return '120px';
     if (f.type === 'stopwatch' || f.type === 'timed') return '58px';
-    if (f.type === 'checkbox') return '36px';
+    if (f.type === 'checkbox') return '52px';
     if (f.type === 'select') return '80px';
     return '52px';
 }
@@ -1097,20 +1142,23 @@ function escH(str) {
 }
 
 function printScoresheets() {
-    const sel = document.getElementById('scoresheet-game-select');
-    const rowCount = parseInt(document.getElementById('scoresheet-rows').value) || 25;
-    const gameId = sel?.value || 'all';
+    const rowCount = parseInt(document.getElementById('scoresheet-rows').value) || 20;
+    const selectedIds = new Set(
+        [...document.querySelectorAll('.ss-game-cb:checked')].map(cb => cb.value)
+    );
 
-    const games = gameId === 'all'
-        ? (appData.games || []).filter(g => g.type !== 'exhibition')
-        : (appData.games || []).filter(g => g.id === gameId);
+    if (!selectedIds.size) { alert('Select at least one game to print.'); return; }
 
-    if (!games.length) { alert('No games loaded.'); return; }
+    let games = (appData.games || []).filter(g => selectedIds.has(g.id));
+    if (!games.length) { alert('No matching games found.'); return; }
+
+    const duplex = document.getElementById('scoresheet-duplex')?.checked;
+    if (duplex) games = games.flatMap(g => [g, g]);
 
     const html = buildScoresheetHTML(games, rowCount, appData.metadata);
-    const win = window.open('', '_blank');
-    win.document.write(html);
-    win.document.close();
-    win.focus();
-    win.onload = () => win.print();
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const win = window.open(url, '_blank');
+    if (!win) { alert('Pop-up blocked — allow pop-ups for this page and try again.'); URL.revokeObjectURL(url); return; }
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
 }

@@ -19,7 +19,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Handle initial route from URL
     const params = new URLSearchParams(window.location.search);
-    const view = 'overview';
+    const validViews = ['overview', 'matrix', 'detail', 'exhibition'];
+    const view = validViews.includes(params.get('view')) ? params.get('view') : 'overview';
     const gameId = params.get('gameId');
 
     if (view === 'detail' && gameId) {
@@ -50,15 +51,15 @@ function setupNavigation() {
     const viewModeSelect = document.getElementById('view-mode-select');
     const autoRefreshSwitch = document.getElementById('auto-refresh-switch');
 
-    // Branding click goes back to dashboard
+    // Branding click navigates back to the main admin dashboard
     const brand = document.querySelector('header h1');
     if (brand) {
         brand.style.cursor = 'pointer';
-        brand.onclick = () => switchView('dashboard');
+        brand.onclick = () => { window.location.href = 'admin.html'; };
     }
 
     if (navDashboard) {
-        navDashboard.addEventListener('click', () => switchView('dashboard'));
+        navDashboard.addEventListener('click', () => { window.location.href = 'admin.html'; });
     }
 
     if (transposeBtn) {
@@ -71,7 +72,12 @@ function setupNavigation() {
     if (viewModeSelect) {
         viewModeSelect.addEventListener('change', (e) => {
             currentViewMode = e.target.value;
-            refreshCurrentView();
+            // Always navigate to overview when the type changes
+            if (currentView !== 'overview') {
+                switchView('overview');
+            } else {
+                refreshCurrentView();
+            }
         });
     }
 
@@ -91,11 +97,7 @@ function setupNavigation() {
 }
 
 function handleBack() {
-    if (currentView === 'detail' || currentView === 'matrix') {
-        switchView('overview');
-    } else {
-        switchView('dashboard');
-    }
+    switchView('overview');
 }
 window.handleBack = handleBack;
 
@@ -129,28 +131,21 @@ function switchView(viewName, pushToHistory = true) {
     const backBtn = document.getElementById('header-back-btn');
 
     // Hide/Show header elements based on view
-    if (viewName === 'dashboard') {
-        if (headerActions) headerActions.classList.add('hidden');
-        if (navBar) navBar.classList.add('hidden');
-        if (backBtn) backBtn.classList.add('hidden');
-        setSubtitle('');
+    if (headerActions) headerActions.classList.remove('hidden');
+    if (navBar) navBar.classList.remove('hidden');
+
+    // Filter pull-down: only on the overview list
+    if (viewName === 'overview') {
+        if (modeFilter) modeFilter.classList.remove('hidden');
     } else {
-        if (headerActions) headerActions.classList.remove('hidden');
-        if (navBar) navBar.classList.remove('hidden');
+        if (modeFilter) modeFilter.classList.add('hidden');
+    }
 
-        // Filter pull-down: only overview
-        if (viewName === 'overview') {
-            if (modeFilter) modeFilter.classList.remove('hidden');
-        } else {
-            if (modeFilter) modeFilter.classList.add('hidden');
-        }
-
-        // Back Button: Visible on all views except dashboard
-        if (viewName !== 'dashboard') {
-            if (backBtn) backBtn.classList.remove('hidden');
-        } else {
-            if (backBtn) backBtn.classList.add('hidden');
-        }
+    // Back Button: hidden on overview, visible on all drill-down views
+    if (viewName === 'overview') {
+        if (backBtn) backBtn.classList.add('hidden');
+    } else {
+        if (backBtn) backBtn.classList.remove('hidden');
     }
 
     if (pushToHistory) {
@@ -160,12 +155,13 @@ function switchView(viewName, pushToHistory = true) {
         window.history.pushState({ view: viewName, gameId: activeGameId }, '', url);
     }
 
-    if (viewName === 'dashboard') {
-        document.getElementById('view-dashboard').classList.remove('hidden');
-    } else if (viewName === 'overview') {
+    if (viewName === 'overview') {
         document.getElementById('view-overview').classList.remove('hidden');
         setSubtitle('Game Overview');
         refreshCurrentView();
+    } else if (viewName === 'exhibition') {
+        document.getElementById('view-exhibition').classList.remove('hidden');
+        // subtitle and content set by openExhibitionDetail before calling switchView
     } else if (viewName === 'matrix') {
         document.getElementById('view-matrix').classList.remove('hidden');
         // renderMatrix sets its own subtitle
@@ -183,8 +179,13 @@ window.switchView = switchView;
 function renderOverviewList() {
     const grid = document.getElementById('games-grid');
     grid.innerHTML = '';
-    // Use block for table
     grid.style.display = 'block';
+
+    // Exhibition events have their own list → per-game entry flow
+    if (currentViewMode === 'exhibition') {
+        renderExhibitionOverview(grid);
+        return;
+    }
 
     const games = getFilteredGames();
 
@@ -233,8 +234,7 @@ function renderOverviewList() {
         const tr = document.createElement('tr');
         tr.style.cursor = 'pointer';
         tr.onclick = (e) => {
-            // Don't trigger if clicked checkbox or button
-            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'LABEL') openGameDetail(game.id)
+            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'LABEL') openGameDetail(game.id);
         };
 
         tr.innerHTML = `
@@ -973,3 +973,207 @@ async function updateEntityField(entityId, fieldId, value) {
         alert('Failed to save change. Please refresh.');
     }
 }
+
+// --- EXHIBITION EVENTS ---
+
+const exhibitionSaveTimers = {};
+const exhibitionRowData = {};
+
+function escapeAttr(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function renderExhibitionOverview(grid) {
+    const exhibitionGames = (appData.games || [])
+        .filter(g => g.type === 'exhibition')
+        .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+
+    if (!exhibitionGames.length) {
+        grid.innerHTML = '<p class="text-muted p-3">No exhibition events in the active cartridge.</p>';
+        return;
+    }
+
+    const table = document.createElement('table');
+    table.className = 'table table-striped table-hover';
+    table.innerHTML = `
+        <thead class="table-dark">
+            <tr>
+                <th>Exhibition Event</th>
+                <th class="text-center">Status</th>
+                <th class="text-end">Action</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    `;
+
+    const tbody = table.querySelector('tbody');
+
+    exhibitionGames.forEach((game, idx) => {
+        const label = `E${idx + 1} ${game.content?.title || game.id}`;
+        const isFinal = appData.gameStatuses[game.id] === 'finalized';
+
+        const tr = document.createElement('tr');
+        tr.style.cursor = 'pointer';
+        tr.onclick = (e) => {
+            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'LABEL') openExhibitionDetail(game.id);
+        };
+
+        tr.innerHTML = `
+            <td class="fw-bold">${escapeAttr(label)}</td>
+            <td class="text-center">
+                <div class="form-check form-switch d-inline-block">
+                    <input class="form-check-input" type="checkbox" id="status_${game.id}" ${isFinal ? 'checked' : ''} onclick="toggleGameStatus('${game.id}', this.checked)">
+                    <label class="form-check-label small ${isFinal ? 'text-success fw-bold' : 'text-muted'}" for="status_${game.id}">${isFinal ? 'Final' : 'Draft'}</label>
+                </div>
+            </td>
+            <td class="text-end">
+                <button class="btn btn-sm btn-warning">Enter Results</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    grid.appendChild(table);
+}
+
+async function openExhibitionDetail(gameId) {
+    const game = appData.games.find(g => g.id === gameId);
+    if (!game) return;
+
+    activeGameId = gameId;
+
+    const exGames = (appData.games || [])
+        .filter(g => g.type === 'exhibition')
+        .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    const idx = exGames.findIndex(g => g.id === gameId);
+    const title = `E${idx + 1} ${game.content?.title || game.id}`;
+
+    setSubtitle(title);
+
+    const container = document.getElementById('exhibition-container');
+    if (container) container.innerHTML = '<p class="text-muted small p-3">Loading…</p>';
+
+    switchView('exhibition');
+
+    const rows = await fetch(`${window.API_BASE}/api/exhibition-results/${gameId}`)
+        .then(r => r.json()).catch(() => []);
+
+    exhibitionRowData[gameId] = rows.map(r => ({ ...r }));
+
+    if (container) container.innerHTML = buildExhibitionEntryTable(gameId, rows);
+}
+
+function buildExhibitionEntryTable(gameId, rows) {
+    const rowsHtml = rows.map((row, i) => buildExhibitionRow(gameId, i, row)).join('');
+    return `
+        <div class="table-responsive">
+        <table class="table table-sm table-bordered align-middle mb-2">
+            <thead class="table-dark">
+                <tr>
+                    <th>Name</th>
+                    <th style="min-width:80px">Troop #</th>
+                    <th style="min-width:110px">Patrol</th>
+                    <th style="min-width:130px">Place</th>
+                    <th>Judges Notes</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="ex-tbody-${gameId}">${rowsHtml}</tbody>
+        </table>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <button class="btn btn-sm btn-outline-success" onclick="addExhibitionRow('${gameId}')">+ Add Scout</button>
+            <span class="text-muted small" id="ex-save-${gameId}"></span>
+        </div>`;
+}
+
+function buildExhibitionRow(gameId, rowIdx, row) {
+    return `<tr data-game="${gameId}" data-row="${rowIdx}">
+        <td><input type="text" class="form-control form-control-sm"
+            data-field="scout_name" value="${escapeAttr(row.scout_name)}"
+            oninput="exhibitionChanged('${gameId}', this)"></td>
+        <td><input type="text" class="form-control form-control-sm"
+            data-field="troop_number" value="${escapeAttr(row.troop_number)}"
+            oninput="exhibitionChanged('${gameId}', this)"></td>
+        <td><input type="text" class="form-control form-control-sm"
+            data-field="patrol_name" value="${escapeAttr(row.patrol_name)}"
+            oninput="exhibitionChanged('${gameId}', this)"></td>
+        <td><input type="text" class="form-control form-control-sm" list="ex-places-list"
+            data-field="overall_place" value="${escapeAttr(row.overall_place)}"
+            oninput="exhibitionChanged('${gameId}', this)"></td>
+        <td><input type="text" class="form-control form-control-sm"
+            data-field="judges_notes" value="${escapeAttr(row.judges_notes)}"
+            oninput="exhibitionChanged('${gameId}', this)"></td>
+        <td><button class="btn btn-sm btn-outline-danger px-2"
+            onclick="deleteExhibitionRow('${gameId}', this)" title="Remove row">×</button></td>
+    </tr>`;
+}
+
+function reRenderExhibitionTbody(gameId) {
+    const tbody = document.getElementById(`ex-tbody-${gameId}`);
+    if (!tbody) return;
+    const rows = exhibitionRowData[gameId] || [];
+    tbody.innerHTML = rows.map((row, i) => buildExhibitionRow(gameId, i, row)).join('');
+}
+
+function exhibitionChanged(gameId, inputEl) {
+    const tr = inputEl.closest('tr');
+    const field = inputEl.dataset.field;
+    const rowIdx = parseInt(tr.dataset.row);
+    if (!exhibitionRowData[gameId]) exhibitionRowData[gameId] = [];
+    if (!exhibitionRowData[gameId][rowIdx]) exhibitionRowData[gameId][rowIdx] = {};
+    exhibitionRowData[gameId][rowIdx][field] = inputEl.value;
+    scheduleExhibitionSave(gameId);
+}
+
+function addExhibitionRow(gameId) {
+    if (!exhibitionRowData[gameId]) exhibitionRowData[gameId] = [];
+    exhibitionRowData[gameId].push({ scout_name: '', troop_number: '', patrol_name: '', overall_place: '', judges_notes: '' });
+    reRenderExhibitionTbody(gameId);
+    // Focus the first input of the new row
+    const tbody = document.getElementById(`ex-tbody-${gameId}`);
+    if (tbody && tbody.lastElementChild) {
+        tbody.lastElementChild.querySelector('input')?.focus();
+    }
+    scheduleExhibitionSave(gameId);
+}
+
+function deleteExhibitionRow(gameId, btn) {
+    const tr = btn.closest('tr');
+    const rowIdx = parseInt(tr.dataset.row);
+    if (!exhibitionRowData[gameId]) return;
+    exhibitionRowData[gameId].splice(rowIdx, 1);
+    reRenderExhibitionTbody(gameId);
+    scheduleExhibitionSave(gameId);
+}
+
+function scheduleExhibitionSave(gameId) {
+    const indicator = document.getElementById(`ex-save-${gameId}`);
+    if (indicator) indicator.textContent = 'Saving…';
+    if (exhibitionSaveTimers[gameId]) clearTimeout(exhibitionSaveTimers[gameId]);
+    exhibitionSaveTimers[gameId] = setTimeout(() => saveExhibitionResults(gameId), 800);
+}
+
+async function saveExhibitionResults(gameId) {
+    const indicator = document.getElementById(`ex-save-${gameId}`);
+    try {
+        const res = await fetch(`${window.API_BASE}/api/exhibition-results/${gameId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(exhibitionRowData[gameId] || [])
+        });
+        if (!res.ok) throw new Error('Save failed');
+        if (indicator) {
+            indicator.textContent = '✓ Saved';
+            setTimeout(() => { if (indicator) indicator.textContent = ''; }, 2000);
+        }
+    } catch (err) {
+        console.error('Exhibition save error:', err);
+        if (indicator) indicator.textContent = '⚠ Error saving';
+    }
+}
+
+window.addExhibitionRow    = addExhibitionRow;
+window.deleteExhibitionRow = deleteExhibitionRow;
+window.exhibitionChanged   = exhibitionChanged;
+window.openExhibitionDetail = openExhibitionDetail;

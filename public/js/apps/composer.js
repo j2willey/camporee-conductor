@@ -8,7 +8,7 @@ const SYSTEM_PRESETS = [
     { id: "p_flag",    label: "Patrol Flag",                              type: "number",   kind: "points",  weight: 10, audience: "judge", position: "prefix", sortOrder: 10, config: { min: 0, max: 10, placeholder: "0-10 Points" } },
     { id: "p_yell",    label: "Patrol Yell",                              type: "number",   kind: "points",  weight: 5,  audience: "judge", position: "prefix", sortOrder: 20, config: { min: 0, max: 5,  placeholder: "0-5 Points"  } },
     { id: "p_spirit",  label: "Scout Spirit",                             type: "number",   kind: "points",  weight: 10, audience: "judge", position: "prefix", sortOrder: 30, config: { min: 0, max: 10, placeholder: "0-10 Points" } },
-    { id: "ten_ess",   label: "10 Essentials: {{ten_essentials_item}}",   type: "checkbox", kind: "points",  weight: 5,  audience: "judge", position: "prefix", sortOrder: 40, config: { placeholder: "Does the patrol have {{ten_essentials_item}}?" } },
+    { id: "ten_ess",   label: "10 Essentials: {{ten_essentials}}",   type: "checkbox", kind: "points",  weight: 5,  audience: "judge", position: "prefix", sortOrder: 40, config: { placeholder: "Does the patrol have {{ten_essentials}}?" } },
     // Patrol/Troop suffix common fields (injected after game-specific fields by the Collator)
     { id: "unscout",   label: "Unscoutlike Behavior",                     type: "number",   kind: "penalty", weight: 1,  audience: "judge", position: "suffix", sortOrder: 10, config: { min: 0, max: 20, placeholder: "Points deducted (0-20)" } },
     { id: "off_notes", label: "Judges Notes",                             type: "textarea", kind: "info",    weight: 0,  audience: "judge", position: "suffix", sortOrder: 20, config: { placeholder: "Issues, tie-breakers, etc." } },
@@ -911,24 +911,30 @@ const composer = {
     },
 
     renderGameLists: function () {
-        const patrolList = document.getElementById("patrolList");
-        const troopList = document.getElementById("troopList");
-        const patrolCount = document.getElementById("patrolCount");
-        const troopCount = document.getElementById("troopCount");
+        const patrolList     = document.getElementById("patrolList");
+        const troopList      = document.getElementById("troopList");
+        const exhibitionList = document.getElementById("exhibitionList");
+        const patrolCount     = document.getElementById("patrolCount");
+        const troopCount      = document.getElementById("troopCount");
+        const exhibitionCount = document.getElementById("exhibitionCount");
 
         if (!patrolList || !troopList) return;
 
-        patrolList.innerHTML = "";
-        troopList.innerHTML = "";
+        patrolList.innerHTML     = "";
+        troopList.innerHTML      = "";
+        if (exhibitionList) exhibitionList.innerHTML = "";
 
         let pCount = 0;
         let tCount = 0;
+        let eCount = 0;
 
         if (this.data.games.length === 0) {
             patrolList.innerHTML = '<div class="text-center text-muted">No patrol games.</div>';
-            troopList.innerHTML = '<div class="text-center text-muted">No troop events.</div>';
-            if (patrolCount) patrolCount.innerText = "0";
-            if (troopCount) troopCount.innerText = "0";
+            troopList.innerHTML  = '<div class="text-center text-muted">No troop challenges.</div>';
+            if (exhibitionList) exhibitionList.innerHTML = '<div class="text-center text-muted">No exhibition events.</div>';
+            if (patrolCount)     patrolCount.innerText     = "0";
+            if (troopCount)      troopCount.innerText      = "0";
+            if (exhibitionCount) exhibitionCount.innerText = "0";
             return;
         }
 
@@ -938,10 +944,13 @@ const composer = {
         this.data.games.forEach(game => {
             const activeClass = game.id === this.activeGameId ? "active" : "";
             const type = game.type || 'patrol';
-            const isPatrol = type === 'patrol';
-            const targetList = isPatrol ? patrolList : troopList;
+            const targetList = type === 'troop' ? troopList
+                             : type === 'exhibition' ? (exhibitionList || troopList)
+                             : patrolList;
 
-            if (isPatrol) pCount++; else tCount++;
+            if (type === 'patrol') pCount++;
+            else if (type === 'troop') tCount++;
+            else eCount++;
 
             const prefixLetter = type === 'troop' ? 't' : type === 'exhibition' ? 'e' : 'p';
             typeCounters[prefixLetter] = (typeCounters[prefixLetter] || 0) + 1;
@@ -1001,8 +1010,9 @@ const composer = {
             targetList.appendChild(item);
         });
 
-        if (patrolCount) patrolCount.innerText = pCount;
-        if (troopCount) troopCount.innerText = tCount;
+        if (patrolCount)     patrolCount.innerText     = pCount;
+        if (troopCount)      troopCount.innerText      = tCount;
+        if (exhibitionCount) exhibitionCount.innerText = eCount;
     },
 
     editGame: function (id) {
@@ -1094,7 +1104,7 @@ const composer = {
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <label class="form-label fw-bold mb-0">
                                     <i class="fas fa-code fa-fw text-muted me-1"></i> Game Variables
-                                    <small class="text-muted fw-normal ms-1">— substituted into common field labels, e.g. <code>{{ten_essentials_item}}</code></small>
+                                    <small class="text-muted fw-normal ms-1">— substituted into common field labels, e.g. <code>{{ten_essentials}}</code></small>
                                 </label>
                                 <button type="button" class="btn btn-sm btn-outline-secondary" onclick="composer.addVariable('${game.id}')">
                                     <i class="fas fa-plus"></i> Add
@@ -1446,17 +1456,70 @@ const composer = {
         const container = document.getElementById(`${type}-editor`);
         if (!container) return;
 
-        container.innerHTML = "";
+        container.innerHTML = '';
         (items || []).forEach((item, index) => {
-            const row = document.createElement("div");
-            row.className = "input-group input-group-sm mb-1";
+            const row = document.createElement('div');
+            row.className = 'input-group input-group-sm mb-1';
+            row.draggable = true;
+            row.dataset.index = index;
             row.innerHTML = `
-                <input type="text" class="form-control" value="${item.replace(/"/g, '&quot;')}" 
+                <span class="input-group-text drag-handle" style="cursor:grab;color:#aaa;" title="Drag to reorder">
+                    <i class="fas fa-grip-vertical"></i>
+                </span>
+                <input type="text" class="form-control" value="${item.replace(/"/g, '&quot;')}"
                        oninput="composer.updateListItem('${type}', ${index}, this.value)">
-                <button class="btn btn-outline-danger" onclick="composer.deleteListItem('${type}', ${index})">
+                <button class="btn btn-outline-danger" type="button" onclick="composer.deleteListItem('${type}', ${index})">
                     <i class="fas fa-times"></i>
                 </button>
             `;
+
+            row.addEventListener('dragstart', (e) => {
+                if (e.target.tagName === 'INPUT') { e.preventDefault(); return; }
+                this._listDragState = { type, fromIndex: index };
+                row.style.opacity = '0.4';
+                e.dataTransfer.effectAllowed = 'move';
+            });
+
+            row.addEventListener('dragend', () => {
+                row.style.opacity = '';
+                container.querySelectorAll('.list-drag-over').forEach(el => {
+                    el.style.borderTop = '';
+                    el.classList.remove('list-drag-over');
+                });
+            });
+
+            row.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                if (!this._listDragState || this._listDragState.type !== type) return;
+                e.dataTransfer.dropEffect = 'move';
+                container.querySelectorAll('.list-drag-over').forEach(el => {
+                    el.style.borderTop = '';
+                    el.classList.remove('list-drag-over');
+                });
+                if (this._listDragState.fromIndex !== index) {
+                    row.classList.add('list-drag-over');
+                    row.style.borderTop = '2px solid #0d6efd';
+                }
+            });
+
+            row.addEventListener('drop', (e) => {
+                e.preventDefault();
+                if (!this._listDragState || this._listDragState.type !== type) return;
+                const fromIndex = this._listDragState.fromIndex;
+                const toIndex = index;
+                this._listDragState = null;
+                if (fromIndex === toIndex) return;
+
+                const game = this.data.games.find(g => g.id === this.activeGameId);
+                if (!game?.content[type]) return;
+
+                const arr = game.content[type];
+                const [moved] = arr.splice(fromIndex, 1);
+                arr.splice(toIndex, 0, moved);
+                this._markDirty();
+                this.renderListEditor(type, arr);
+            });
+
             container.appendChild(row);
         });
     },
@@ -2179,6 +2242,177 @@ const composer = {
         }
     },
 
+    openPrintGuidesModal: function () {
+        const allGames = this.data.games
+            .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+
+        const patrol = allGames.filter(g => (g.type || 'patrol') === 'patrol');
+        const troop  = allGames.filter(g => g.type === 'troop');
+
+        if (!patrol.length && !troop.length) {
+            alert('No games found.');
+            return;
+        }
+
+        const renderGroup = (games, prefixLetter, label) => {
+            if (!games.length) return '';
+            const items = games.map((game, i) => {
+                const title = game.content?.title || game.id;
+                const prefix = `${prefixLetter}${i + 1}`;
+                return `<div class="form-check ms-2">
+                    <input class="form-check-input print-guide-check" type="checkbox"
+                           value="${game.id}" id="pgc_${game.id}" checked
+                           data-prefix="${prefix}">
+                    <label class="form-check-label" for="pgc_${game.id}">
+                        <span class="text-muted me-1 font-monospace small">${prefix}</span> ${title}
+                    </label>
+                </div>`;
+            }).join('');
+            return `<div class="mb-3">
+                <div class="text-uppercase small fw-bold text-muted mb-1 border-bottom pb-1">${label}</div>
+                ${items}
+            </div>`;
+        };
+
+        document.getElementById('printGuidesGameList').innerHTML =
+            renderGroup(patrol, 'p', 'Patrol Games') +
+            renderGroup(troop,  't', 'Troop Challenges');
+
+        new bootstrap.Modal(document.getElementById('printGuidesModal')).show();
+    },
+
+    toggleAllGuideChecks: function (checked) {
+        document.querySelectorAll('.print-guide-check').forEach(cb => cb.checked = checked);
+    },
+
+    _printGuidesWindow: function (sections, title) {
+        const sectionDivs = sections.map(s => `<div class="guide-section">${s}</div>`).join('\n');
+
+        const win = window.open('', '_blank');
+        win.document.write(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>${title}</title>
+<style>
+  @page { size: 8.5in 11in portrait; margin: 0.75in; }
+  body { font-family: Georgia, serif; font-size: 11pt; color: #111; }
+  .page-break { page-break-after: always; break-after: page; height: 0; }
+  h1 { font-size: 18pt; margin-bottom: 4px; }
+  h2 { font-size: 14pt; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
+  h3 { font-size: 12pt; }
+  ul, ol { margin-left: 20px; }
+  p { margin: 6px 0; }
+</style>
+</head>
+<body>${sectionDivs}</body>
+</html>`);
+        win.document.close();
+        win.focus();
+        win.onload = () => {
+            // CSS break-before:right is unreliable in Chrome — compute blank pages in JS instead.
+            // Measure at print content width (8.5in - 2×0.75in = 7in = 672px at 96dpi) so
+            // offsetHeight matches the print page height (11in - 2×0.75in = 9.5in = 912px).
+            const PRINT_W = 672;
+            const PAGE_H  = 912;
+            const doc = win.document;
+
+            // Force print-width layout for accurate height measurements.
+            doc.body.style.cssText = `width:${PRINT_W}px;margin:0;padding:0;`;
+
+            // Measure ALL sections before mutating the DOM. DOM insertions from
+            // earlier iterations (page-break divs with break-after:page) can affect
+            // layout of subsequent sections if measured inside the loop.
+            const sections = [...doc.querySelectorAll('.guide-section')];
+            const pageCounts = sections.map(sec => {
+                // The gameguide template embeds inline page-break divs between its three
+                // audience sections (Script / Official's Playbook / Logistics). Each break
+                // forces a new printed page. A sub-section can independently overflow onto
+                // a second page (e.g. P12 Clown Car with its long Stage descriptions).
+                // Measuring the whole section's offsetHeight and dividing misses those
+                // overflow pages because the embedded breaks contribute zero screen height.
+                // Fix: measure each sub-section independently and sum their page counts.
+                const pageBreakDivs = [...sec.querySelectorAll('div[style*="page-break-after"]')];
+                if (pageBreakDivs.length === 0) {
+                    return Math.max(1, Math.ceil(sec.offsetHeight / PAGE_H));
+                }
+                const secTop = sec.getBoundingClientRect().top;
+                let total = 0;
+                let prevY = 0; // distance from sec top to start of current sub-section
+                pageBreakDivs.forEach(br => {
+                    const brY = br.getBoundingClientRect().top - secTop;
+                    total += Math.max(1, Math.ceil((brY - prevY) / PAGE_H));
+                    prevY = brY; // embedded breaks have height 0, so top === bottom
+                });
+                // Final sub-section after the last embedded break
+                total += Math.max(1, Math.ceil((sec.offsetHeight - prevY) / PAGE_H));
+                return total;
+            });
+
+            // Restore body CSS before inserting breaks and printing.
+            doc.body.style.cssText = '';
+
+            let cumPages = 0;
+            sections.forEach((sec, i) => {
+                cumPages += pageCounts[i];
+
+                // Mandatory break advances cursor to next page after this game's content.
+                const br = doc.createElement('div');
+                br.className = 'page-break';
+                sec.after(br);
+
+                // If cumulative page count is odd, the mandatory break lands on an even
+                // (left-hand) page. One more break reaches the next odd (right-hand) page
+                // so the next game starts on the front side of its folded packet.
+                if (cumPages % 2 !== 0) {
+                    const blank = doc.createElement('div');
+                    blank.className = 'page-break';
+                    br.after(blank);
+                    cumPages++; // keep parity tracking correct for subsequent guides
+                }
+            });
+
+            win.print();
+        };
+    },
+
+    executePrintGuides: async function () {
+        const checks = [...document.querySelectorAll('.print-guide-check:checked')];
+        if (!checks.length) { alert('Select at least one game guide to print.'); return; }
+
+        const prefixMap = {};
+        checks.forEach(cb => { prefixMap[cb.value] = cb.dataset.prefix; });
+
+        const selectedIds = new Set(Object.keys(prefixMap));
+        const games = [...this.data.games]
+            .filter(g => selectedIds.has(g.id))
+            .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+
+        bootstrap.Modal.getInstance(document.getElementById('printGuidesModal'))?.hide();
+
+        try {
+            if (!this._gameGuideTemplate) {
+                const res = await fetch('/templates/gameguide.md');
+                if (!res.ok) throw new Error("Could not fetch gameguide template");
+                this._gameGuideTemplate = await res.text();
+            }
+
+            const template = Handlebars.compile(this._gameGuideTemplate);
+            const workspaceId = this.data.meta.camporeeId || 'camp0002';
+
+            const sections = games.map(game => {
+                const context = { ...game, displayPrefix: prefixMap[game.id] };
+                const markdown = template(context);
+                return marked.parse(markdown, { baseUrl: `/api/camporee/${workspaceId}/games/` });
+            });
+
+            this._printGuidesWindow(sections, `Game Guides — ${this.data.meta.title || 'Camporee'}`);
+        } catch (e) {
+            console.error(e);
+            alert("Error generating guides: " + e.message);
+        }
+    },
+
     printAllGuides: async function (type) {
         const games = this.data.games
             .filter(g => (g.type || 'patrol') === type)
@@ -2200,57 +2434,104 @@ const composer = {
             const sections = games.map((game, i) => {
                 const context = { ...game, displayPrefix: `${prefixLetter}${i + 1}` };
                 const markdown = template(context);
-                return marked.parse(markdown, {
-                    baseUrl: `/api/camporee/${workspaceId}/games/`
-                });
+                return marked.parse(markdown, { baseUrl: `/api/camporee/${workspaceId}/games/` });
             });
 
-            // Wrap each section so it always starts on an odd (right-hand) page.
-            // Insert a blank page after any section that ends on an odd page.
-            const sectionDivs = sections.map((s, i) =>
-                `<div class="guide-section">${s}</div><div class="page-fill"></div>`
-            ).join('\n');
-
-            const win = window.open('', '_blank');
-            win.document.write(`<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>${type === 'patrol' ? 'Patrol Game Guides' : 'Troop Event Guides'} — ${this.data.meta.title || 'Camporee'}</title>
-<style>
-  @page { size: portrait; margin: 0.75in; }
-  body { font-family: Georgia, serif; font-size: 11pt; color: #111; }
-  .guide-section {
-    page-break-before: right;
-    break-before: right;
-  }
-  .guide-section:first-child {
-    page-break-before: auto;
-    break-before: auto;
-  }
-  .page-fill {
-    page-break-after: always;
-    break-after: always;
-    height: 0;
-  }
-  h1 { font-size: 18pt; margin-bottom: 4px; }
-  h2 { font-size: 14pt; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
-  h3 { font-size: 12pt; }
-  ul, ol { margin-left: 20px; }
-  p { margin: 6px 0; }
-</style>
-</head>
-<body>
-${sectionDivs}
-</body>
-</html>`);
-            win.document.close();
-            win.focus();
-            win.onload = () => win.print();
+            const title = `${type === 'patrol' ? 'Patrol Game Guides' : 'Troop Challenge Guides'} — ${this.data.meta.title || 'Camporee'}`;
+            this._printGuidesWindow(sections, title);
         } catch (e) {
             console.error(e);
             alert("Error generating guides: " + e.message);
         }
+    },
+
+    printSupplies: function (mode) {
+        const sorted = (arr) => [...arr].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+
+        const patrol = sorted(this.data.games.filter(g => (g.type || 'patrol') === 'patrol'));
+        const troop  = sorted(this.data.games.filter(g => g.type === 'troop'));
+        const other  = sorted(this.data.games.filter(g => g.type && g.type !== 'patrol' && g.type !== 'troop'));
+
+        const games = [...patrol, ...troop, ...other];
+        if (!games.length) { alert('No games to print.'); return; }
+
+        // Build prefix map using same P#/T# convention as game guides
+        const prefixMap = new Map();
+        patrol.forEach((g, i) => prefixMap.set(g.id, `P${i + 1}`));
+        troop.forEach((g, i)  => prefixMap.set(g.id, `T${i + 1}`));
+        other.forEach(g       => prefixMap.set(g.id, ''));
+
+        const camporeeTitle = this.data.meta.title || 'Camporee';
+        const CONT_SPLIT = 30; // lines before inserting a cont. header in continuous mode
+
+        const renderLines = (lines) => {
+            if (!lines.length) return '<p class="no-supplies">No supplies listed.</p>';
+            return '<ul class="supplies-list">' + lines.map(line => {
+                const indented = /^\s/.test(line);
+                return `<li${indented ? ' class="sub"' : ''}>${line.trim()}</li>`;
+            }).join('') + '</ul>';
+        };
+
+        const gameHtml = games.map(game => {
+            const prefix = prefixMap.get(game.id);
+            const title = (prefix ? `${prefix} ` : '') + (game.content?.title || game.id);
+            const suppliesRaw = (game.content?.supplies_text || '').trim();
+            const lines = suppliesRaw ? suppliesRaw.split('\n') : [];
+
+            if (mode === 'per-page') {
+                return `<div class="game-section per-page">
+                    <h2 class="game-title">${title}</h2>
+                    ${renderLines(lines)}
+                </div>`;
+            }
+
+            // Continuous: pre-split very long lists so cont. headers appear at predictable intervals
+            if (lines.length <= CONT_SPLIT) {
+                return `<div class="game-section">
+                    <h2 class="game-title">${title}</h2>
+                    ${renderLines(lines)}
+                </div>`;
+            }
+            let html = '';
+            for (let i = 0; i < lines.length; i += CONT_SPLIT) {
+                const isCont = i > 0;
+                html += `<div class="game-section">
+                    <h2 class="game-title${isCont ? ' cont' : ''}">${title}${isCont ? ' <em class="cont-label">(cont.)</em>' : ''}</h2>
+                    ${renderLines(lines.slice(i, i + CONT_SPLIT))}
+                </div>`;
+            }
+            return html;
+        }).join('\n');
+
+        const win = window.open('', '_blank');
+        win.document.write(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Supplies List — ${camporeeTitle}</title>
+<style>
+  @page { size: portrait; margin: 0.75in; }
+  body { font-family: Georgia, serif; font-size: 11pt; color: #111; }
+  h1 { font-size: 16pt; border-bottom: 2px solid #333; padding-bottom: 6px; margin-bottom: 1.2em; }
+  .game-section { margin-bottom: 1.2em; }
+  .game-section.per-page { break-after: page; }
+  .game-title { font-size: 14pt; font-weight: bold; margin: 0 0 0.3em 0; break-after: avoid; }
+  .game-title.cont { color: #555; }
+  .cont-label { font-style: italic; font-weight: normal; font-size: 11pt; }
+  .supplies-list { margin: 0.2em 0 0 1.8em; padding: 0; }
+  .supplies-list li { margin-bottom: 0.1em; }
+  .supplies-list li.sub { margin-left: 1.5em; list-style-type: circle; }
+  .no-supplies { color: #999; font-style: italic; margin-left: 1.8em; }
+</style>
+</head>
+<body>
+<h1>Supplies List — ${camporeeTitle}</h1>
+${gameHtml}
+</body>
+</html>`);
+        win.document.close();
+        win.focus();
+        win.onload = () => win.print();
     },
 
     printPreview: function () {

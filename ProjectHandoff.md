@@ -1,67 +1,210 @@
-Project Handover: Camporee Conductor Suite
-⚜️ The Mission (Domain Context)
-Camporee Conductor is a digital ecosystem for Scouting America (BSA) skill competitions.
+# Project Handoff: Camporee Conductor
 
-The Problem: Traditional "Camporees" rely on paper scorecards, which are slow, error-prone, and lack thematic immersion.
+**Date:** May 14, 2026 (Camporee starts tomorrow, May 15–17)
+**Author:** Jim Willey, sole developer
+**Event:** Coyote Creek District Camporee — "The Circus" — Camp Chesebrough
 
-The Solution: A "Digital Cartridge" system where an entire event's rules, scoring logic, and thematic narrative are packaged into a single, portable ZIP file.
+---
 
-The Core User: Jim Willey (Lead Architect/Director), a veteran Scout leader building this as a professional portfolio "reboot."
+## 1. Mission and Domain Context
 
-🏗️ The Three-Pillar Architecture
-The suite is divided into three distinct applications that share a unified JSON schema:
+Camporee Conductor is an offline-first digital event operating system for BSA (Boy Scouts of America) skill competitions ("Camporees"). It replaces paper scorecards with a portable **Digital Cartridge** system — a single ZIP file that contains the entire event's game definitions, scoring logic, and metadata.
 
-The Curator (Librarian):
+- **Lead Architect/Director:** Jim Willey
+- **First production use:** Coyote Creek District Camporee, May 15–17, 2026, theme "The Circus", at Camp Chesebrough
+- **AI content rule:** All Gemini-generated content must be G-rated, age 11–17, and consistent with the Scout Oath and Scout Law
 
-Purpose: Manages the Master Library of generic scout games (e.g., Fire Building, Knots).
+---
 
-Key Feature: "Functional Variants" (e.g., a Fire game with a 'Friction' variant vs. a 'Match' variant).
+## 2. Three-Pillar Architecture
 
-The Composer (Director):
+| Pillar | Role | Port | Server File |
+|---|---|---|---|
+| **Curator** | Game template library (generic, reusable) | 3001 | `src/servers/composer.js` |
+| **Composer** | Visual event design + cartridge export | 3001 | `src/servers/composer.js` |
+| **Collator** | Live-event runtime + judge PWA | 3000 | `src/servers/collator.js` |
 
-Purpose: The event-building tool. Users import generic games, apply a Theme (e.g., Circus, Space, Vikings), and "Embellish" the content using AI.
+**Key points:**
 
-Output: Generates the Camporee Cartridge (a ZIP containing camporee-instance.json and associated assets).
+- The `ACTIVE_SERVICES` env var tells each container which pillars to serve: `"collator"` vs `"curator,composer"`
+- Legacy root-level files (`collator-server.js`, `composer_server.js`) are superseded by `src/servers/` — **do not modify them**
+- In local dev, `server.js` mounts Collator at `/collator` and Composer/Curator at `/composer`
+- Two Docker services share the codebase; environment variables control behavior
 
-The Collator (Scoreboard & Judge Client):
+---
 
-Purpose: The live-event server. It "unpacks" the cartridge to provide mobile-first Judge Views for data entry and real-time Official Leaderboards.
+## 3. The Digital Cartridge (Data Format)
 
-📄 The Data "Source of Truth" (Schemas)
-The application is Schema-First. Every action must validate against these files:
+`CamporeeConfig.zip` contains three components:
 
-game.schema.json: The container for a game, including its Source Snapshot (a frozen copy of the generic version for comparison/revert).
+### `camporee.json`
+Event manifest with:
+- `meta` — title, theme, year, director, camporeeId, `theme_colors { main, header, accent }`, `awards_config`
+- `playlist` — ordered array of `{ gameId }` entries
+- `type_defaults` — maps game type (`patrol`, `troop`) to preset IDs for common field injection at runtime
 
-content.schema.json: The human-readable narrative (Legend, Quest, Briefing, Rules).
+### `presets.json`
+Common patrol scoring fields shared across all patrol games. Each preset has `position: "prefix" | "suffix"` and `sortOrder`. Current presets:
 
-scoring.schema.json: The mathematical logic (Points, Stopwatches, Weights).
+| Field | Position | Notes |
+|---|---|---|
+| Patrol Flag | prefix | |
+| Patrol Yell | prefix | |
+| Scout Spirit | prefix | |
+| 10 Essentials | prefix | `type: "number"`, min 0, max 5 |
+| Unscoutlike Behavior | suffix | |
+| Judges Notes | suffix | |
+| Official Score | suffix | |
+| Final Ranking | suffix | |
+| Overall Points | suffix | |
 
-camporee-instance.schema.json: The high-level event metadata (Council, Dates, Location, Theme).
+### `games/*.json`
+Individual game definitions. Game files contain **only game-specific scoring inputs** — common fields are NOT baked in. They are injected at serve time.
 
-✨ Current State & AI Integration
-Thematic Embellishment: The Composer uses a Step-wise AI Workflow. First, it embellishes a "Theme" into a "Welcome Introduction." Then, it uses that intro as a creative "North Star" to rewrite individual games.
+---
 
-The AI Loop: Users can provide feedback to the AI to "reign in" descriptions or add specific nomenclature (e.g., naming a rope a "Liana Vine" in an African Safari theme).
+## 4. Common Field Injection
 
-UI/UX Status: The app uses Bootstrap 5 and CSS Variables. We are currently moving away from "standard/blah" layouts toward a Configurable Design System where the theme colors (Primary, Accent, Background) are stored in the JSON and injected at runtime.
+`injectCommonFields()` in `src/servers/collator.js` merges fields at `/games.json` serve time:
 
-🛠 Technical Stack
-Backend: Node.js, Express, EJS (templating).
+```
+[prefix presets] → [game-specific fields] → [suffix presets]
+```
 
-Frontend: Vanilla ES6 JavaScript, Bootstrap, CSS Variables.
+- Template syntax `{{variable_name}}` in preset labels is substituted from `game.variables`
+- **Exhibition** games receive no common fields (no in-app scoring)
+- **Troop** games receive only suffix admin fields (Official Score, Final Ranking, Overall Points)
+- **Patrol** games receive all prefix + suffix common fields
 
-Storage: Flat-file JSON, SQLite (for specific persistence), and Docker-based containerization.
+`COMMON_FIELD_IDS` in `public/js/apps/composer.js` is the authoritative list that prevents common field IDs from being written into game export files.
 
-Environment: Development occurs in WSL: Ubuntu with terser for minification.
+---
 
-🚩 Critical Guardrails for the Agent
-Zero-Inference Data Integrity: Never strip metadata (IDs, weights, config) during save/load operations.
+## 5. Two Scoring Shapes — Critical Distinction
 
-Scout-Appropriate: All AI-generated content must be G-rated, age-appropriate (11–17), and reflect the values of the Scout Oath and Law.
+These two formats must never be conflated:
 
-Variable-First CSS: Do not hardcode hex colors. Always use the --theme-primary style variables to support on-the-fly thematic skinning.
+| Context | Format | Shape |
+|---|---|---|
+| Composer stores | `game.scoring_model.inputs[]` | Each input has nested `config: { min, max, placeholder }` |
+| Collator serves | `game.fields[]` | Config properties spread to root: `min`, `max`, `placeholder` at top level |
 
-Middleware Sanitization: The Collator must "strip" internal metadata (like source_snapshot) before serving data to the Judge’s client app to keep payloads light.
+**`normalizeGameDefinition()`** in `public/js/core/schema.js` is the shared translation layer used by both Node and browser. It is the canonical conversion between these two shapes. Keep it import-safe in both environments.
 
-Next Step for New Agent:
-"Please audit the existing views/composer/index.ejs and the schemas/ directory. Once you have internalized the relationship between the Source Snapshot and the Active Content, propose a plan to implement the Thematic CSS Variable Picker in the Event Details accordion."
+---
+
+## 6. Game Types
+
+| Type | Common Fields | In-App Scoring | Leaderboard |
+|---|---|---|---|
+| `patrol` | All prefix + suffix presets | Yes | Main leaderboard |
+| `troop` | Suffix admin only | Yes | Separate troop section |
+| `exhibition` | None | No (manual entry) | Separate exhibition section |
+
+---
+
+## 7. Theme Colors
+
+`meta.theme_colors { main, header, accent }` in `camporee.json`. Read by `judge.js` and `data-store.js`, applied as CSS variables at runtime. Takes effect on next page load — no server restart needed.
+
+**Current Circus colors:**
+- Main: `#C62828` (Red)
+- Header: `#1565C0` (Blue)
+- Accent: `#F9A825` (Gold)
+
+---
+
+## 8. Key Files
+
+| File | Purpose |
+|---|---|
+| `src/servers/collator.js` | Live-event API, common field injection, Close Game handshake |
+| `src/servers/composer.js` | Composer/Curator API |
+| `public/js/apps/composer.js` | Composer SPA (~3000 lines), SYSTEM_PRESETS, export logic |
+| `public/js/apps/curator.js` | Curator SPA — library browser |
+| `public/js/judge.js` | Judge PWA (~2000 lines), offline scoring, sync |
+| `public/js/admin.js` | Collator admin dashboard |
+| `public/js/official.js` | Official leaderboard (polls every 15s) |
+| `public/js/core/schema.js` | `normalizeGameDefinition()`, shared Node + browser |
+| `public/js/core/ui.js` | Field HTML rendering helpers |
+| `public/js/sync-manager.js` | LocalStorage ↔ server sync queue |
+| `public/utils.html` + `public/js/utils.js` | Print scoresheets and supply lists |
+| `views/composer/index.ejs` | Composer SPA shell (Bootstrap layout) |
+| `schemas/` | AJV JSON schemas — source of truth (schema version 2.9) |
+| `data/collator/active-event/` | Unpacked live cartridge (gitignored) |
+| `data/composer/workspaces/` | Design workspaces (gitignored) |
+| `data/curator/` | Game template library (gitignored) |
+
+---
+
+## 9. Offline HTTPS Deployment
+
+Android blocked plain HTTP in early 2026; service workers require HTTPS or localhost. The event deployment strategy:
+
+1. **Certs:** Obtain Let's Encrypt cert via certbot DNS-01 challenge (Cloudflare) before the event while online. Stored in `./certs/` (gitignored). Valid 90 days.
+2. **Proxy:** Run Caddy at the event as an HTTPS reverse proxy in front of the Node server (`sudo caddy run --config Caddyfile`).
+3. **Local DNS:** GL.iNet Opal travel router creates event WiFi. dnsmasq custom entry resolves `camporeeconductor.com` to the laptop's LAN IP — no internet required on-site.
+
+Judge phones connect to Opal WiFi → navigate to `https://camporeeconductor.com` → valid cert → PWA installs and works fully offline.
+
+---
+
+## 10. Running the App
+
+```bash
+# Docker (recommended for production-like environment)
+docker compose up --build -d
+docker compose down && docker compose up --build -d && docker compose logs -f
+
+# Local dev (no Docker)
+npm run dev:all          # all three services
+npm run dev:collator     # collator only
+
+# HTTPS at the event
+sudo caddy run --config Caddyfile
+```
+
+Requires `GEMINI_API_KEY` in `.env` for AI features. Do not commit this file.
+
+---
+
+## 11. Current State (May 14, 2026)
+
+### Completed
+- All 34 games authored and loaded (patrol, troop, and exhibition events)
+- "The Big Top Goes Down" (P3 first aid) — full 3-victim scenario, 8-input scoring rubric (0–100 pts)
+- Theme Color Picker — Circus colors applied (Red/Blue/Gold)
+- Common Field Injection — fully implemented and tested
+- Close Game handshake — implemented in Collator
+- Print Scoresheets — grouped by type with checkboxes via `utils.html`
+- Official leaderboard — overview, matrix, detail, and exhibition views
+- Collator redirect paths — fixed for sub-path mounting
+
+### Open Backlog
+- **Challenge Match ("True 2nd Place")** — bracket tournament logic; `Matches`/`Match_Participants` DB tables exist, trigger logic TODO
+- **WebSocket leaderboard** — `official.js` currently polls every 15s
+- **Server consolidation** — legacy root files still present
+- **Practice Mode** — judges cannot test forms without affecting live scores
+- **Composer "Common Fields" panel** — no UI for editing `type_defaults` or previewing injected fields per game type
+- **Exhibition award print template** — not yet created
+
+---
+
+## 12. Critical Guardrails
+
+- **Zero-Inference Data Integrity** — Never strip `id`, `weight`, `kind`, `audience`, or `config` fields during save/load operations. They control scoring math.
+- **Variable-First CSS** — Never hardcode hex colors. Always use CSS variables (`--theme-primary`, `--brand-main`, etc.) defined in `public/css/conductor.css`.
+- **Middleware Sanitization** — The Collator strips `source_snapshot` and `variants` before serving `/games.json`. Do not serve these to judge clients.
+- **Scout-Appropriate AI** — All Gemini-generated content must be G-rated, age 11–17, Scout values aligned.
+- **`data/` is gitignored** — Runtime data (SQLite DB, game JSON files, presets.json, workspaces) lives in `data/` and is never committed. Code and schema changes are committed.
+
+---
+
+## 13. Next Steps for a New Agent
+
+1. Run `npm test` to verify the baseline (unit, integration, e2e suites)
+2. Read `CLAUDE.md` for full technical context and coding conventions
+3. Inspect `data/collator/active-event/` to see the currently loaded event cartridge
+4. For runtime questions, start with `src/servers/collator.js`
+5. For design tool questions, start with `public/js/apps/composer.js`
+6. Schema source of truth is `schemas/` — validate against AJV schemas before assuming field shapes

@@ -1,52 +1,42 @@
-# Camporee Conductor Suite - Project Backlog
+# Camporee Conductor — Backlog
 
-## 🏆 Bracket & Scoring Enhancements
-* [ ] **"The True 2nd Place" (Challenge Match Workflow):**
-    * *Status:* UI Restore complete. Logical challenge triggers required.
-    * *Priority:* **High.** This is essential for competitive fairness in bracket-style games.
-    * *New Task:* Implement the "Challenge Match" flag in the score schema to identify if a 2nd place matchup occurred.
+## Recently Completed
 
-## 🚀 Camporee Composer (Designer/Composer)
-* [ ] **Layout Theme Engine:**
-    * *Status:* Variable architecture ready.
-    * *Action:* Add a "Theme" picker in Composer to allow users to change `--brand-main` and `--brand-header` colors globally.
+- ✅ CSS Variable Theme Color Picker — theme_colors stored in camporee.json, applied via CSS vars at runtime
+- ✅ Exhibition Events as 3rd game type — full Composer UI, Collator results entry, Official view
+- ✅ Print Scoresheets grouped by game type — Patrol/Troop/Exhibition grouped checkboxes with Select All/None
+- ✅ Collator sub-app redirect fix — req.baseUrl prefix on all internal redirects
+- ✅ Game content for Circus Camporee 2026 — 35 games: 18 patrol + 13 troop + 4 exhibition
+- ✅ Common Field Injection — presets.json prefix/suffix fields merged at /games.json serve time
+- ✅ Game Variables — template substitution ({{variable_name}}) in common field labels
+- ✅ Close Game handshake — AI-assisted end-of-game confirmation flow
 
-## 🎻 Camporee Collator (Admin/Runtime)
-* [ ] **Integrated Score Visualizer:**
-    * *Action:* Add a "Real-time Leaderboard" view directly into the Collator dashboard.
-* [ ] **Express Server Consolidation:**
-    * *Priority:* **Medium.** Merge `server.js` and `designer_server.js` into a single multi-port or path-based Express instance to simplify Docker/Dev runs.
+---
 
-## 🚀 Camporee Composer (Composer) Enhancements
-* [ ] **"Test Drive" Mode:**
-    * *Status:* `renderPreview` exists, but it is static.
-    * *Action:* Expand the Preview Modal to allow actual interaction (clicking "Start" on stopwatches, entering data) to verify game rules without exporting.
-* [ ] **Template Library:**
-    * Create a built-in library of common Scouting games (e.g., "Knot Relay", "First Aid Scenarios") for one-click setup.
-* [ ] **Undo/Redo Stack:**
-    * Implement a history stack for the Form Editor.
+## Active Backlog
 
-## 🎻 Camporee Collator (Runtime) Enhancements
-* [ ] **"Practice Mode" / "Pre-Event Check":**
-    * A flag to allow Judges to test the form without saving data to the official queue.
-* [ ] **Station Status Dashboard:**
-    * A view for the "Conductor" (Admin) to see active stations and sync status.
+### Scoring
 
-## 🏛️ New Module: Camporee Curator (Archive)
-* [ ] **Concept:** A digital archive for past events.
-* [ ] **Features:**
-    * Ingest `CamporeeConfig.zip` and `Camporee_Scores.csv`.
-    * Read-only view of Leaderboards.
-    * "Clone to New Event" feature.
+- [ ] **Challenge Match ("True 2nd Place")** — bracket tournament logic; Matches/Match_Participants DB tables exist, trigger logic not yet implemented
 
-## 📦 Infrastructure & DevOps
-* [ ] **Node.js LTS Enforcement:**
-    * Add `.nvmrc` (v22) to prevent build failures on Node v24+.
-* [ ] **GitHub Actions:**
-    * Automate Docker Build/Release on tag push.
-* [ ] **Single Container Optimization:**
-    * Investigate merging `server.js` and `composer_server.js` into a single Express app to simplify deployment.
+### Collator / Runtime
 
-## 📝 Documentation
-* [ ] **User Guide:** Create a "Chair's Manual" (PDF/Wiki) for designing events.
-* [ ] **Developer Guide:** Document the modular architecture (`apps/` vs `core/`) and schema.
+- [ ] **WebSocket leaderboard** — official.js currently polls every 15s; replace with WebSocket push
+- [ ] **Practice Mode for judges** — flag to allow judges to test forms without persisting to the score queue
+- [ ] **Exhibition results print/PDF** — results are stored but no ribbon label or print output built yet
+- [ ] **Exhibition scoresheet custom columns in UI** — currently hardcoded in buildScoresheetHTML (Troop #, Patrol #, Patrol Name, # Members, # Participating); expose as configurable fields upstream in Composer/game definition
+- [ ] **Close Game handshake end-to-end test** — manual testing done; automated test coverage pending
+
+### Composer
+
+- [ ] **Common Fields panel** — UI for editing type_defaults and previewing injected fields per game type
+- [ ] **"Print All" scoresheet button** — currently only accessible in Collator tools (utils.html); should be available in Composer export flow
+
+### Infrastructure
+
+- [ ] **Server consolidation** — root-level legacy files (composer_server.js) still exist alongside src/servers/; clean up after confirming nothing depends on them
+- [ ] **Node.js version pin** — add .nvmrc to prevent build failures on future Node versions
+
+### Documentation
+
+- [ ] **Event Director's Guide** — operational runbook covering cert renewal, router setup, cartridge load, and event-day checklist

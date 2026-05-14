@@ -2,6 +2,8 @@
 
 This document is auto-generated from the `schemas/*.json` files. It describes the structure of game templates and scoring models across the application.
 
+> **Two formats:** Game definitions exist in two forms. **Composer format** is stored in game files: `scoring_model.inputs[]` with a nested `config` sub-object. **Collator runtime format** is served by `/games.json`: `fields[]` with `config` properties spread to root (`min`, `max`, `placeholder` at top level alongside `id`, `label`, etc.). `normalizeGameDefinition()` in `public/js/core/schema.js` translates between them.
+
 ## 1. Game Definition Schema
 
 Defines a game concept. Can be used as a Library template (with variants) or an Active Camporee instance.
@@ -16,6 +18,7 @@ Defines a game concept. Can be used as a Library template (with variants) or an 
 | `type` | string<br>_Enum:_ `patrol`, `troop`, `exhibition` | ✅ |  |
 | `tags` | string[] | ❌ |  |
 | `content` | object | ✅ | See **content Object** definitions below. |
+| `variables` | object | ❌ | Key-value pairs for template substitution in common field labels (e.g., `ten_essentials: "matches"` → preset label "10 Essentials: {{ten_essentials}}" renders as "10 Essentials: matches") |
 | `scoring_model` | object | ✅ | See **scoring_model Object** definitions below. |
 | `variants` | object[] | ❌ |  |
 
@@ -64,7 +67,7 @@ Every item inside the `inputs` array follows this structure:
 | `audience` | string<br>_Enum:_ `judge`, `admin` | ❌ |  _(Default: "judge")_ |
 | `weight` | number | ❌ |  _(Default: 1)_ |
 | `sortOrder` | integer | ❌ |  _(Default: 900)_ |
-| `config` | object | ❌ |  <br>(Contains nested properties, see below or source for details) |
+| `config` | object | ❌ | Nested in Composer format. In Collator runtime format, these properties are spread to root (`min`, `max`, `placeholder` appear at the top level of the field object). See Config Sub-Object below. |
 
 #### Config Sub-Object (Type-Specific Constraints)
 

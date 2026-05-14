@@ -97,7 +97,7 @@ npm test                  # all three
 - **Cartridge format** (`CamporeeConfig.zip`): `camporee.json` + `presets.json` + `games/*.json`
 - `camporee.json` includes `type_defaults` — maps game type to preset IDs for runtime injection
 - **Game files contain only game-specific scoring inputs.** Common fields are NOT baked in.
-- `game.variables` — optional `{ key: value }` pairs for template substitution in common field labels (e.g., `ten_essentials_item: "matches"` → label becomes "10 Essentials: matches")
+- `game.variables` — optional `{ key: value }` pairs for template substitution in common field labels (e.g., `ten_essentials: "matches"` → label becomes "10 Essentials: matches")
 - Game types: `patrol` | `troop` | `exhibition`. Exhibition has no common fields and no in-app scoring.
 
 ---
@@ -148,11 +148,80 @@ Common patrol scoring fields (Patrol Flag, Patrol Yell, Scout Spirit, 10 Essenti
 
 ---
 
-## Known Backlog (as of 2026-03-30)
+## Offline Event Deployment (Caddy + Let's Encrypt)
+
+The Collator must be served over HTTPS. Android blocked plain HTTP in early 2026; the judge PWA requires HTTPS or localhost for service workers to register.
+
+### Certificate Strategy (DNS-01 Challenge — No Internet Required at Event)
+
+Obtain certs **before** the event while still online. The DNS-01 ACME challenge proves domain ownership via a TXT record in Cloudflare — no HTTP server needed.
+
+```bash
+# Install certbot + Cloudflare plugin (once)
+sudo apt install certbot python3-certbot-dns-cloudflare
+
+# Create credentials file (do not commit)
+# ~/.secrets/certbot/cloudflare.ini
+#   dns_cloudflare_api_token = YOUR_CF_API_TOKEN
+chmod 600 ~/.secrets/certbot/cloudflare.ini
+
+# Obtain cert (domain: camporeeconductor.com)
+sudo certbot certonly \
+  --dns-cloudflare \
+  --dns-cloudflare-credentials ~/.secrets/certbot/cloudflare.ini \
+  -d camporeeconductor.com \
+  -d "*.camporeeconductor.com"
+
+# Copy certs to project ./certs/ (gitignored)
+cp /etc/letsencrypt/live/camporeeconductor.com/fullchain.pem ./certs/
+cp /etc/letsencrypt/live/camporeeconductor.com/privkey.pem ./certs/
+```
+
+Certs are valid 90 days. Renew before each event (can be done from home while online).
+
+### Caddy Configuration
+
+`Caddyfile` in the repo root (gitignored — contains cert paths):
+
+```
+camporeeconductor.com {
+  tls ./certs/fullchain.pem ./certs/privkey.pem
+  reverse_proxy localhost:3000
+}
+```
+
+Start Caddy: `sudo caddy run --config Caddyfile`
+
+### GL.iNet Opal (OpenWrt) Local DNS
+
+The GL.iNet Opal travel router creates the event WiFi. Configure dnsmasq so `camporeeconductor.com` resolves to the laptop's LAN IP (not the internet).
+
+In GL.iNet admin → More Settings → Custom DNS: add:
+```
+address=/camporeeconductor.com/192.168.8.XXX
+```
+(Replace `XXX` with the laptop's actual IP on the Opal network — check `ip addr` on the Opal interface.)
+
+Judge phones connect to the Opal WiFi, navigate to `https://camporeeconductor.com`, get the valid cert, and the PWA installs. No internet required at the venue.
+
+---
+
+## Known Backlog (as of 2026-05-14)
+
+### Completed Since 2026-03-30
+
+- **CSS Variable Theme Color Picker** — implemented; `meta.theme_colors {main, header, accent}` in camporee.json, color picker UI in Composer Metadata tab, CSS vars injected at runtime by judge.js and data-store.js
+- **Exhibition Events** — fully implemented; `type: "exhibition"` games have no common fields and no in-app scoring; shown separately in Collator admin and Official leaderboard
+- **Print Scoresheets (grouped UI)** — `utils.html` now has three collapsible sections (Patrol / Troop / Exhibition) with per-game checkboxes and Select All/None
+- **Collator redirect paths** — all `res.redirect()` calls use `req.baseUrl` prefix for correct behavior when mounted at `/collator` in dev
+- **The Big Top Goes Down** — full first-aid scenario with 3-victim scene, complete scoring rubric (8 inputs, 0-100 points); game renamed from `accident-at-the-circus`
+- **Ten Essentials field** — corrected from `checkbox` to `number` type (0–5 scale) in both active-event and workspace presets.json
+
+### Still Open
 
 - **Challenge Match ("True 2nd Place")** — bracket tournament logic; `Matches`/`Match_Participants` DB tables exist, trigger logic TODO
-- **CSS Variable Theme Color Picker** — variable architecture ready, Composer UI not wired
-- **WebSocket leaderboard** — `official.js` currently polls every 15s
+- **WebSocket leaderboard** — `official.js` currently polls every 15s; upgrade to WebSocket for live push
 - **Server consolidation** — merge legacy root `server.js` + `composer_server.js` into `src/`
 - **Practice Mode** — flag to let judges test forms without persisting to score queue
 - **Composer "Common Fields" panel** — UI for editing `type_defaults` and previewing injected fields per game type
+- **Exhibition award print** — no print template for exhibition results (e.g., Slack Line individual ribbons)

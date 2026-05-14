@@ -23,6 +23,7 @@ Tags: {{#each tags}}#{{this}} {{/each}}
 * {{this}}
 {{/each}}
 
+<div style="page-break-after: always;"></div>
 ---
 
 ## ⚖️ OFFICIAL’S PLAYBOOK (Audience: Judge)  
@@ -51,6 +52,7 @@ Tags: {{#each tags}}#{{this}} {{/each}}
 *No specific reset required for this game.*
 {{/if}}
 
+<div style="page-break-after: always;"></div>
 ---
 
 ## 📦 LOGISTICS & SETUP (Audience: Preparer)

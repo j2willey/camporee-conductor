@@ -114,6 +114,17 @@ db.exec(`
     server_received_at TEXT DEFAULT (datetime('now')),
     FOREIGN KEY(judge_id) REFERENCES judges(id)
   );
+
+  CREATE TABLE IF NOT EXISTS exhibition_results (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    game_id TEXT NOT NULL,
+    scout_name TEXT NOT NULL DEFAULT '',
+    troop_number TEXT NOT NULL DEFAULT '',
+    patrol_name TEXT NOT NULL DEFAULT '',
+    overall_place TEXT NOT NULL DEFAULT '',
+    judges_notes TEXT NOT NULL DEFAULT '',
+    sort_order INTEGER NOT NULL DEFAULT 0
+  );
 `);
 
 // --- MIGRATIONS ---
@@ -360,7 +371,7 @@ const requireConfig = (req, res, next) => {
     }
 
     if (!getActiveMeta()) {
-        return res.redirect('/setup');
+        return res.redirect(req.baseUrl + '/setup');
     }
     next();
 };
@@ -369,6 +380,7 @@ app.use(requireConfig);
 // --- ROUTES ---
 
 app.get('/setup', (req, res) => {
+    const base = req.baseUrl || '';
     res.send(`
         <html>
             <head><title>Setup</title><link rel="stylesheet" href="/css/bootstrap.min.css"></head>
@@ -376,7 +388,7 @@ app.get('/setup', (req, res) => {
                 <div class="card bg-secondary text-white p-5 text-center" style="max-width: 500px;">
                     <h1>Camporee Collator</h1>
                     <p class="lead">System Ready. Load Cartridge.</p>
-                    <form action="/api/setup/upload" method="post" enctype="multipart/form-data">
+                    <form action="${base}/api/setup/upload" method="post" enctype="multipart/form-data">
                         <input class="form-control mb-3" type="file" name="configZip" accept=".zip" required>
                         <button type="submit" class="btn btn-primary w-100">Upload Configuration</button>
                     </form>
@@ -387,7 +399,7 @@ app.get('/setup', (req, res) => {
 });
 
 app.post('/api/setup/upload', upload.single('configZip'), (req, res) => {
-    if (!req.file) return res.redirect('/setup');
+    if (!req.file) return res.redirect(req.baseUrl + '/setup');
 
     const zipPath = req.file.path;
     const zip = new AdmZip(zipPath);
@@ -409,16 +421,17 @@ app.post('/api/setup/upload', upload.single('configZip'), (req, res) => {
     if (!currentMeta || newMeta.camporeeId !== currentMeta.camporeeId) {
         archiveDatabase();
         installCartridge(zipPath);
-        return res.redirect('/admin.html');
+        return res.redirect(req.baseUrl + '/admin.html');
     }
 
     // Case 2: Update Detected -> Ask User
     fs.renameSync(zipPath, pendingPath);
-    res.redirect('/setup/conflict');
+    res.redirect(req.baseUrl + '/setup/conflict');
 });
 
 app.get('/setup/conflict', (req, res) => {
     const meta = getActiveMeta();
+    const base = req.baseUrl || '';
     res.send(`
         <html>
             <head><title>Update Detected</title><link rel="stylesheet" href="/css/bootstrap.min.css"></head>
@@ -427,15 +440,15 @@ app.get('/setup/conflict', (req, res) => {
                     <h2 class="text-warning">Update Detected</h2>
                     <p>Updating <strong>${meta.title}</strong>.</p>
                     <div class="d-grid gap-3">
-                        <form action="/api/setup/confirm" method="post">
+                        <form action="${base}/api/setup/confirm" method="post">
                             <input type="hidden" name="action" value="update_keep">
                             <button class="btn btn-success btn-lg w-100">Update Config (Keep Scores)</button>
                         </form>
-                        <form action="/api/setup/confirm" method="post">
+                        <form action="${base}/api/setup/confirm" method="post">
                             <input type="hidden" name="action" value="update_wipe">
                             <button class="btn btn-danger btn-lg w-100">Update & Reset Scores</button>
                         </form>
-                        <a href="/admin.html" class="btn btn-outline-light">Cancel</a>
+                        <a href="${base}/admin.html" class="btn btn-outline-light">Cancel</a>
                     </div>
                 </div>
             </body>
@@ -447,12 +460,12 @@ app.post('/api/setup/confirm', express.urlencoded({ extended: true }), (req, res
     const action = req.body.action;
     const pendingPath = path.join(UPLOAD_TEMP, 'pending_update.zip');
 
-    if (!fs.existsSync(pendingPath)) return res.redirect('/setup');
+    if (!fs.existsSync(pendingPath)) return res.redirect(req.baseUrl + '/setup');
 
     if (action === 'update_wipe') archiveDatabase();
 
     installCartridge(pendingPath);
-    res.redirect('/admin.html');
+    res.redirect(req.baseUrl + '/admin.html');
 });
 
 // --- CORE ROUTES ---
@@ -462,9 +475,9 @@ app.get('/', (req, res) => {
     const isMobile = /mobile|android|iphone|ipad|ipod|blackberry|iemobile|kindle|silk-accelerated|(hpw|web)os|opera m(obi|ini)/i.test(ua);
 
     if (isMobile) {
-        res.redirect('/judge.html');
+        res.redirect(req.baseUrl + '/judge.html');
     } else {
-        res.redirect('/admin.html');
+        res.redirect(req.baseUrl + '/admin.html');
     }
 });
 
@@ -588,6 +601,40 @@ app.post('/api/score', (req, res) => {
     } catch (err) {
         console.error('Insert error:', err);
         res.status(500).json({ error: 'Database error' });
+    }
+});
+
+// --- EXHIBITION RESULTS ROUTES ---
+
+app.get('/api/exhibition-results/:gameId', (req, res) => {
+    try {
+        const rows = db.prepare(
+            'SELECT * FROM exhibition_results WHERE game_id = ? ORDER BY sort_order ASC, id ASC'
+        ).all(req.params.gameId);
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/exhibition-results/:gameId', express.json(), (req, res) => {
+    const { gameId } = req.params;
+    const rows = req.body;
+    if (!Array.isArray(rows)) return res.status(400).json({ error: 'Expected array' });
+
+    try {
+        db.transaction(() => {
+            db.prepare('DELETE FROM exhibition_results WHERE game_id = ?').run(gameId);
+            const insert = db.prepare(
+                'INSERT INTO exhibition_results (game_id, scout_name, troop_number, patrol_name, overall_place, judges_notes, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)'
+            );
+            rows.forEach((row, i) => {
+                insert.run(gameId, row.scout_name || '', row.troop_number || '', row.patrol_name || '', row.overall_place || '', row.judges_notes || '', i);
+            });
+        })();
+        res.json({ status: 'ok', count: rows.length });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 

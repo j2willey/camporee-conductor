@@ -180,22 +180,66 @@
 
         <!-- View: Scoresheets -->
         <section id="view-scoresheets" class="hidden">
-            <div style="max-width: 600px; margin: 40px auto;">
+            <div style="max-width: 640px; margin: 40px auto;">
                 <h2>Print Scoresheets</h2>
-                <p class="text-muted">Generate a blank paper scoresheet for one game or all games. Print landscape for best results.</p>
+                <p class="text-muted">Select the games to include. Print landscape for best results.</p>
                 <div class="card p-4">
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Game</label>
-                        <select id="scoresheet-game-select" class="form-select">
-                            <option value="all">All Games (one sheet each)</option>
-                        </select>
+
+                    <!-- Patrol Games -->
+                    <div class="mb-3 border rounded p-3" id="ss-group-patrol">
+                        <div class="d-flex align-items-center gap-2">
+                            <input class="form-check-input ss-group-toggle mt-0" type="checkbox" id="ss-toggle-patrol" checked onchange="utils.ssToggleGroup('patrol', this.checked)">
+                            <label class="form-check-label fw-bold flex-grow-1 mb-0" for="ss-toggle-patrol" style="cursor:pointer">
+                                Patrol Games <span class="badge bg-secondary ms-1" id="ss-badge-patrol">0</span>
+                            </label>
+                            <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="utils.ssSelectAll('patrol')">All</button>
+                            <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="utils.ssDeselectAll('patrol')">None</button>
+                        </div>
+                        <div id="ss-list-patrol" class="mt-2 ps-3">
+                            <!-- injected by JS -->
+                        </div>
                     </div>
+
+                    <!-- Troop Challenges -->
+                    <div class="mb-3 border rounded p-3" id="ss-group-troop">
+                        <div class="d-flex align-items-center gap-2">
+                            <input class="form-check-input ss-group-toggle mt-0" type="checkbox" id="ss-toggle-troop" checked onchange="utils.ssToggleGroup('troop', this.checked)">
+                            <label class="form-check-label fw-bold flex-grow-1 mb-0" for="ss-toggle-troop" style="cursor:pointer">
+                                Troop Challenges <span class="badge bg-secondary ms-1" id="ss-badge-troop">0</span>
+                            </label>
+                            <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="utils.ssSelectAll('troop')">All</button>
+                            <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="utils.ssDeselectAll('troop')">None</button>
+                        </div>
+                        <div id="ss-list-troop" class="mt-2 ps-3">
+                            <!-- injected by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Exhibition Events -->
+                    <div class="mb-3 border rounded p-3" id="ss-group-exhibition">
+                        <div class="d-flex align-items-center gap-2">
+                            <input class="form-check-input ss-group-toggle mt-0" type="checkbox" id="ss-toggle-exhibition" checked onchange="utils.ssToggleGroup('exhibition', this.checked)">
+                            <label class="form-check-label fw-bold flex-grow-1 mb-0" for="ss-toggle-exhibition" style="cursor:pointer">
+                                Exhibition Events <span class="badge bg-secondary ms-1" id="ss-badge-exhibition">0</span>
+                            </label>
+                            <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="utils.ssSelectAll('exhibition')">All</button>
+                            <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="utils.ssDeselectAll('exhibition')">None</button>
+                        </div>
+                        <div id="ss-list-exhibition" class="mt-2 ps-3">
+                            <!-- injected by JS -->
+                        </div>
+                    </div>
+
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Blank rows</label>
+                        <label class="form-label fw-bold">Blank rows per sheet</label>
                         <input type="number" id="scoresheet-rows" class="form-control" value="20" min="5" max="60">
                         <div class="form-text">Number of empty rows for patrols/troops to score.</div>
                     </div>
-                    <button class="btn btn-primary w-100" onclick="utils.printScoresheets()">🖨 Open Print Preview</button>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="scoresheet-duplex">
+                        <label class="form-check-label" for="scoresheet-duplex">2-sided print — duplicate each sheet for duplex printing</label>
+                    </div>
+                    <button class="btn btn-primary w-100" onclick="utils.printScoresheets()">🖨 Print Selected Scoresheets</button>
                 </div>
             </div>
         </section>

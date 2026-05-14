@@ -21,7 +21,8 @@
         <div class="header-right">
             <select id="view-mode-select" class="form-select form-select-sm fw-bold">
                 <option value="patrol">Patrol Games</option>
-                <option value="troop">Troop Games</option>
+                <option value="troop">Troop Challenges</option>
+                <option value="exhibition">Exhibition Events</option>
             </select>
             <div class="form-check form-switch text-white">
                 <input class="form-check-input" type="checkbox" id="auto-refresh-switch">
@@ -52,6 +53,24 @@
                     <!-- Table content injected here -->
                 </table>
             </div>
+        </section>
+
+        <!-- View 4: Exhibition Results (per-game entry) -->
+        <section id="view-exhibition" class="hidden">
+            <div class="p-3">
+                <div id="exhibition-container"></div>
+            </div>
+            <datalist id="ex-places-list">
+                <option value="1st">
+                <option value="2nd">
+                <option value="3rd">
+                <option value="2nd-Tied">
+                <option value="3rd-Tied">
+                <option value="4th">
+                <option value="4th-Tied">
+                <option value="5th">
+                <option value="HM">
+            </datalist>
         </section>
 
         <!-- View 3: Matrix -->

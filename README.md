@@ -1,93 +1,163 @@
-# Camporee Conductor Suite
+# Camporee Conductor
 
-**The Event Operating System for Offline Scout Competitions**
+**Offline-first digital event operating system for BSA skill competitions (Camporees).**
 
-The **Camporee Conductor Suite** (formerly Coyote Collator) is a specialized software ecosystem designed to plan, run, and score large-scale Scouting competitions in environments with **zero internet access**.
-
-It replaces paper score sheets and complex Excel spreadsheets with a robust, offline-first digital workflow.
+Replaces paper scorecards and spreadsheets with a portable "Digital Cartridge" workflow that runs entirely on a local WiFi network with no internet required.
 
 ---
 
-## 🏗️ The Architecture: "The Camporee Conductor Compendium"
+## Architecture
 
-The suite is composed of four distinct modules that handle the entire event lifecycle:
+Three pillars, two Docker services:
 
-### 1. 🎼 Camporee Composer (The Architect)
-* **Role:** Pre-Production Design Tool.
-* **Function:** A drag-and-drop visual editor where you define the games, rules, scoring inputs, and penalties.
-* **Output:** Generates a portable `CamporeeConfig.zip` cartridge containing the entire event definition.
-* **Location:** Runs on Port `3001`.
+| Pillar | Role | Container / Port |
+|---|---|---|
+| **Curator** | Game template library browser | composer-curator / 3001 |
+| **Composer** | Visual event design + cartridge export | composer-curator / 3001 |
+| **Collator** | Live-event runtime + judge PWA | collator / 3000 |
 
-### 2. 🦋 Camporee Collector (The Field Agent)
-* **Role:** Judge's Interface (PWA).
-* **Function:** The lightweight, offline-first Progressive Web App used by Judges in the field.
-* **Workflow:** Judges "Load" the config at HQ, walk to the woods to "Collect" scores (stored in `localStorage`), and return to HQ to "Sync."
-* **Location:** Served via the Runtime Server (Port `3000`).
+Active server files: `src/servers/composer.js` (Curator + Composer) and `src/servers/collator.js` (Collator).
 
-### 3. 🎻 Camporee Collator (The Command Center)
-* **Role:** Administration Dashboard.
-* **Function:** The central hub where scores land. The Event Director uses this to:
-    * Manage the Roster (Troops/Patrols).
-    * Monitor incoming data streams in real-time.
-    * "Collate" raw data into the Master Leaderboard.
-    * Generate Awards and Ribbons.
-* **Location:** Served via the Runtime Server (Port `3000`).
+In local dev all three pillars are served by `server.js` on port 3000 at `/curator`, `/composer`, and `/collator`.
 
-### 4. 🏛️ Camporee Curator (The Librarian - to be implemented)
-* **Role:** Archives & Templates (Roadmap).
-* **Function:** A repository for preserving past event data and maintaining a library of standard Game Templates (e.g., "Standard Knot Relay") to speed up future event design.
+### Game Types
 
----
+| Type | Scoring | Notes |
+|---|---|---|
+| `patrol` | By patrol, judge PWA entry | Common fields injected at runtime |
+| `troop` | By troop, judge PWA entry | Admin suffix fields only |
+| `exhibition` | Manual, Collator admin entry | No judge PWA scoring, no common fields |
 
-## 🚀 Quick Start
+### Cartridge Format
 
-### Prerequisites
-* **Docker Desktop** (Required)
-* (Windows Users) Ensure you are running in **WSL2** mode.
+`CamporeeConfig.zip` contains:
+- `camporee.json` — event metadata, roster config, theme colors, `type_defaults`
+- `presets.json` — common scoring field definitions (prefix/suffix injection)
+- `games/*.json` — individual game definitions (game-specific fields only)
 
-### Installation & Launch
-
-1.  **Start the Suite:**
-    ```bash
-    docker compose up --build -d
-    ```
-
-2.  **Access the Applications:**
-    * **The Composer (Design):** `http://localhost:3001`
-    * **The Runtime (Collect/Collate):** `http://localhost:3000`
+Common patrol/troop scoring fields (Patrol Flag, Scout Spirit, etc.) are defined once in `presets.json` and injected by the Collator at `/games.json` serve time — they are never baked into game files.
 
 ---
 
-## 🔄 The "Mule Strategy" Workflow
+## Tech Stack
 
-1.  **Compose:** Use the **Composer** to build your event schema and export the `CamporeeConfig.zip`.
-2.  **Setup:** Upload the zip file and your Roster CSV to the **Collator** dashboard.
-3.  **Collect:**
-    * Judges scan a QR code at HQ to load the **Collector** app.
-    * They go offline to the field and score games.
-    * They return to Wi-Fi range to sync data.
-4.  **Collate:** The server aggregates scores, handles weighted logic, and produces the final Leaderboard.
+- **Runtime:** Node.js 20, Express.js
+- **Database:** SQLite (better-sqlite3)
+- **Frontend:** Vanilla JS (ES Modules), Bootstrap 5
+- **Schemas:** AJV JSON validation (`schemas/` directory)
+- **Infrastructure:** Docker Compose, Caddy reverse proxy (production)
 
 ---
 
-## 🛠️ Tech Stack
+## Running the App
 
-* **Infrastructure:** Docker Compose (Node:20-Alpine)
-* **Frontend:** Vanilla JS (ES Modules) with a **Shared Core Architecture**.
-* **Backend:** Node.js (Express)
-* **Database:** SQLite (via `better-sqlite3`) using a JSON-column strategy for flexible schema storage.
-* **Offline Storage:** `localStorage` + Service Workers.
+```bash
+# Docker (recommended for event use)
+docker compose up --build -d
 
-## 📂 Project Structure
+# Rebuild and follow logs
+docker compose down && docker compose up --build -d && docker compose logs -f
+# or use the alias:
+revive
 
-* `camporee/`: Default storage for event configurations and game definitions.
-* `public/js/core/`: **Shared Library.** Contains schema definitions and UI rendering logic used by both Composer and Collector.
-* `composer_server.js`: The Design server.
-* `server.js`: The Runtime server (hosting Collector & Collator).
-* `scripts/`: Automation utilities and Playwright tests.
+# Local dev (all services on port 3000 via server.js)
+npm run dev:all
+
+# Collator only
+npm run dev:collator
+```
+
+Access points (Docker):
+- Composer + Curator: `http://localhost:3001`
+- Collator (admin + judge PWA): `http://localhost:3000`
 
 ---
 
-## 📜 License
+## Testing
 
-MIT License - Free for use by any Scouting unit.
+```bash
+npm run test:unit         # vitest — schema/normalizer unit tests
+npm run test:integration  # vitest — API tests (Gemini mocked)
+npm run test:e2e          # playwright — requires servers on localhost:3000/3001
+npm test                  # all three
+```
+
+Requires `GEMINI_API_KEY` in `.env` for AI features (Composer only, not needed for event-day Collator).
+
+---
+
+## Production / Offline Event Setup
+
+The Collator runs on a laptop at the event venue with no internet. Judges connect over local WiFi.
+
+### Why HTTPS is required
+
+Android blocks plain HTTP for PWA service workers. HTTPS is mandatory for the judge PWA to install and work offline.
+
+### Infrastructure
+
+- **Domain:** camporeeconductor.com (Cloudflare)
+- **Certs:** Let's Encrypt, 90-day, obtained via certbot Cloudflare DNS-01 challenge before the event
+- **Caddy:** Reads `Caddyfile`, uses pre-obtained certs from `./certs/`, proxies to collator:3000
+- **Router:** GL.iNet GL-SFT1200 Opal (OpenWrt) creates local WiFi at venue
+- **DNS:** GL.iNet dnsmasq resolves camporeeconductor.com to the laptop's LAN IP
+
+### Event-day flow
+
+1. Router creates local WiFi network (no internet required)
+2. Judges connect to Opal WiFi, navigate to `https://camporeeconductor.com`
+3. PWA installs on their phone; QR code at each station encodes the judge URL
+4. Scores sync over local WiFi to the Collator on the laptop
+
+### Cert renewal (run before the event while online)
+
+```bash
+certbot renew --dns-cloudflare --dns-cloudflare-credentials ~/.secrets/cloudflare.ini
+cp /etc/letsencrypt/live/camporeeconductor.com/fullchain.pem ./certs/
+cp /etc/letsencrypt/live/camporeeconductor.com/privkey.pem ./certs/
+# Then take the laptop offline to the event
+```
+
+`./certs/` is gitignored. Never commit TLS certificates.
+
+### GL.iNet dnsmasq config
+
+Add via GL.iNet admin panel under Advanced > dnsmasq:
+
+```
+address=/camporeeconductor.com/192.168.8.XXX
+```
+
+Replace `XXX` with the laptop's IP on the Opal's network.
+
+### Environment variables (`.env`)
+
+```
+CADDY_DOMAIN=camporeeconductor.com
+GEMINI_API_KEY=...
+```
+
+---
+
+## Project Structure
+
+```
+src/servers/          Active Express apps (composer.js, collator.js)
+public/
+  js/apps/            SPA entry points (composer.js, curator.js)
+  js/core/            Shared library (schema.js, data-store.js, ui.js, api.js)
+  js/                 judge.js, admin.js, official.js, sync-manager.js
+views/                EJS templates (composer layout)
+schemas/              AJV JSON schemas — source of truth
+data/                 Gitignored runtime data:
+  collator/           SQLite DB, active-event cartridge
+  composer/           Design workspaces
+  curator/            Game template library
+certs/                Gitignored TLS certificates
+```
+
+---
+
+## License
+
+MIT — Free for use by any Scouting unit.
