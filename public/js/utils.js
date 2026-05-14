@@ -1001,12 +1001,14 @@ function populateScoresheetGroups() {
     Object.entries(groups).forEach(([type, games]) => {
         const list = document.getElementById(`ss-list-${type}`);
         const badge = document.getElementById(`ss-badge-${type}`);
+        const toggle = document.getElementById(`ss-toggle-${type}`);
         if (!list) return;
         if (badge) badge.textContent = games.length;
+        const groupOn = !toggle || toggle.checked;
         list.innerHTML = games.map(g =>
             `<div class="form-check">
                 <input class="form-check-input ss-game-cb" type="checkbox"
-                    id="ss-cb-${g.id}" value="${g.id}" data-group="${type}" checked>
+                    id="ss-cb-${g.id}" value="${g.id}" data-group="${type}"${groupOn ? ' checked' : ''}>
                 <label class="form-check-label" for="ss-cb-${g.id}">${escH(formatGameTitle(g))}</label>
             </div>`
         ).join('');

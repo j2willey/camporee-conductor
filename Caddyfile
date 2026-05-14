@@ -1,0 +1,14 @@
+{
+    auto_https off
+}
+
+# HTTPS — serve judge PWA with real cert
+{$CADDY_DOMAIN} {
+    tls /certs/fullchain.pem /certs/privkey.pem
+    reverse_proxy collator:3000
+}
+
+# Redirect plain HTTP → HTTPS
+http://{$CADDY_DOMAIN} {
+    redir https://{host}{uri} permanent
+}

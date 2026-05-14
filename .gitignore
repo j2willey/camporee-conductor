@@ -43,3 +43,19 @@ scripts/demo/score-*.cjs
 # Playwright Test Generated Files
 playwright-report/
 test-results/
+
+# Personal context files (not part of the codebase)
+JIM.md
+JIM_v2.md
+
+# Claude Code local settings and memory
+.claude/
+
+# Binary packages and downloaded installers
+*.deb
+*.rpm
+*.exe
+*.pkg
+
+# Source PDFs (content already incorporated into game JSON)
+*.pdf
