@@ -2288,8 +2288,7 @@ const composer = {
     _printGuidesWindow: function (sections, title) {
         const sectionDivs = sections.map(s => `<div class="guide-section">${s}</div>`).join('\n');
 
-        const win = window.open('', '_blank');
-        win.document.write(`<!DOCTYPE html>
+        const html = `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
@@ -2306,10 +2305,13 @@ const composer = {
 </style>
 </head>
 <body>${sectionDivs}</body>
-</html>`);
-        win.document.close();
-        win.focus();
-        win.onload = () => {
+</html>`;
+        const blob = new Blob([html], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const win = window.open(url, '_blank');
+        if (!win) { alert('Pop-up blocked — allow pop-ups for this page and try again.'); URL.revokeObjectURL(url); return; }
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+        win.addEventListener('load', () => {
             // CSS break-before:right is unreliable in Chrome — compute blank pages in JS instead.
             // Measure at print content width (8.5in - 2×0.75in = 7in = 672px at 96dpi) so
             // offsetHeight matches the print page height (11in - 2×0.75in = 9.5in = 912px).
@@ -2372,8 +2374,10 @@ const composer = {
                 }
             });
 
-            win.print();
-        };
+            const s = doc.createElement('script');
+            s.textContent = 'setTimeout(window.print, 250);';
+            doc.body.appendChild(s);
+        });
     },
 
     executePrintGuides: async function () {
@@ -2503,8 +2507,7 @@ const composer = {
             return html;
         }).join('\n');
 
-        const win = window.open('', '_blank');
-        win.document.write(`<!DOCTYPE html>
+        const suppliesHtml = `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
@@ -2527,25 +2530,29 @@ const composer = {
 <body>
 <h1>Supplies List — ${camporeeTitle}</h1>
 ${gameHtml}
+<script>setTimeout(window.print, 250);<\/script>
 </body>
-</html>`);
-        win.document.close();
-        win.focus();
-        win.onload = () => win.print();
+</html>`;
+        const blob = new Blob([suppliesHtml], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const win = window.open(url, '_blank');
+        if (!win) { alert('Pop-up blocked — allow pop-ups for this page and try again.'); }
+        setTimeout(() => URL.revokeObjectURL(url), 30000);
     },
 
     printPreview: function () {
-        const originalContents = document.body.innerHTML;
         const modalBody = document.getElementById('previewModalBody').innerHTML;
-
-        document.body.innerHTML = `
-            <div style="padding: 20px; max-width: 800px; margin: 0 auto; font-family: sans-serif;">
-                ${modalBody}
-            </div>`;
-
-        window.print();
-        document.body.innerHTML = originalContents;
-        window.location.reload(); // Reload to restore proper event bindings
+        const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+            body { padding: 20px; max-width: 800px; margin: 0 auto; font-family: sans-serif; }
+        </style></head><body>
+            <div>${modalBody}</div>
+            <script>setTimeout(window.print, 250);<\/script>
+        </body></html>`;
+        const blob = new Blob([html], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const win = window.open(url, '_blank');
+        if (!win) { alert('Pop-up blocked — allow pop-ups for this page and try again.'); }
+        setTimeout(() => URL.revokeObjectURL(url), 30000);
     },
 
     openBrainstormModal: function () {
