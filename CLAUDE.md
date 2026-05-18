@@ -206,16 +206,25 @@ Judge phones connect to the Opal WiFi, navigate to `https://camporeeconductor.co
 
 ---
 
-## Known Backlog (as of 2026-05-14)
+## Known Backlog (as of 2026-05-17)
 
 ### Completed Since 2026-03-30
 
 - **CSS Variable Theme Color Picker** — implemented; `meta.theme_colors {main, header, accent}` in camporee.json, color picker UI in Composer Metadata tab, CSS vars injected at runtime by judge.js and data-store.js
 - **Exhibition Events** — fully implemented; `type: "exhibition"` games have no common fields and no in-app scoring; shown separately in Collator admin and Official leaderboard
 - **Print Scoresheets (grouped UI)** — `utils.html` now has three collapsible sections (Patrol / Troop / Exhibition) with per-game checkboxes and Select All/None
-- **Collator redirect paths** — all `res.redirect()` calls use `req.baseUrl` prefix for correct behavior when mounted at `/collator` in dev
+- **Collator redirect paths** — all `res.redirect()` calls use `(req.baseUrl || '/collator')` fallback; `req.baseUrl` is `''` inside ESM sub-app mount
 - **The Big Top Goes Down** — full first-aid scenario with 3-victim scene, complete scoring rubric (8 inputs, 0-100 points); game renamed from `accident-at-the-circus`
 - **Ten Essentials field** — corrected from `checkbox` to `number` type (0–5 scale) in both active-event and workspace presets.json
+- **Troop number T-prefix normalization** — `admin.js`, `judge.js`, `utils.js`, `official.js` all strip leading T before display/sort so double-T never appears regardless of how troop_number was entered
+- **Inline rank/score editing** — `updateScoreField()` was called but never defined; implemented in `official.js`; now persists `manual_rank` and `manual_points` via `PUT /api/scores/:uuid`
+- **Time column sort** — `official.js` detail table correctly converts `MM:SS` / `H:MM:SS` strings to seconds before comparison
+- **Navigation back bug** — `official.html` popstate fallback was calling `switchView('dashboard')` (no-op) instead of `switchView('overview')`; fixed + added "← Games" in-page back button
+- **Awards printing** — `utils.html` sticker layout: per-row `<tbody>` with `break-inside: avoid`, adjustable spacing, Patrol/Troop toggle
+- **Awards overall name customizable** — hardcoded `'OVERALL LEADERBOARD'` in sticker renderer replaced with `w.gameName` from registry
+- **Troop overall flat award** — "Top Dog / Best in Show" mode: awards top N% of troops the same text, no rank differentiation; configurable name, text, and percentage
+- **Announcer Sheet** — `utils.html` new print mode: readable per-game ranked list (title + numbered entries + scores), `break-inside: avoid` per block, isolated from sticker print path
+- **Judge "Reset Local Data" button** — removed from production judge.html (function preserved in judge.js; see DEV-NOTES.md to restore)
 
 ### Still Open
 

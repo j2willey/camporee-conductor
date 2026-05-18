@@ -169,7 +169,7 @@ function renderRoster() {
     container.innerHTML = '';
 
     const troops = appData.entities.filter(e => e.type === 'troop')
-        .sort((a,b) => (parseInt(a.troop_number)||0) - (parseInt(b.troop_number)||0));
+        .sort((a,b) => (parseInt(String(a.troop_number).replace(/^T/i,''))||0) - (parseInt(String(b.troop_number).replace(/^T/i,''))||0));
 
     const patrols = appData.entities.filter(e => e.type === 'patrol');
 
@@ -191,6 +191,9 @@ function renderRoster() {
 
     // Render Troops
     troops.forEach((troop, index) => {
+        const _tn = (troop.troop_number || '').trim();
+        const troopLabel = /^\d/.test(_tn) ? `T${_tn}` : _tn;
+
         const myPatrols = [
             ...(patrolsByParent[troop.id] || []),
             ...(patrolsByNum[troop.troop_number] || [])
@@ -210,7 +213,7 @@ function renderRoster() {
         summary.style = "font-weight:bold; cursor:pointer; list-style:none; display:flex; align-items:center; padding: 4px 10px; background-color: #f1f3f4; border-bottom: 1px solid #e0e0e0;";
         summary.innerHTML = `
             <span style="font-size:0.8rem; margin-right:8px; color:#5f6368; transition: transform 0.2s;">▼</span>
-            <span style="font-size:0.95rem;">${troop.name.startsWith('T') ? '' : 'Troop '}${troop.name}</span>
+            <span style="font-size:0.95rem;">${troopLabel}${troop.name ? ' — ' + troop.name : ''}</span>
             <button class="btn btn-sm btn-link ms-auto text-decoration-none p-0 text-success fw-bold" style="font-size: 0.8rem;" onclick="addEntity('${troop.id}')">+ Add Patrol</button>
         `;
 
@@ -232,7 +235,7 @@ function renderRoster() {
         if (myPatrols.length === 0) {
             list.innerHTML = '<div class="text-muted small p-2 fst-italic" style="padding-left: 35px !important;">No patrols registered</div>';
         } else {
-            myPatrols.forEach(p => {
+            myPatrols.sort((a, b) => a.name.localeCompare(b.name)).forEach(p => {
                 const div = document.createElement('div');
                 div.className = "d-flex justify-content-between align-items-center py-1 px-2 border-bottom";
                 div.style.paddingLeft = "30px";

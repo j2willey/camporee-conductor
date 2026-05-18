@@ -371,7 +371,7 @@ const requireConfig = (req, res, next) => {
     }
 
     if (!getActiveMeta()) {
-        return res.redirect(req.baseUrl + '/setup');
+        return res.redirect((req.baseUrl || '/collator') + '/setup');
     }
     next();
 };
@@ -380,7 +380,7 @@ app.use(requireConfig);
 // --- ROUTES ---
 
 app.get('/setup', (req, res) => {
-    const base = req.baseUrl || '';
+    const base = req.baseUrl || '/collator';
     res.send(`
         <html>
             <head><title>Setup</title><link rel="stylesheet" href="/css/bootstrap.min.css"></head>
@@ -399,7 +399,7 @@ app.get('/setup', (req, res) => {
 });
 
 app.post('/api/setup/upload', upload.single('configZip'), (req, res) => {
-    if (!req.file) return res.redirect(req.baseUrl + '/setup');
+    if (!req.file) return res.redirect((req.baseUrl || '/collator') + '/setup');
 
     const zipPath = req.file.path;
     const zip = new AdmZip(zipPath);
@@ -421,17 +421,17 @@ app.post('/api/setup/upload', upload.single('configZip'), (req, res) => {
     if (!currentMeta || newMeta.camporeeId !== currentMeta.camporeeId) {
         archiveDatabase();
         installCartridge(zipPath);
-        return res.redirect(req.baseUrl + '/admin.html');
+        return res.redirect((req.baseUrl || '/collator') + '/admin.html');
     }
 
     // Case 2: Update Detected -> Ask User
     fs.renameSync(zipPath, pendingPath);
-    res.redirect(req.baseUrl + '/setup/conflict');
+    res.redirect((req.baseUrl || '/collator') + '/setup/conflict');
 });
 
 app.get('/setup/conflict', (req, res) => {
     const meta = getActiveMeta();
-    const base = req.baseUrl || '';
+    const base = req.baseUrl || '/collator';
     res.send(`
         <html>
             <head><title>Update Detected</title><link rel="stylesheet" href="/css/bootstrap.min.css"></head>
@@ -460,12 +460,12 @@ app.post('/api/setup/confirm', express.urlencoded({ extended: true }), (req, res
     const action = req.body.action;
     const pendingPath = path.join(UPLOAD_TEMP, 'pending_update.zip');
 
-    if (!fs.existsSync(pendingPath)) return res.redirect(req.baseUrl + '/setup');
+    if (!fs.existsSync(pendingPath)) return res.redirect((req.baseUrl || '/collator') + '/setup');
 
     if (action === 'update_wipe') archiveDatabase();
 
     installCartridge(pendingPath);
-    res.redirect(req.baseUrl + '/admin.html');
+    res.redirect((req.baseUrl || '/collator') + '/admin.html');
 });
 
 // --- CORE ROUTES ---
@@ -475,9 +475,9 @@ app.get('/', (req, res) => {
     const isMobile = /mobile|android|iphone|ipad|ipod|blackberry|iemobile|kindle|silk-accelerated|(hpw|web)os|opera m(obi|ini)/i.test(ua);
 
     if (isMobile) {
-        res.redirect(req.baseUrl + '/judge.html');
+        res.redirect((req.baseUrl || '/collator') + '/judge.html');
     } else {
-        res.redirect(req.baseUrl + '/admin.html');
+        res.redirect((req.baseUrl || '/collator') + '/admin.html');
     }
 });
 

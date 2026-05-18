@@ -256,17 +256,20 @@ function formatEntityLabel(e) {
     const name = String(e.name || '').trim();
     const type = e.type || 'patrol';
 
+    // Normalize tNum: strip leading T so we always work with the numeric part
+    const numPart = tNum.replace(/^T/i, '');
+
     // Regex to detect redundant names (e.g. "13", "T13", "Tr 13", "Troop 13")
-    const isRedundant = new RegExp(`^(t|tr|troop)?\\s*${tNum}$`, 'i').test(name);
+    const isRedundant = new RegExp(`^(t|tr|troop)?\\s*${numPart}$`, 'i').test(name);
 
     if (type === 'troop') {
         // Troop Mode: "Troop 13" or "Troop 13 - The Avengers"
-        const base = `Troop ${tNum}`;
+        const base = `Troop ${numPart}`;
         if (isRedundant || !name) return base;
         return `${base} - ${name}`;
     } else {
         // Patrol Mode: "T101" or "T101 Flaming Arrows"
-        const base = `T${tNum}`;
+        const base = `T${numPart}`;
         if (isRedundant || !name) return base;
         return `${base} ${name}`;
     }
@@ -326,7 +329,7 @@ function renderEntityList(filter = '') {
         const doneA = scoredIds.has(a.id);
         const doneB = scoredIds.has(b.id);
         if (doneA !== doneB) return doneA ? 1 : -1;
-        return (parseInt(a.troop_number) || 0) - (parseInt(b.troop_number) || 0);
+        return (parseInt(String(a.troop_number).replace(/^T/i,''))||0) - (parseInt(String(b.troop_number).replace(/^T/i,''))||0);
     });
 
     els.entityHeader.textContent = `Select ${requiredType === 'patrol' ? 'Patrol' : 'Troop'}`;
@@ -692,7 +695,7 @@ function renderBracketLobby() {
 
     // 2. Render Team List
     const requiredType = s.type || state.viewMode;
-    const entities = state.entities.filter(e => e.type === requiredType).sort((a, b) => (parseInt(a.troop_number) || 0) - (parseInt(b.troop_number) || 0));
+    const entities = state.entities.filter(e => e.type === requiredType).sort((a, b) => (parseInt(String(a.troop_number).replace(/^T/i,''))||0) - (parseInt(String(b.troop_number).replace(/^T/i,''))||0));
 
     els.lobbyList.innerHTML = entities.map(e => {
         const isChecked = activeIds.has(e.id) ? 'checked' : '';

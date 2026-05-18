@@ -193,9 +193,44 @@ function setupNavigation() {
         createStickersBtn.onclick = () => renderStickers(false);
     }
 
+    const announcerBtn = document.getElementById('btn-announcer-sheet');
+    if (announcerBtn) announcerBtn.onclick = () => renderAnnouncerSheet();
+
+    const printAnnouncerBtn = document.getElementById('btn-print-announcer');
+    if (printAnnouncerBtn) printAnnouncerBtn.onclick = () => {
+        // Suppress sticker container so only the announcer sheet prints
+        const stickers = document.getElementById('stickers-container');
+        stickers?.classList.remove('print-only');
+        stickers?.classList.add('no-print');
+        window.print();
+        stickers?.classList.remove('no-print');
+        stickers?.classList.add('print-only');
+    };
+
+    document.querySelectorAll('input[name="awards-mode"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            currentViewMode = e.target.value;
+            ['stickers-preview-container', 'announcer-preview-container'].forEach(id => {
+                document.getElementById(id)?.classList.add('hidden');
+            });
+            ['btn-print-preview', 'btn-print-announcer'].forEach(id => {
+                document.getElementById(id)?.classList.add('hidden');
+            });
+            document.getElementById('troop-overall-settings')
+                ?.classList.toggle('hidden', currentViewMode !== 'troop');
+        });
+    });
+
     const printPreviewBtn = document.getElementById('btn-print-preview');
     if (printPreviewBtn) {
-        printPreviewBtn.onclick = () => window.print();
+        printPreviewBtn.onclick = () => {
+            const announcer = document.getElementById('announcer-container');
+            announcer?.classList.remove('print-only');
+            announcer?.classList.add('no-print');
+            window.print();
+            announcer?.classList.remove('no-print');
+            announcer?.classList.add('print-only');
+        };
     }
 
     if (viewModeSelect) {
@@ -386,7 +421,7 @@ function getWinnersRegistry() {
 
             if (topRanks.includes(rankClean)) {
                 // Construct line4Text
-                let line4 = `${finalRank} Place - T${s.troop_number}`;
+                let line4 = `${finalRank} Place - T${String(s.troop_number).replace(/^T/i, '')}`;
                 if (currentViewMode === 'patrol') {
                     line4 += ` ${s.entity_name}`;
                 }
@@ -426,37 +461,57 @@ function getWinnersRegistry() {
     });
 
     const lbSorted = [...entities].sort((a,b) => b._leaderboardTotal - a._leaderboardTotal);
-    let curLBRank = 0;
-    let lastLBT = null;
 
-    lbSorted.forEach(p => {
-        if (p._leaderboardTotal !== lastLBT) {
-            curLBRank++;
-            lastLBT = p._leaderboardTotal;
-        }
-        p._autoOverallRank = getOrdinalSuffix(curLBRank);
-        const finalRank = p.manual_rank || p._autoOverallRank;
-        const rankClean = String(finalRank).toLowerCase().trim();
-        const topRanks = ['1', '1st', '2', '2nd', '3', '3rd'];
+    if (currentViewMode === 'troop') {
+        // Troop overall: flat award for top N% — no rank differentiation
+        const pct = parseFloat(document.getElementById('troop-overall-pct')?.value) || 25;
+        const cutoff = Math.max(1, Math.ceil(lbSorted.length * (pct / 100)));
+        const overallName = document.getElementById('troop-overall-name')?.value.trim() || 'Top Dog';
+        const awardText  = document.getElementById('troop-overall-award')?.value.trim() || 'Best in Show';
 
-        if (topRanks.includes(rankClean) || (p.manual_rank && p.manual_rank.length > 0)) {
-            let line4 = `${finalRank}${topRanks.includes(rankClean) ? " Place" : ""} - T${p.troop_number}`;
-            if (currentViewMode === 'patrol') {
-                line4 += ` ${p.name}`;
-            }
-
+        lbSorted.slice(0, cutoff).forEach(p => {
+            if (p._leaderboardTotal <= 0) return;
             registry.push({
                 type: 'overall',
                 gameId: 'OVERALL',
-                gameName: "OVERALL",
-                rank: finalRank,
+                gameName: overallName,
+                rank: awardText,
                 entityName: p.name,
                 troopNumber: p.troop_number,
-                line4Text: line4,
+                line4Text: `${awardText} - T${String(p.troop_number).replace(/^T/i, '')}`,
                 entryData: {}
             });
-        }
-    });
+        });
+    } else {
+        // Patrol overall: standard 1st/2nd/3rd ranking
+        let curLBRank = 0;
+        let lastLBT = null;
+
+        lbSorted.forEach(p => {
+            if (p._leaderboardTotal !== lastLBT) {
+                curLBRank++;
+                lastLBT = p._leaderboardTotal;
+            }
+            p._autoOverallRank = getOrdinalSuffix(curLBRank);
+            const finalRank = p.manual_rank || p._autoOverallRank;
+            const rankClean = String(finalRank).toLowerCase().trim();
+            const topRanks = ['1', '1st', '2', '2nd', '3', '3rd'];
+
+            if (topRanks.includes(rankClean) || (p.manual_rank && p.manual_rank.length > 0)) {
+                let line4 = `${finalRank}${topRanks.includes(rankClean) ? " Place" : ""} - T${String(p.troop_number).replace(/^T/i, '')} ${p.name}`;
+                registry.push({
+                    type: 'overall',
+                    gameId: 'OVERALL',
+                    gameName: "OVERALL",
+                    rank: finalRank,
+                    entityName: p.name,
+                    troopNumber: p.troop_number,
+                    line4Text: line4,
+                    entryData: {}
+                });
+            }
+        });
+    }
 
     return registry;
 }
@@ -535,7 +590,7 @@ function renderStickers(autoPrint = true) {
     let currentGroup = null;
 
     winners.forEach(w => {
-        const groupTitle = w.type === 'overall' ? 'OVERALL LEADERBOARD' : w.gameName;
+        const groupTitle = w.gameName;
 
         if (!currentGroup || currentGroup.id !== w.gameId) {
             currentGroup = {
@@ -572,20 +627,37 @@ function renderStickers(autoPrint = true) {
     const previewTable = document.createElement('table');
     previewTable.className = 'sticker-preview-table';
 
+    const addSpacer = (table) => {
+        const spacerTbody = document.createElement('tbody');
+        const spacer = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 3;
+        td.style.height = '0.15in';
+        td.style.border = 'none';
+        td.style.background = 'transparent';
+        spacer.appendChild(td);
+        spacerTbody.appendChild(spacer);
+        table.appendChild(spacerTbody);
+    };
+
+    const newRowTbody = (table) => {
+        const tbody = document.createElement('tbody');
+        table.appendChild(tbody);
+        const tr = document.createElement('tr');
+        tbody.appendChild(tr);
+        return tr;
+    };
+
     resultsByGroup.forEach(group => {
         let cellsInCurrentRow = 0;
-        let trPrint = document.createElement('tr');
-        let trPreview = document.createElement('tr');
+        let trPrint = newRowTbody(printTable);
+        let trPreview = newRowTbody(previewTable);
 
-        printTable.appendChild(trPrint);
-        previewTable.appendChild(trPreview);
-
-        group.winners.forEach((w, idx) => {
+        group.winners.forEach((w) => {
             if (cellsInCurrentRow === 3) {
-                trPrint = document.createElement('tr');
-                trPreview = document.createElement('tr');
-                printTable.appendChild(trPrint);
-                previewTable.appendChild(trPreview);
+                // Each row of stickers gets its own tbody for break-inside: avoid
+                trPrint = newRowTbody(printTable);
+                trPreview = newRowTbody(previewTable);
                 cellsInCurrentRow = 0;
             }
 
@@ -609,13 +681,17 @@ function renderStickers(autoPrint = true) {
             cellsInCurrentRow++;
         });
 
-        // Pad the remainder
+        // Pad the last row
         if (cellsInCurrentRow > 0 && cellsInCurrentRow < 3) {
             for (let i = cellsInCurrentRow; i < 3; i++) {
                 trPrint.appendChild(document.createElement('td'));
                 trPreview.appendChild(document.createElement('td'));
             }
         }
+
+        // Spacer after each group in its own tbody
+        addSpacer(printTable);
+        addSpacer(previewTable);
     });
 
     printContainer.appendChild(printTable);
@@ -631,6 +707,139 @@ function renderStickers(autoPrint = true) {
         // Scroll to preview
         previewContainer.scrollIntoView({ behavior: 'smooth' });
     }
+}
+
+function renderAnnouncerSheet() {
+    const games = appData.games.filter(g => (g.type || 'patrol') === currentViewMode);
+    const blocks = [];
+
+    // Per-game rankings
+    games.forEach(game => {
+        const rawScores = appData.scores.filter(s => s.game_id === game.id);
+        if (rawScores.length === 0) return;
+
+        const scored = rawScores.map(s => {
+            let total = 0;
+            const fields = [...(game.fields || []), ...(appData.commonScoring || [])];
+            fields.forEach(f => {
+                const val = parseFloat(s.score_payload[f.id]);
+                if (!isNaN(val)) {
+                    if (f.kind === 'penalty') total -= val;
+                    else if (f.kind === 'points') total += val;
+                }
+            });
+            return { ...s, _total: total };
+        }).sort((a, b) => b._total - a._total);
+
+        // Assign ranks with tie handling
+        let curRank = 0, lastTotal = null;
+        scored.forEach(s => {
+            if (s._total !== lastTotal) { curRank++; lastTotal = s._total; }
+            s._rank = curRank;
+            s._rankLabel = s.score_payload.manual_rank || getOrdinalSuffix(curRank);
+        });
+
+        // Keep top 3 places (including ties)
+        const topPlaces = scored.filter(s => s._rank <= 3);
+        if (topPlaces.length === 0) return;
+
+        blocks.push({ title: formatGameTitle(game), entries: topPlaces.map(s => ({
+            rankLabel: s._rankLabel,
+            name: currentViewMode === 'patrol'
+                ? `${s.entity_name}  (T${String(s.troop_number).replace(/^T/i, '')})`
+                : `T${String(s.troop_number).replace(/^T/i, '')}`,
+            score: s._total
+        }))});
+    });
+
+    // Overall block
+    const entities = appData.entities.filter(e => e.type === currentViewMode);
+    entities.forEach(p => {
+        let total = 0;
+        const pointsMap = calculateScoreContext(appData);
+        games.forEach(g => { total += (pointsMap[p.id]?.[g.id] || 0); });
+        p._lbTotal = total;
+    });
+    const lbSorted = [...entities].filter(p => p._lbTotal > 0)
+        .sort((a, b) => b._lbTotal - a._lbTotal);
+
+    if (lbSorted.length > 0) {
+        if (currentViewMode === 'troop') {
+            const pct     = parseFloat(document.getElementById('troop-overall-pct')?.value) || 25;
+            const cutoff  = Math.max(1, Math.ceil(lbSorted.length * (pct / 100)));
+            const overallName = document.getElementById('troop-overall-name')?.value.trim() || 'Top Dog';
+            const awardText   = document.getElementById('troop-overall-award')?.value.trim() || 'Best in Show';
+            blocks.push({ title: overallName, flatAward: awardText,
+                entries: lbSorted.slice(0, cutoff).map(p => ({
+                    rankLabel: awardText,
+                    name: `T${String(p.troop_number).replace(/^T/i, '')}`,
+                    score: p._lbTotal
+                }))
+            });
+        } else {
+            let curRank = 0, lastTotal = null;
+            lbSorted.forEach(p => {
+                if (p._lbTotal !== lastTotal) { curRank++; lastTotal = p._lbTotal; }
+                p._lbRankLabel = p.manual_rank || getOrdinalSuffix(curRank);
+                p._lbRank = curRank;
+            });
+            const topPatrols = lbSorted.filter(p => p._lbRank <= 3);
+            if (topPatrols.length > 0) {
+                blocks.push({ title: 'OVERALL', entries: topPatrols.map(p => ({
+                    rankLabel: p._lbRankLabel,
+                    name: `${p.name}  (T${String(p.troop_number).replace(/^T/i, '')})`,
+                    score: p._lbTotal
+                }))});
+            }
+        }
+    }
+
+    if (blocks.length === 0) {
+        alert('No ranked results to display yet.');
+        return;
+    }
+
+    const buildBlocks = () => {
+        const wrapper = document.createElement('div');
+        blocks.forEach(block => {
+            const div = document.createElement('div');
+            div.className = 'announcer-block';
+
+            const title = document.createElement('div');
+            title.className = 'announcer-game-title';
+            title.textContent = block.title;
+            div.appendChild(title);
+
+            const table = document.createElement('table');
+            table.className = 'announcer-table';
+            block.entries.forEach((e, i) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="announcer-rank">${block.flatAward ? '' : (i + 1) + '.'}</td>
+                    <td class="announcer-entity">${e.name}</td>
+                    <td class="announcer-score">${e.score} pts</td>
+                `;
+                table.appendChild(tr);
+            });
+            div.appendChild(table);
+            wrapper.appendChild(div);
+        });
+        return wrapper;
+    };
+
+    const printContainer  = document.getElementById('announcer-container');
+    const previewWrapper  = document.getElementById('announcer-preview-wrapper');
+    const previewContainer = document.getElementById('announcer-preview-container');
+    const printBtn        = document.getElementById('btn-print-announcer');
+
+    printContainer.innerHTML  = '';
+    previewWrapper.innerHTML  = '';
+    printContainer.appendChild(buildBlocks());
+    previewWrapper.appendChild(buildBlocks());
+
+    previewContainer.classList.remove('hidden');
+    printBtn.classList.remove('hidden');
+    previewContainer.scrollIntoView({ behavior: 'smooth' });
 }
 
 function toggleFinalMode(checked) {

@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 switchView(event.state.view, false);
             }
         } else {
-            switchView('dashboard', false);
+            switchView('overview', false);
         }
     });
 });
@@ -414,8 +414,8 @@ function openGameDetail(gameId) {
     gameScores.sort((a, b) => {
         let valA, valB;
         if (detailSort.col === 'troop_number') {
-            valA = parseInt(a.troop_number) || 0;
-            valB = parseInt(b.troop_number) || 0;
+            valA = parseInt(String(a.troop_number).replace(/^T/i,'')) || 0;
+            valB = parseInt(String(b.troop_number).replace(/^T/i,'')) || 0;
         } else if (detailSort.col === 'entity_name') {
             valA = String(a.entity_name || '').toLowerCase();
             valB = String(b.entity_name || '').toLowerCase();
@@ -451,7 +451,18 @@ function openGameDetail(gameId) {
             if (valA === undefined || valA === null) valA = '';
             if (valB === undefined || valB === null) valB = '';
 
-            if (!isNaN(parseFloat(valA)) && !isNaN(parseFloat(valB))) {
+            // Time format MM:SS or H:MM:SS or MM:SS.ms → convert to seconds
+            const timeRe = /^\d+:\d{2}(:\d{2})?(\.\d+)?$/;
+            const toSec = (v) => {
+                const parts = String(v).split(':').map(Number);
+                if (parts.length === 2) return parts[0] * 60 + parts[1];
+                if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+                return 0;
+            };
+            if (timeRe.test(String(valA)) && timeRe.test(String(valB))) {
+                valA = toSec(valA);
+                valB = toSec(valB);
+            } else if (!isNaN(parseFloat(valA)) && !isNaN(parseFloat(valB))) {
                 valA = parseFloat(valA);
                 valB = parseFloat(valB);
             } else {
@@ -733,8 +744,8 @@ function renderMatrix() {
 
     // Sort Entities
     entities.sort((a, b) => {
-        const numA = parseInt(a.troop_number) || 0;
-        const numB = parseInt(b.troop_number) || 0;
+        const numA = parseInt(String(a.troop_number).replace(/^T/i,'')) || 0;
+        const numB = parseInt(String(b.troop_number).replace(/^T/i,'')) || 0;
         if (numA !== numB) return numA - numB;
         return a.name.localeCompare(b.name);
     });
@@ -781,8 +792,8 @@ function renderMatrixNormal(table, games, patrols) {
     // 4. Sort patrols based on Leaderboard Total (desc) by default
     patrols.sort((a, b) => {
         if (b._leaderboardTotal !== a._leaderboardTotal) return b._leaderboardTotal - a._leaderboardTotal;
-        const numA = parseInt(a.troop_number) || 0;
-        const numB = parseInt(b.troop_number) || 0;
+        const numA = parseInt(String(a.troop_number).replace(/^T/i,'')) || 0;
+        const numB = parseInt(String(b.troop_number).replace(/^T/i,'')) || 0;
         if (numA !== numB) return numA - numB;
         return a.name.localeCompare(b.name);
     });
@@ -951,11 +962,30 @@ function renderMatrixTransposed(table, games, patrols) {
     table.appendChild(tbody);
 }
 
+async function updateScoreField(uuid, fieldId, value) {
+    const score = appData.scores.find(s => s.uuid === uuid);
+    if (!score) return;
+
+    score.score_payload[fieldId] = value;
+
+    try {
+        const response = await fetch(window.API_BASE + '/api/scores/' + uuid, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ score_payload: score.score_payload })
+        });
+
+        if (!response.ok) throw new Error('Failed to update score');
+    } catch (err) {
+        console.error('Update failed:', err);
+        alert('Failed to save change. Please refresh.');
+    }
+}
+
 async function updateEntityField(entityId, fieldId, value) {
     const entity = appData.entities.find(e => e.id === entityId);
     if (!entity) return;
 
-    // Update local copy
     entity[fieldId] = value;
 
     try {
@@ -965,9 +995,7 @@ async function updateEntityField(entityId, fieldId, value) {
             body: JSON.stringify({ [fieldId]: value })
         });
 
-        if (!response.ok) {
-            throw new Error('Failed to update entity');
-        }
+        if (!response.ok) throw new Error('Failed to update entity');
     } catch (err) {
         console.error('Update failed:', err);
         alert('Failed to save change. Please refresh.');

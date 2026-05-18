@@ -366,6 +366,62 @@ main.has-fixed-header {
     margin-top: 20px;
 }
 
+/* Announcer Sheet */
+.announcer-block {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin-bottom: 0.4in;
+    border-left: 4px solid var(--brand-main, #2c3e50);
+    padding-left: 0.2in;
+}
+.announcer-game-title {
+    font-size: 1.2rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.1in;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 4px;
+}
+.announcer-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 1rem;
+}
+.announcer-table td {
+    padding: 3px 8px 3px 0;
+    vertical-align: top;
+}
+.announcer-rank { width: 1in; font-weight: bold; white-space: nowrap; }
+.announcer-entity { font-weight: bold; }
+.announcer-troop { color: #555; padding-left: 0.1in; }
+.announcer-score { color: #555; text-align: right; width: 0.8in; }
+
+/* Sticker / Award label table */
+.sticker-table,
+.sticker-preview-table {
+    border-collapse: collapse;
+    table-layout: fixed;
+    width: 100%;
+}
+.sticker-table td,
+.sticker-preview-table td {
+    width: 3.3in;
+    padding: 0.1in 0.15in;
+    vertical-align: middle;
+    box-sizing: border-box;
+}
+.sticker-table tbody,
+.sticker-preview-table tbody {
+    break-inside: avoid;
+    page-break-inside: avoid;
+}
+.sticker-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
 @media print {
     .no-print, header, nav, .controls, .btn, .card-footer, .stopwatch-dock { display: none !important; }
     body { background-color: white !important; }

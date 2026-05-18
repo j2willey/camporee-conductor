@@ -158,13 +158,51 @@
                         </div>
                     </div>
 
-                    <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                        <button id="btn-export-awards" class="btn btn-success">Download Awards CSV</button>
-                        <button id="btn-create-stickers" class="btn btn-primary">Create Stickers</button>
-                        <button id="btn-print-preview" class="btn btn-secondary hidden">Print to PDF/Printer</button>
+                    <div class="mb-3">
+                        <div class="btn-group" role="group" aria-label="Award type">
+                            <input type="radio" class="btn-check" name="awards-mode" id="awards-mode-patrol" value="patrol" checked>
+                            <label class="btn btn-outline-primary" for="awards-mode-patrol">Patrol Games</label>
+                            <input type="radio" class="btn-check" name="awards-mode" id="awards-mode-troop" value="troop">
+                            <label class="btn btn-outline-primary" for="awards-mode-troop">Troop Challenges</label>
+                        </div>
                     </div>
 
-                    <p class="text-muted">Generate a CSV or printable stickers of all 1st, 2nd, and 3rd place winners for all games, plus the overall leaderboard.</p>
+                    <div id="troop-overall-settings" class="card bg-light p-3 mb-3 hidden" style="max-width: 600px;">
+                        <h6 class="mb-3">Overall Troop Award Settings</h6>
+                        <div class="mb-2 row align-items-center">
+                            <label class="col-sm-4 col-form-label col-form-label-sm fw-bold">Award Name</label>
+                            <div class="col-sm-8">
+                                <input type="text" class="form-control form-control-sm" id="troop-overall-name" placeholder="e.g. Top Dog" value="Top Dog">
+                                <small class="text-muted">Appears as the event name on the sticker (line 3)</small>
+                            </div>
+                        </div>
+                        <div class="mb-2 row align-items-center">
+                            <label class="col-sm-4 col-form-label col-form-label-sm fw-bold">Award Text</label>
+                            <div class="col-sm-8">
+                                <input type="text" class="form-control form-control-sm" id="troop-overall-award" placeholder="e.g. Best in Show" value="Best in Show">
+                                <small class="text-muted">Replaces "1st Place" — all recipients get the same text</small>
+                            </div>
+                        </div>
+                        <div class="row align-items-center">
+                            <label class="col-sm-4 col-form-label col-form-label-sm fw-bold">Recipients</label>
+                            <div class="col-sm-8">
+                                <div class="input-group input-group-sm" style="max-width: 200px;">
+                                    <input type="number" class="form-control" id="troop-overall-pct" value="25" min="1" max="100">
+                                    <span class="input-group-text">% of troops</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;">
+                        <button id="btn-export-awards" class="btn btn-success">Download Awards CSV</button>
+                        <button id="btn-create-stickers" class="btn btn-primary">Create Stickers</button>
+                        <button id="btn-print-preview" class="btn btn-secondary hidden">Print Stickers</button>
+                        <button id="btn-announcer-sheet" class="btn btn-outline-dark">Announcer Sheet</button>
+                        <button id="btn-print-announcer" class="btn btn-secondary hidden">Print Announcer Sheet</button>
+                    </div>
+
+                    <p class="text-muted">Generate award stickers or a readable announcer sheet for all 1st, 2nd, and 3rd place winners.</p>
                 </div>
 
                 <div id="stickers-preview-container" class="no-print hidden">
@@ -172,8 +210,17 @@
                     <div id="stickers-preview-table-wrapper"></div>
                 </div>
 
+                <div id="announcer-preview-container" class="no-print hidden">
+                    <h3>Announcer Sheet Preview</h3>
+                    <div id="announcer-preview-wrapper"></div>
+                </div>
+
                 <div id="stickers-container" class="print-only">
                     <!-- Sticker Table Injected Here -->
+                </div>
+
+                <div id="announcer-container" class="print-only">
+                    <!-- Announcer Sheet Injected Here -->
                 </div>
             </div>
         </section>
