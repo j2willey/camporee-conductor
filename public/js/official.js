@@ -916,6 +916,10 @@ function renderMatrixNormal(table, games, patrols) {
     `;
     headerRow.appendChild(thRank);
 
+    const thDQOverall = createTh('Overall<br>DQ');
+    thDQOverall.style.minWidth = '70px';
+    headerRow.appendChild(thDQOverall);
+
     thead.appendChild(headerRow);
     table.appendChild(thead);
 
@@ -965,35 +969,40 @@ function renderMatrixNormal(table, games, patrols) {
         if (patrol._overallExcluded) tdTotal.style.opacity = '0.4';
         tr.appendChild(tdTotal);
 
-        // Rank + Exclude toggle
+        // Overall Rank
         const tdRank = document.createElement('td');
-        tdRank.style.whiteSpace = 'nowrap';
         const input = document.createElement('input');
         input.type = 'text';
-        input.className = 'form-control form-control-sm d-inline-block';
-        input.style.width = '80px';
+        input.className = 'form-control form-control-sm';
+        input.style.width = '90px';
         input.value = patrol.manual_rank || patrol._autoOverallRank;
         if (patrol._overallExcluded) { input.value = '—'; input.disabled = true; input.style.opacity = '0.5'; }
         input.onchange = (e) => updateEntityField(patrol.id, 'manual_rank', e.target.value);
         tdRank.appendChild(input);
+        tr.appendChild(tdRank);
 
-        const exclBtn = document.createElement('button');
-        exclBtn.className = 'btn btn-sm ms-1 ' + (patrol._overallExcluded ? 'btn-danger' : 'btn-outline-secondary');
-        exclBtn.style.cssText = 'font-size:0.65rem; padding:1px 5px;';
-        exclBtn.title = patrol._overallExcluded ? ('Excluded: ' + (appData.flags.find(f => f.entity_id === patrol.id && f.game_id === 'overall')?.reason || '')) : 'Exclude from Overall';
-        exclBtn.textContent = 'Excl';
-        exclBtn.onclick = async () => {
-            if (patrol._overallExcluded) {
+        // Overall DQ column
+        const tdDQOverall = document.createElement('td');
+        tdDQOverall.style.textAlign = 'center';
+        const overallFlag = appData.flags.find(f => f.entity_id === patrol.id && f.game_id === 'overall');
+        const isDQOverall = overallFlag && overallFlag.dq;
+        const dqOverallBtn = document.createElement('button');
+        dqOverallBtn.className = 'btn btn-sm ' + (isDQOverall ? 'btn-danger' : 'btn-outline-danger');
+        dqOverallBtn.style.cssText = 'font-size:0.75rem; padding:2px 8px; font-weight:bold;';
+        dqOverallBtn.textContent = isDQOverall ? '✓ DQ' : 'DQ';
+        dqOverallBtn.title = isDQOverall ? ('DQ — ' + (overallFlag.reason || 'no reason given') + ' (click to remove)') : 'Disqualify from Overall standings';
+        dqOverallBtn.onclick = async () => {
+            if (isDQOverall) {
                 await setDQFlag(patrol.id, 'overall', 0);
             } else {
-                const reason = window.prompt(`Exclude ${patrol.name} from Overall standings?\nReason (optional):`);
+                const reason = window.prompt(`DQ ${patrol.name} from Overall standings?\nReason (optional):`);
                 if (reason === null) return;
                 await setDQFlag(patrol.id, 'overall', 1, reason);
             }
             renderMatrix();
         };
-        tdRank.appendChild(exclBtn);
-        tr.appendChild(tdRank);
+        tdDQOverall.appendChild(dqOverallBtn);
+        tr.appendChild(tdDQOverall);
 
         tbody.appendChild(tr);
     });
