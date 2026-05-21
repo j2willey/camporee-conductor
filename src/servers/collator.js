@@ -125,6 +125,28 @@ db.exec(`
     judges_notes TEXT NOT NULL DEFAULT '',
     sort_order INTEGER NOT NULL DEFAULT 0
   );
+
+  CREATE TABLE IF NOT EXISTS official_game_flags (
+    entity_id TEXT NOT NULL,
+    game_id TEXT NOT NULL,
+    dq INTEGER NOT NULL DEFAULT 0,
+    reason TEXT DEFAULT '',
+    updated_at TEXT DEFAULT (datetime('now')),
+    PRIMARY KEY (entity_id, game_id)
+  );
+
+  CREATE TABLE IF NOT EXISTS audit_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp TEXT DEFAULT (datetime('now')),
+    action_type TEXT NOT NULL,
+    entity_type TEXT,
+    entity_id TEXT,
+    game_id TEXT,
+    field_name TEXT,
+    old_value TEXT,
+    new_value TEXT,
+    notes TEXT
+  );
 `);
 
 // --- MIGRATIONS ---
@@ -145,6 +167,28 @@ try {
     db.exec("DROP INDEX IF EXISTS idx_game_entity");
 } catch (e) {
     console.log("Index already removed");
+}
+
+// --- AUDIT LOGGING ---
+
+function logAudit(action_type, { entity_type, entity_id, game_id, field_name, old_value, new_value, notes } = {}) {
+    try {
+        db.prepare(`
+            INSERT INTO audit_log (action_type, entity_type, entity_id, game_id, field_name, old_value, new_value, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+            action_type,
+            entity_type || null,
+            entity_id || null,
+            game_id || null,
+            field_name || null,
+            old_value != null ? String(old_value) : null,
+            new_value != null ? String(new_value) : null,
+            notes || null
+        );
+    } catch (e) {
+        console.error('[audit] log failed:', e.message);
+    }
 }
 
 // --- HELPER FUNCTIONS ---
@@ -509,10 +553,19 @@ app.get('/api/entities', (req, res) => {
 
 app.put('/api/entities/:id', (req, res) => {
     const { id } = req.params;
-    const { manual_rank } = req.body;
+    const { manual_rank, name } = req.body;
     try {
-        const stmt = db.prepare('UPDATE entities SET manual_rank = ? WHERE id = ?');
-        stmt.run(manual_rank, id);
+        const existing = db.prepare('SELECT * FROM entities WHERE id = ?').get(id);
+        if (!existing) return res.status(404).json({ error: 'Entity not found' });
+
+        if (name !== undefined) {
+            db.prepare('UPDATE entities SET name = ? WHERE id = ?').run(name, id);
+            logAudit('entity_update', { entity_type: existing.type, entity_id: id, field_name: 'name', old_value: existing.name, new_value: name });
+        }
+        if (manual_rank !== undefined) {
+            db.prepare('UPDATE entities SET manual_rank = ? WHERE id = ?').run(manual_rank, id);
+            logAudit('entity_update', { entity_type: existing.type, entity_id: id, field_name: 'manual_rank', old_value: existing.manual_rank, new_value: manual_rank });
+        }
         res.json({ status: 'success' });
     } catch (err) {
         res.status(500).json({ error: 'Database error' });
@@ -595,7 +648,9 @@ app.post('/api/score', (req, res) => {
             );
         });
 
-        transaction();
+        const result = transaction();
+        const isUpdate = result && result.changes === 0; // ON CONFLICT path = 0 changes on insert attempt
+        logAudit(isUpdate ? 'score_update' : 'score_create', { entity_type: 'patrol', entity_id, game_id, notes: `judge: ${judge_name || judge_email || 'unknown'}` });
         res.status(201).json({ status: 'success' });
 
     } catch (err) {
@@ -939,12 +994,30 @@ app.put('/api/scores/:uuid', (req, res) => {
     }
 
     try {
+        const existing = db.prepare('SELECT * FROM scores WHERE uuid = ?').get(uuid);
         const update = db.prepare('UPDATE scores SET score_payload = ? WHERE uuid = ?');
         const info = update.run(JSON.stringify(score_payload), uuid);
 
         if (info.changes === 0) {
             return res.status(404).json({ error: 'Score not found' });
         }
+
+        // Log each changed field individually
+        if (existing) {
+            const oldPayload = JSON.parse(existing.score_payload);
+            for (const [field, newVal] of Object.entries(score_payload)) {
+                if (String(oldPayload[field] ?? '') !== String(newVal ?? '')) {
+                    logAudit('score_update', {
+                        entity_id: existing.entity_id,
+                        game_id: existing.game_id,
+                        field_name: field,
+                        old_value: oldPayload[field],
+                        new_value: newVal
+                    });
+                }
+            }
+        }
+
         res.json({ status: 'updated' });
 
     } catch (err) {
@@ -965,6 +1038,7 @@ app.post('/api/entities', (req, res) => {
             'INSERT INTO entities (id, name, type, troop_number, parent_id) VALUES (?, ?, ?, ?, ?)'
         );
         insert.run(id, name, type, troop_number, parent_id || null);
+        logAudit('entity_create', { entity_type: type, entity_id: id, notes: `${name} / T${troop_number}` });
 
         res.json({
             id,
@@ -990,6 +1064,65 @@ app.post('/api/scores/close-game', (req, res) => {
         `).run(game_id, judge_id || null, score_count || 0, closed_at || new Date().toISOString());
 
         res.json({ received: true, message: 'Scores confirmed. Thank you!' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- OFFICIAL GAME FLAGS (DQ) ---
+
+app.put('/api/official/flags/:gameId/:entityId', (req, res) => {
+    const { gameId, entityId } = req.params;
+    const { dq = 0, reason = '' } = req.body;
+    try {
+        const existing = db.prepare('SELECT * FROM official_game_flags WHERE entity_id = ? AND game_id = ?').get(entityId, gameId);
+        db.prepare(`
+            INSERT INTO official_game_flags (entity_id, game_id, dq, reason, updated_at)
+            VALUES (?, ?, ?, ?, datetime('now'))
+            ON CONFLICT(entity_id, game_id) DO UPDATE SET
+                dq = excluded.dq,
+                reason = excluded.reason,
+                updated_at = excluded.updated_at
+        `).run(entityId, gameId, dq ? 1 : 0, reason || '');
+        logAudit(dq ? 'dq_set' : 'dq_cleared', {
+            entity_id: entityId,
+            game_id: gameId,
+            field_name: 'dq',
+            old_value: existing ? existing.dq : 0,
+            new_value: dq ? 1 : 0,
+            notes: reason || ''
+        });
+        res.json({ status: 'success' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/official/flags', (req, res) => {
+    try {
+        const flags = db.prepare('SELECT * FROM official_game_flags WHERE dq = 1 ORDER BY updated_at DESC').all();
+        res.json(flags);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- AUDIT LOG ---
+
+app.get('/api/audit', (req, res) => {
+    const limit = Math.min(parseInt(req.query.limit) || 200, 1000);
+    const entity_id = req.query.entity_id || null;
+    const game_id = req.query.game_id || null;
+    try {
+        let sql = 'SELECT * FROM audit_log';
+        const params = [];
+        const conditions = [];
+        if (entity_id) { conditions.push('entity_id = ?'); params.push(entity_id); }
+        if (game_id) { conditions.push('game_id = ?'); params.push(game_id); }
+        if (conditions.length) sql += ' WHERE ' + conditions.join(' AND ');
+        sql += ' ORDER BY id DESC LIMIT ?';
+        params.push(limit);
+        res.json(db.prepare(sql).all(...params));
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

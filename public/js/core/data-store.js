@@ -5,7 +5,8 @@ export const appData = {
     scores: [], // Full raw score list
     stats: {}, // Counts
     gameStatuses: {}, // Map of game_id -> status
-    metadata: {}
+    metadata: {},
+    flags: [] // Official DQ flags: { entity_id, game_id, dq, reason }
 };
 
 /**
@@ -28,10 +29,11 @@ export async function loadData(options = {}) {
         if (typeof apiBase === 'undefined') {
             apiBase = window.location.pathname.startsWith('/collator') ? '/collator' : '';
         }
-        const [gamesRes, entitiesRes, dataRes] = await Promise.all([
+        const [gamesRes, entitiesRes, dataRes, flagsRes] = await Promise.all([
             fetch(`${apiBase}/games.json?t=${ts}`),
             fetch(`${apiBase}/api/entities?t=${ts}`),
-            fetch(`${apiBase}/api/admin/all-data?t=${ts}`)
+            fetch(`${apiBase}/api/admin/all-data?t=${ts}`),
+            fetch(`${apiBase}/api/official/flags?t=${ts}`)
         ]);
 
         const gamesResult = await gamesRes.json();
@@ -45,6 +47,7 @@ export async function loadData(options = {}) {
         appData.stats = dataResult.stats || {};
         appData.gameStatuses = dataResult.game_status || {};
         appData.metadata = dataResult.metadata || {};
+        appData.flags = flagsRes.ok ? await flagsRes.json() : [];
 
         if (!silent) console.log('Loaded Data:', appData);
 

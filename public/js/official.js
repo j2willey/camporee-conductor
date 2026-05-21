@@ -573,6 +573,12 @@ function openGameDetail(gameId) {
         headerRow.appendChild(thNotes);
     }
 
+    if (!game.bracketMode) {
+        const thDQ = createTh('DQ');
+        thDQ.style.minWidth = '60px';
+        headerRow.appendChild(thDQ);
+    }
+
     thead.appendChild(headerRow);
     table.appendChild(thead);
 
@@ -718,13 +724,51 @@ function openGameDetail(gameId) {
             tr.appendChild(tdNotes);
         }
 
+        // DQ Column
+        if (!game.bracketMode) {
+            const tdDQ = document.createElement('td');
+            tdDQ.style.textAlign = 'center';
+            tdDQ.style.whiteSpace = 'nowrap';
+
+            const unscoutVal = parseFloat(score.score_payload['unscout'] || score.score_payload['unscoutlike'] || 0);
+            if (unscoutVal > 0) {
+                const warn = document.createElement('span');
+                warn.title = `Unscoutlike: ${unscoutVal}`;
+                warn.style.cssText = 'color:#f0a500; margin-right:4px; cursor:default;';
+                warn.textContent = '⚠';
+                tdDQ.appendChild(warn);
+            }
+
+            const existingFlag = appData.flags.find(f => f.entity_id === score.entity_id && f.game_id === gameId);
+            const isDQ = existingFlag && existingFlag.dq;
+            const dqBtn = document.createElement('button');
+            dqBtn.className = 'btn btn-sm ' + (isDQ ? 'btn-danger' : 'btn-outline-secondary');
+            dqBtn.style.fontSize = '0.7rem';
+            dqBtn.style.padding = '1px 6px';
+            dqBtn.textContent = 'DQ';
+            if (isDQ && existingFlag.reason) dqBtn.title = existingFlag.reason;
+            dqBtn.onclick = async () => {
+                if (isDQ) {
+                    await setDQFlag(score.entity_id, gameId, 0);
+                    openGameDetail(gameId);
+                } else {
+                    const reason = window.prompt(`DQ reason for ${score.entity_name}?\n(Enter to confirm, Cancel to abort)`);
+                    if (reason === null) return;
+                    await setDQFlag(score.entity_id, gameId, 1, reason);
+                    openGameDetail(gameId);
+                }
+            };
+            tdDQ.appendChild(dqBtn);
+            tr.appendChild(tdDQ);
+        }
+
         tbody.appendChild(tr);
     });
 
     if (gameScores.length === 0) {
         const tr = document.createElement('tr');
         const td = document.createElement('td');
-        const baseColSpan = game.bracketMode ? 4 : 7;
+        const baseColSpan = game.bracketMode ? 4 : 8;
         const metricCount = scoreFields.filter(f => f.kind === 'metric').length;
         td.colSpan = baseColSpan + scoreFields.length + metricCount + (notesField ? 1 : 0);
         td.innerText = "No scores submitted yet.";
@@ -806,8 +850,13 @@ function renderMatrixNormal(table, games, patrols) {
         p._leaderboardTotal = total;
     });
 
-    // 3. Dense Rank the patrol leaderboard totals
-    const sortedForRank = [...patrols].sort((a, b) => b._leaderboardTotal - a._leaderboardTotal);
+    // 3. Dense Rank — exclude patrols with overall DQ flag
+    patrols.forEach(p => {
+        p._overallExcluded = appData.flags.some(f => f.entity_id === p.id && f.game_id === 'overall' && f.dq);
+    });
+    const sortedForRank = [...patrols]
+        .filter(p => !p._overallExcluded)
+        .sort((a, b) => b._leaderboardTotal - a._leaderboardTotal);
     let curRank = 0;
     let lastLT = null;
     sortedForRank.forEach(p => {
@@ -817,6 +866,7 @@ function renderMatrixNormal(table, games, patrols) {
         }
         p._autoOverallRank = getOrdinalSuffix(curRank);
     });
+    patrols.filter(p => p._overallExcluded).forEach(p => { p._autoOverallRank = '—'; });
 
     // 4. Sort patrols based on Leaderboard Total (desc) by default
     patrols.sort((a, b) => {
@@ -874,6 +924,16 @@ function renderMatrixNormal(table, games, patrols) {
             } else {
                 td.innerHTML = '<span style="color:#eee">0</span>';
             }
+            // DQ badge for this game
+            const gameFlag = appData.flags.find(f => f.entity_id === patrol.id && f.game_id === game.id && f.dq);
+            if (gameFlag) {
+                const badge = document.createElement('span');
+                badge.className = 'badge bg-danger ms-1';
+                badge.style.fontSize = '0.55rem';
+                badge.title = gameFlag.reason || 'DQ';
+                badge.textContent = 'DQ';
+                td.appendChild(badge);
+            }
             tr.appendChild(td);
         });
 
@@ -881,17 +941,37 @@ function renderMatrixNormal(table, games, patrols) {
         const tdTotal = createTd(patrol._leaderboardTotal);
         tdTotal.style.fontWeight = 'bold';
         tdTotal.classList.add('cell-center');
+        if (patrol._overallExcluded) tdTotal.style.opacity = '0.4';
         tr.appendChild(tdTotal);
 
-        // Editable Rank Column
+        // Rank + Exclude toggle
         const tdRank = document.createElement('td');
+        tdRank.style.whiteSpace = 'nowrap';
         const input = document.createElement('input');
         input.type = 'text';
-        input.className = 'form-control form-control-sm';
-        input.style.width = '100px';
+        input.className = 'form-control form-control-sm d-inline-block';
+        input.style.width = '80px';
         input.value = patrol.manual_rank || patrol._autoOverallRank;
+        if (patrol._overallExcluded) { input.value = '—'; input.disabled = true; input.style.opacity = '0.5'; }
         input.onchange = (e) => updateEntityField(patrol.id, 'manual_rank', e.target.value);
         tdRank.appendChild(input);
+
+        const exclBtn = document.createElement('button');
+        exclBtn.className = 'btn btn-sm ms-1 ' + (patrol._overallExcluded ? 'btn-danger' : 'btn-outline-secondary');
+        exclBtn.style.cssText = 'font-size:0.65rem; padding:1px 5px;';
+        exclBtn.title = patrol._overallExcluded ? ('Excluded: ' + (appData.flags.find(f => f.entity_id === patrol.id && f.game_id === 'overall')?.reason || '')) : 'Exclude from Overall';
+        exclBtn.textContent = 'Excl';
+        exclBtn.onclick = async () => {
+            if (patrol._overallExcluded) {
+                await setDQFlag(patrol.id, 'overall', 0);
+            } else {
+                const reason = window.prompt(`Exclude ${patrol.name} from Overall standings?\nReason (optional):`);
+                if (reason === null) return;
+                await setDQFlag(patrol.id, 'overall', 1, reason);
+            }
+            renderMatrix();
+        };
+        tdRank.appendChild(exclBtn);
         tr.appendChild(tdRank);
 
         tbody.appendChild(tr);
@@ -989,6 +1069,25 @@ function renderMatrixTransposed(table, games, patrols) {
     tbody.appendChild(rankRow);
 
     table.appendChild(tbody);
+}
+
+async function setDQFlag(entityId, gameId, dq, reason = '') {
+    const flag = appData.flags.find(f => f.entity_id === entityId && f.game_id === gameId);
+    if (flag) { flag.dq = dq ? 1 : 0; flag.reason = reason; }
+    else if (dq) appData.flags.push({ entity_id: entityId, game_id: gameId, dq: 1, reason });
+    else appData.flags = appData.flags.filter(f => !(f.entity_id === entityId && f.game_id === gameId));
+
+    try {
+        const response = await fetch(window.API_BASE + '/api/official/flags/' + encodeURIComponent(gameId) + '/' + encodeURIComponent(entityId), {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ dq: dq ? 1 : 0, reason })
+        });
+        if (!response.ok) throw new Error('Failed to set flag');
+    } catch (err) {
+        console.error('DQ flag update failed:', err);
+        alert('Failed to save DQ flag. Please refresh.');
+    }
 }
 
 async function updateScoreField(uuid, fieldId, value) {
