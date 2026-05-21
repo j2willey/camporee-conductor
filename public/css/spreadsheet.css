@@ -88,3 +88,18 @@
     background-color: #d1ecf1 !important;
     color: #0c5460;
 }
+
+/* Metric field columns — raw measured value (amber) */
+.spreadsheet-table th.col-metric,
+.spreadsheet-table td.col-metric {
+    background-color: #fff3cd !important;
+    color: #664d03;
+    font-weight: bold;
+}
+
+/* Metric-to-points conversion columns — official enters converted pts (green) */
+.spreadsheet-table th.col-metric-pts,
+.spreadsheet-table td.col-metric-pts {
+    background-color: #d1e7dd !important;
+    color: #0a3622;
+}

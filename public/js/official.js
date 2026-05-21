@@ -362,16 +362,15 @@ function openGameDetail(gameId) {
     const gameScores = rawScores.map(score => {
         let total = 0;
         scoreFields.forEach(f => {
-            // Only sum if kind is "points" or "penalty"
             if (f.kind === 'points' || f.kind === 'penalty') {
                 const val = parseFloat(score.score_payload[f.id]);
                 if (!isNaN(val)) {
-                    if (f.kind === 'penalty') {
-                        total -= val;
-                    } else {
-                        total += val;
-                    }
+                    if (f.kind === 'penalty') total -= val;
+                    else total += val;
                 }
+            } else if (f.kind === 'metric') {
+                const pts = parseFloat(score.score_payload[f.id + '_pts']);
+                if (!isNaN(pts)) total += pts;
             }
         });
         return { ...score, _total: total };
@@ -530,9 +529,18 @@ function openGameDetail(gameId) {
         const th = createTh(field.label);
         th.className += ' rotate-header';
         if (field.kind !== 'entryname') th.className += ' collapsible-col';
-        th.title = field.label; // Tooltip for readability
+        if (field.kind === 'metric') th.classList.add('col-metric');
+        th.title = field.label;
         addSortBtn(th, field.id);
         headerRow.appendChild(th);
+
+        if (field.kind === 'metric') {
+            const thPts = createTh(`${field.label}<br>Pts`);
+            thPts.className += ' rotate-header collapsible-col col-metric-pts';
+            thPts.title = `${field.label} — converted to points`;
+            addSortBtn(thPts, field.id + '_pts');
+            headerRow.appendChild(thPts);
+        }
     });
 
     // Skip hardcoded columns for Brackets (they use dynamic schema fields)
@@ -638,7 +646,27 @@ function openGameDetail(gameId) {
                     td.style.color = 'red';
                     td.style.fontWeight = 'bold';
                 }
+                if (field.kind === 'metric') td.classList.add('col-metric');
                 tr.appendChild(td);
+
+                if (field.kind === 'metric') {
+                    const tdPts = document.createElement('td');
+                    tdPts.classList.add('collapsible-col', 'col-metric-pts');
+                    const inputPts = document.createElement('input');
+                    inputPts.className = 'admin-input';
+                    inputPts.type = 'number';
+                    inputPts.style.width = '55px';
+                    const ptsVal = score.score_payload[field.id + '_pts'];
+                    inputPts.value = (ptsVal !== undefined && ptsVal !== null) ? ptsVal : '';
+                    inputPts.placeholder = '0';
+                    inputPts.onchange = async () => {
+                        const newVal = inputPts.value === '' ? null : parseFloat(inputPts.value);
+                        await updateScoreField(score.uuid, field.id + '_pts', isNaN(newVal) ? 0 : newVal);
+                        openGameDetail(activeGameId);
+                    };
+                    tdPts.appendChild(inputPts);
+                    tr.appendChild(tdPts);
+                }
             }
         });
 
@@ -697,7 +725,8 @@ function openGameDetail(gameId) {
         const tr = document.createElement('tr');
         const td = document.createElement('td');
         const baseColSpan = game.bracketMode ? 4 : 7;
-        td.colSpan = baseColSpan + scoreFields.length + (notesField ? 1 : 0);
+        const metricCount = scoreFields.filter(f => f.kind === 'metric').length;
+        td.colSpan = baseColSpan + scoreFields.length + metricCount + (notesField ? 1 : 0);
         td.innerText = "No scores submitted yet.";
         td.style.textAlign = 'center';
         td.style.padding = '20px';

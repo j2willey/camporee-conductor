@@ -25,7 +25,7 @@ const COMMON_FIELD_IDS = new Set([
     'patrol_flag', 'patrol_yell', 'patrol_spirit', 'patrol_sprirt',
     'p_flag', 'p_yell', 'p_spirit', 'ten_ess',
     'unscoutlike', 'unscout',
-    'judge_notes', 'off_notes',
+    'off_notes',
     'off_score', 'final_rank', 'overall_points'
 ]);
 

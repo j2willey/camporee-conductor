@@ -10,6 +10,10 @@
 - ✅ Common Field Injection — presets.json prefix/suffix fields merged at /games.json serve time
 - ✅ Game Variables — template substitution ({{variable_name}}) in common field labels
 - ✅ Close Game handshake — AI-assisted end-of-game confirmation flow
+- ✅ Print scoresheet filter/duplex/exhibition fixes — group filtering works correctly, 2-sided print option, exhibition participation columns
+- ✅ Print freeze fix (all print paths) — Blob URL + popup-injected print() prevents calling tab from freezing during print dialog
+- ✅ Critical: Composer printPreview data-loss bug — body-swap pattern was wiping camporee on print cancel; replaced with Blob URL approach
+- ✅ Coyote Creek Camporee 2026 "The Circus" — ran live May 15–17 at Camp Chesebrough
 
 ---
 
@@ -40,3 +44,5 @@
 ### Documentation
 
 - [ ] **Event Director's Guide** — operational runbook covering cert renewal, router setup, cartridge load, and event-day checklist
+- [ ] **Service worker lockup investigation** — page occasionally freezes completely (F12 unresponsive); suspected SW retry loop; review sync-manager.js and SW fetch handler for infinite retry paths
+- [ ] **Post-event retrospective** — gather judge feedback, document what worked/broke at Circus 2026, inform v2 priorities
