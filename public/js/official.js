@@ -839,6 +839,16 @@ function renderMatrixNormal(table, games, patrols) {
     // 1. Calculate points map (points for every score)
     const pointsMap = calculateScoreContext(appData);
 
+    // Build unscoutlike lookup: entity_id -> Set of game_ids with non-zero unscout value
+    const unscoutMap = {};
+    appData.scores.forEach(s => {
+        const val = parseFloat(s.score_payload['unscout'] || s.score_payload['unscoutlike'] || 0);
+        if (val > 0) {
+            if (!unscoutMap[s.entity_id]) unscoutMap[s.entity_id] = {};
+            unscoutMap[s.entity_id][s.game_id] = val;
+        }
+    });
+
     // 2. Calculate totals per patrol
     patrols.forEach(p => {
         let total = 0;
@@ -924,7 +934,16 @@ function renderMatrixNormal(table, games, patrols) {
             } else {
                 td.innerHTML = '<span style="color:#eee">0</span>';
             }
-            // DQ badge for this game
+            // Amber ⚠ if unscoutlike value recorded for this patrol in this game
+            const unscoutVal = unscoutMap[patrol.id] && unscoutMap[patrol.id][game.id];
+            if (unscoutVal) {
+                const warn = document.createElement('span');
+                warn.style.cssText = 'color:#f0a500; font-size:0.75rem; margin-left:2px; cursor:default;';
+                warn.title = `Unscoutlike: ${unscoutVal}`;
+                warn.textContent = '⚠';
+                td.appendChild(warn);
+            }
+            // Red DQ badge if officially flagged
             const gameFlag = appData.flags.find(f => f.entity_id === patrol.id && f.game_id === game.id && f.dq);
             if (gameFlag) {
                 const badge = document.createElement('span');
@@ -982,6 +1001,15 @@ function renderMatrixNormal(table, games, patrols) {
 function renderMatrixTransposed(table, games, patrols) {
     const pointsMap = calculateScoreContext(appData);
 
+    const unscoutMap = {};
+    appData.scores.forEach(s => {
+        const val = parseFloat(s.score_payload['unscout'] || s.score_payload['unscoutlike'] || 0);
+        if (val > 0) {
+            if (!unscoutMap[s.entity_id]) unscoutMap[s.entity_id] = {};
+            unscoutMap[s.entity_id][s.game_id] = val;
+        }
+    });
+
     // Calculate totals per patrol
     patrols.forEach(p => {
         let total = 0;
@@ -1031,6 +1059,14 @@ function renderMatrixTransposed(table, games, patrols) {
                 td.innerText = pts;
             } else {
                 td.innerHTML = '<span style="color:#eee">0</span>';
+            }
+            const unscoutVal = unscoutMap[patrol.id] && unscoutMap[patrol.id][game.id];
+            if (unscoutVal) {
+                const warn = document.createElement('span');
+                warn.style.cssText = 'color:#f0a500; font-size:0.75rem; margin-left:2px; cursor:default;';
+                warn.title = `Unscoutlike: ${unscoutVal}`;
+                warn.textContent = '⚠';
+                td.appendChild(warn);
             }
             tr.appendChild(td);
         });
