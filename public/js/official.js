@@ -734,7 +734,7 @@ function openGameDetail(gameId) {
             if (unscoutVal > 0) {
                 const warn = document.createElement('span');
                 warn.title = `Unscoutlike: ${unscoutVal}`;
-                warn.style.cssText = 'color:#f0a500; margin-right:4px; cursor:default;';
+                warn.style.cssText = 'color:#c05e00; font-size:1.1rem; margin-right:4px; cursor:default;';
                 warn.textContent = '⚠';
                 tdDQ.appendChild(warn);
             }
@@ -934,12 +934,14 @@ function renderMatrixNormal(table, games, patrols) {
             } else {
                 td.innerHTML = '<span style="color:#eee">0</span>';
             }
-            // Amber ⚠ if unscoutlike value recorded for this patrol in this game
+            // Red cell + ⚠ if unscoutlike value recorded for this patrol in this game
+            // Note: not all unscoutlike behavior is recorded — judge discretion applies
             const unscoutVal = unscoutMap[patrol.id] && unscoutMap[patrol.id][game.id];
             if (unscoutVal) {
+                td.style.color = 'red';
                 const warn = document.createElement('span');
-                warn.style.cssText = 'color:#f0a500; font-size:0.75rem; margin-left:2px; cursor:default;';
-                warn.title = `Unscoutlike: ${unscoutVal}`;
+                warn.style.cssText = 'color:#c05e00; font-size:1rem; margin-left:3px; cursor:default;';
+                warn.title = `Unscoutlike behavior recorded: ${unscoutVal} pt(s). Note: not all incidents may be recorded.`;
                 warn.textContent = '⚠';
                 td.appendChild(warn);
             }
@@ -1062,9 +1064,10 @@ function renderMatrixTransposed(table, games, patrols) {
             }
             const unscoutVal = unscoutMap[patrol.id] && unscoutMap[patrol.id][game.id];
             if (unscoutVal) {
+                td.style.color = 'red';
                 const warn = document.createElement('span');
-                warn.style.cssText = 'color:#f0a500; font-size:0.75rem; margin-left:2px; cursor:default;';
-                warn.title = `Unscoutlike: ${unscoutVal}`;
+                warn.style.cssText = 'color:#c05e00; font-size:1rem; margin-left:3px; cursor:default;';
+                warn.title = `Unscoutlike behavior recorded: ${unscoutVal} pt(s). Note: not all incidents may be recorded.`;
                 warn.textContent = '⚠';
                 td.appendChild(warn);
             }
