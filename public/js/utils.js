@@ -409,6 +409,13 @@ function getWinnersRegistry() {
         // Entry fields for this game
         const entryFields = [...(game.fields || []), ...(appData.commonScoring || [])].filter(f => f.kind === 'entryname');
 
+        // If any score has an explicit top-3 manual_rank, only show those entries.
+        // Without this, tied patrols without manual_rank auto-rank into top-3 positions,
+        // causing mismatches between ribbon count and announcer entries.
+        const topRanks = ['1', '1st', '2', '2nd', '3', '3rd'];
+        const hasManualRanks = sorted.some(s =>
+            topRanks.includes(String(s.score_payload.manual_rank || '').toLowerCase().trim()));
+
         sorted.forEach(s => {
             if (s._total !== lastT) {
                 curRank++;
@@ -417,9 +424,13 @@ function getWinnersRegistry() {
             s._autoRank = getOrdinalSuffix(curRank);
             const finalRank = s.score_payload.manual_rank || s._autoRank;
             const rankClean = String(finalRank).toLowerCase().trim();
-            const topRanks = ['1', '1st', '2', '2nd', '3', '3rd'];
+            const explicitRankClean = String(s.score_payload.manual_rank || '').toLowerCase().trim();
 
-            if (topRanks.includes(rankClean)) {
+            const include = hasManualRanks
+                ? (s.score_payload.manual_rank && topRanks.includes(explicitRankClean))
+                : topRanks.includes(rankClean);
+
+            if (include) {
                 // Construct line4Text
                 let line4 = `${finalRank} Place - T${String(s.troop_number).replace(/^T/i, '')}`;
                 if (currentViewMode === 'patrol') {
@@ -732,6 +743,9 @@ function renderAnnouncerSheet() {
         }).sort((a, b) => b._total - a._total);
 
         // Assign ranks with tie handling
+        const topRankSet = new Set(['1', '1st', '2', '2nd', '3', '3rd']);
+        const hasManualRanks = scored.some(s =>
+            topRankSet.has(String(s.score_payload.manual_rank || '').toLowerCase().trim()));
         let curRank = 0, lastTotal = null;
         scored.forEach(s => {
             if (s._total !== lastTotal) { curRank++; lastTotal = s._total; }
@@ -739,8 +753,12 @@ function renderAnnouncerSheet() {
             s._rankLabel = s.score_payload.manual_rank || getOrdinalSuffix(curRank);
         });
 
-        // Keep top 3 places (including ties)
-        const topPlaces = scored.filter(s => s._rank <= 3);
+        // Mirror ribbon logic: if manual ranks are present, only show explicitly ranked top-3.
+        // Auto mode falls back to top-3 positions (ties included).
+        const topPlaces = hasManualRanks
+            ? scored.filter(s => s.score_payload.manual_rank &&
+                topRankSet.has(String(s.score_payload.manual_rank).toLowerCase().trim()))
+            : scored.filter(s => s._rank <= 3);
         if (topPlaces.length === 0) return;
 
         blocks.push({ title: formatGameTitle(game), entries: topPlaces.map(s => ({
