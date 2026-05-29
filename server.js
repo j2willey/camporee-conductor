@@ -113,8 +113,12 @@ async function startServer() {
         console.log("-> Mounted Curator UI at /curator/");
     }
 
-    // 4. Global fallback for static assets that all shared views might need 
+    // 4. Global fallback for static assets that all shared views might need
     // (like bootstrap CSS, fontawesome)
+    // Block direct access to sysadmin.html — it's only served through /composer/sysadmin.html
+    // where requireAuth + requireSysadmin gate it. API calls in the page use relative paths
+    // that only resolve correctly from the /composer/ mount point anyway.
+    app.get('/sysadmin.html', (req, res) => res.redirect('/composer/sysadmin.html'));
     app.use(express.static('public', { index: false }));
 
     // --- ROOT ROUTING (The Gateway) ---

@@ -84,6 +84,7 @@ function requireEventRole(minRole) {
 }
 
 function requireSysadmin(req, res, next) {
+    if (TEST_MODE) return next();
     const { userId } = getAuth(req);
     if (!userId) return res.status(401).json({ error: 'Authentication required' });
     const profile = conductorDb.prepare('SELECT is_sysadmin FROM user_profiles WHERE user_id = ?').get(userId);
@@ -123,6 +124,11 @@ app.use((req, res, next) => {
 
 const WORKSPACE_PATH = process.env.WORKSPACE_PATH || path.join(__dirname, 'data', 'composer');
 const LIBRARY_PATH = process.env.LIBRARY_PATH || path.join(__dirname, 'data', 'library');
+
+// Gate /sysadmin.html before express.static can serve it as a raw file.
+app.get('/sysadmin.html', requireAuth, requireSysadmin, (req, res) => {
+    res.sendFile(path.resolve('public/sysadmin.html'));
+});
 
 // Important: { index: false } prevents Express from automatically serving
 // 'index.html' (the Collator App) when you hit '/', allowing the route below to handle it.
