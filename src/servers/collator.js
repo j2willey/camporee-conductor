@@ -6,9 +6,14 @@ import fs from 'fs';
 import multer from 'multer';
 import AdmZip from 'adm-zip';
 import dotenv from 'dotenv';
+import session from 'express-session';
+import { clerkMiddleware, getAuth } from '@clerk/express';
 import { normalizeGameDefinition } from '../../public/js/core/schema.js';
 
 dotenv.config();
+
+const COLLATOR_MODE = (process.env.COLLATOR_MODE || 'offline').toLowerCase();
+console.log(`[Collator] Running in ${COLLATOR_MODE} mode`);
 
 // --- CONFIGURATION & PATHS ---
 const __filename = fileURLToPath(import.meta.url);
@@ -148,6 +153,20 @@ db.exec(`
     notes TEXT
   );
 `);
+
+// Cloud-mode event permissions table
+if (COLLATOR_MODE === 'cloud') {
+    db.exec(`
+        CREATE TABLE IF NOT EXISTS event_permissions (
+            camporee_id   TEXT,
+            user_id       TEXT,
+            email         TEXT,
+            display_name  TEXT,
+            role          TEXT,
+            PRIMARY KEY (camporee_id, user_id)
+        )
+    `);
+}
 
 // --- MIGRATIONS ---
 try {
@@ -391,8 +410,61 @@ function getNextEntityId(type) {
     return `${prefix}${nextNum}`;
 }
 
+// --- AUTH HELPERS ---
+
+function requireOfficial(req, res, next) {
+    if (COLLATOR_MODE === 'cloud') {
+        const { userId } = getAuth(req);
+        if (!userId) return res.status(401).json({ error: 'Authentication required' });
+        const meta = getActiveMeta();
+        if (!meta?.camporeeId) return res.status(503).json({ error: 'No event loaded' });
+        const perm = db.prepare('SELECT role FROM event_permissions WHERE camporee_id = ? AND user_id = ?').get(meta.camporeeId, userId);
+        if (!perm) return res.status(403).json({ error: 'Not authorized for this event' });
+        req.officialRole = perm.role;
+    } else {
+        if (!req.session?.role) {
+            return res.status(401).json({ error: 'Identification required', requiresIdentify: true });
+        }
+        req.officialRole = req.session.role;
+    }
+    next();
+}
+
+function installOfficials(camporeeId, uploadUserId, officials) {
+    db.prepare('DELETE FROM event_permissions WHERE camporee_id = ?').run(camporeeId);
+    db.prepare('INSERT OR REPLACE INTO event_permissions (camporee_id, user_id, role) VALUES (?, ?, ?)').run(camporeeId, uploadUserId, 'director');
+    for (const o of officials) {
+        if (!o.user_id || o.user_id === uploadUserId) continue;
+        db.prepare(`
+            INSERT OR IGNORE INTO event_permissions (camporee_id, user_id, email, display_name, role)
+            VALUES (?, ?, ?, ?, 'official')
+        `).run(camporeeId, o.user_id, o.email || null, o.display_name || null);
+    }
+}
+
 // --- MIDDLEWARE ---
 app.use(express.json());
+
+if (COLLATOR_MODE === 'cloud') {
+    app.use(clerkMiddleware());
+} else {
+    app.use(session({
+        secret: process.env.SESSION_SECRET || 'collator-offline-secret',
+        resave: false,
+        saveUninitialized: false,
+        cookie: { httpOnly: true, sameSite: 'lax' }
+    }));
+    // Redirect unauthenticated requests for protected pages to identify.html
+    // (runs before express.static so it intercepts /admin.html, /utils.html)
+    app.use((req, res, next) => {
+        const protectedPages = ['/admin.html', '/utils.html'];
+        if (protectedPages.includes(req.path) && !req.session?.role && getActiveMeta()) {
+            return res.redirect((req.baseUrl || '/collator') + '/identify.html');
+        }
+        next();
+    });
+}
+
 app.use(express.static('public', { index: false }));
 // Map the legacy /library/games path to the new separated silo
 app.use('/library/games', express.static(LIBRARY_PATH));
@@ -403,7 +475,10 @@ const requireConfig = (req, res, next) => {
         '/setup',
         '/api/setup/upload',
         '/api/setup/confirm',
-        '/setup/conflict'
+        '/setup/conflict',
+        '/api/auth/whoami',
+        '/api/auth/identify',
+        '/identify.html'
     ];
 
     // Allow static resources and bypass routes
@@ -445,14 +520,26 @@ app.get('/setup', (req, res) => {
 app.post('/api/setup/upload', upload.single('configZip'), (req, res) => {
     if (!req.file) return res.redirect((req.baseUrl || '/collator') + '/setup');
 
+    // Cloud mode: require Clerk auth to upload a cartridge
+    if (COLLATOR_MODE === 'cloud') {
+        const { userId } = getAuth(req);
+        if (!userId) {
+            fs.unlinkSync(req.file.path);
+            return res.status(401).json({ error: 'Authentication required' });
+        }
+    }
+
     const zipPath = req.file.path;
     const zip = new AdmZip(zipPath);
     let newMeta = null;
+    let newOfficials = [];
 
     try {
         const metaEntry = zip.getEntry("camporee.json");
         if (!metaEntry) throw new Error("Invalid Zip");
-        newMeta = JSON.parse(metaEntry.getData().toString('utf8')).meta;
+        const manifest = JSON.parse(metaEntry.getData().toString('utf8'));
+        newMeta = manifest.meta;
+        newOfficials = manifest.officials || [];
     } catch (e) {
         fs.unlinkSync(zipPath);
         return res.send("Error: Invalid Camporee Zip (Missing camporee.json)");
@@ -465,10 +552,20 @@ app.post('/api/setup/upload', upload.single('configZip'), (req, res) => {
     if (!currentMeta || newMeta.camporeeId !== currentMeta.camporeeId) {
         archiveDatabase();
         installCartridge(zipPath);
+        if (COLLATOR_MODE === 'cloud') {
+            installOfficials(newMeta.camporeeId, getAuth(req).userId, newOfficials);
+        }
         return res.redirect((req.baseUrl || '/collator') + '/admin.html');
     }
 
     // Case 2: Update Detected -> Ask User
+    // Store officials list in temp file so confirm handler can use it
+    if (COLLATOR_MODE === 'cloud') {
+        fs.writeFileSync(
+            path.join(UPLOAD_TEMP, 'pending_officials.json'),
+            JSON.stringify({ uploadUserId: getAuth(req).userId, officials: newOfficials })
+        );
+    }
     fs.renameSync(zipPath, pendingPath);
     res.redirect((req.baseUrl || '/collator') + '/setup/conflict');
 });
@@ -509,7 +606,71 @@ app.post('/api/setup/confirm', express.urlencoded({ extended: true }), (req, res
     if (action === 'update_wipe') archiveDatabase();
 
     installCartridge(pendingPath);
+
+    if (COLLATOR_MODE === 'cloud') {
+        const pendingOfficialsPath = path.join(UPLOAD_TEMP, 'pending_officials.json');
+        if (fs.existsSync(pendingOfficialsPath)) {
+            try {
+                const { uploadUserId, officials } = JSON.parse(fs.readFileSync(pendingOfficialsPath, 'utf8'));
+                const meta = getActiveMeta();
+                if (meta?.camporeeId) installOfficials(meta.camporeeId, uploadUserId, officials);
+                fs.unlinkSync(pendingOfficialsPath);
+            } catch (e) {
+                console.error('[cloud] Failed to apply pending officials:', e.message);
+            }
+        }
+    }
+
     res.redirect((req.baseUrl || '/collator') + '/admin.html');
+});
+
+// --- AUTH ROUTES ---
+
+app.get('/api/auth/whoami', (req, res) => {
+    if (COLLATOR_MODE === 'cloud') {
+        const { userId } = getAuth(req);
+        if (!userId) return res.json({ mode: 'cloud', authenticated: false });
+        const meta = getActiveMeta();
+        if (!meta?.camporeeId) return res.json({ mode: 'cloud', authenticated: true, authorized: false });
+        const perm = db.prepare('SELECT role, display_name FROM event_permissions WHERE camporee_id = ? AND user_id = ?').get(meta.camporeeId, userId);
+        if (!perm) return res.json({ mode: 'cloud', authenticated: true, authorized: false });
+        return res.json({ mode: 'cloud', authenticated: true, authorized: true, role: perm.role, display_name: perm.display_name });
+    } else {
+        if (!req.session?.role) return res.json({ mode: 'offline', authenticated: false });
+        return res.json({ mode: 'offline', authenticated: true, role: req.session.role, display_name: req.session.display_name, email: req.session.email });
+    }
+});
+
+app.post('/api/auth/identify', express.json(), (req, res) => {
+    if (COLLATOR_MODE !== 'offline') {
+        return res.status(404).json({ error: 'Not available in cloud mode' });
+    }
+
+    const email = ((req.body && req.body.email) || '').toLowerCase().trim();
+    if (!email) return res.status(400).json({ error: 'Email required' });
+
+    const manifestPath = path.join(ACTIVE_DIR, 'camporee.json');
+    if (!fs.existsSync(manifestPath)) {
+        return res.status(503).json({ error: 'No event loaded' });
+    }
+
+    let officials = [];
+    try {
+        const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+        officials = manifest.officials || [];
+    } catch {
+        return res.status(500).json({ error: 'Failed to read event manifest' });
+    }
+
+    const match = officials.find(o => (o.email || '').toLowerCase().trim() === email);
+    if (!match) {
+        return res.status(403).json({ error: 'Not listed as an official for this event' });
+    }
+
+    req.session.role = match.role === 'director' ? 'director' : 'official';
+    req.session.display_name = match.display_name || null;
+    req.session.email = email;
+    res.json({ display_name: match.display_name || null, role: req.session.role });
 });
 
 // --- CORE ROUTES ---
@@ -551,7 +712,7 @@ app.get('/api/entities', (req, res) => {
     }
 });
 
-app.put('/api/entities/:id', (req, res) => {
+app.put('/api/entities/:id', requireOfficial, (req, res) => {
     const { id } = req.params;
     const { manual_rank, name } = req.body;
     try {
@@ -661,7 +822,7 @@ app.post('/api/score', (req, res) => {
 
 // --- EXHIBITION RESULTS ROUTES ---
 
-app.get('/api/exhibition-results/:gameId', (req, res) => {
+app.get('/api/exhibition-results/:gameId', requireOfficial, (req, res) => {
     try {
         const rows = db.prepare(
             'SELECT * FROM exhibition_results WHERE game_id = ? ORDER BY sort_order ASC, id ASC'
@@ -672,7 +833,7 @@ app.get('/api/exhibition-results/:gameId', (req, res) => {
     }
 });
 
-app.post('/api/exhibition-results/:gameId', express.json(), (req, res) => {
+app.post('/api/exhibition-results/:gameId', requireOfficial, express.json(), (req, res) => {
     const { gameId } = req.params;
     const rows = req.body;
     if (!Array.isArray(rows)) return res.status(400).json({ error: 'Expected array' });
@@ -695,7 +856,7 @@ app.post('/api/exhibition-results/:gameId', express.json(), (req, res) => {
 
 // --- ADMIN & EXPORT ROUTES ---
 
-app.get('/api/admin/all-data', (req, res) => {
+app.get('/api/admin/all-data', requireOfficial, (req, res) => {
     try {
         const query = `
             SELECT
@@ -736,7 +897,7 @@ app.get('/api/admin/all-data', (req, res) => {
 });
 
 // --- BRACKET SYNC ---
-app.post('/api/bracket/sync', (req, res) => {
+app.post('/api/bracket/sync', requireOfficial, (req, res) => {
     const { game_id, bracket_data } = req.body;
     if (!game_id || !bracket_data) {
         return res.status(400).json({ error: 'Missing game_id or bracket_data' });
@@ -813,7 +974,7 @@ app.post('/api/bracket/sync', (req, res) => {
     }
 });
 
-app.get('/api/admin/judges', (req, res) => {
+app.get('/api/admin/judges', requireOfficial, (req, res) => {
     try {
         const judges = db.prepare('SELECT * FROM judges').all();
         const scores = db.prepare('SELECT judge_id, game_id FROM scores WHERE judge_id IS NOT NULL').all();
@@ -842,7 +1003,7 @@ app.get('/api/admin/judges', (req, res) => {
     }
 });
 
-app.get('/api/export', (req, res) => {
+app.get('/api/export', requireOfficial, (req, res) => {
     try {
         const query = `
             SELECT
@@ -894,7 +1055,7 @@ app.get('/api/export', (req, res) => {
     }
 });
 
-app.post('/api/admin/game-status', (req, res) => {
+app.post('/api/admin/game-status', requireOfficial, (req, res) => {
     const { game_id, status } = req.body;
     try {
         const query = `
@@ -908,7 +1069,7 @@ app.post('/api/admin/game-status', (req, res) => {
     }
 });
 
-app.patch('/api/meta/theme-colors', (req, res) => {
+app.patch('/api/meta/theme-colors', requireOfficial, (req, res) => {
     const { main, header, accent } = req.body || {};
     const manifestPath = path.join(ACTIVE_DIR, 'camporee.json');
     if (!fs.existsSync(manifestPath)) {
@@ -926,7 +1087,7 @@ app.patch('/api/meta/theme-colors', (req, res) => {
     }
 });
 
-app.delete('/api/admin/scores', (req, res) => {
+app.delete('/api/admin/scores', requireOfficial, (req, res) => {
     try {
         db.transaction(() => {
             // Delete in order to satisfy foreign key constraints
@@ -946,7 +1107,7 @@ app.delete('/api/admin/scores', (req, res) => {
     }
 });
 
-app.delete('/api/admin/full-reset', (req, res) => {
+app.delete('/api/admin/full-reset', requireOfficial, (req, res) => {
     try {
         db.transaction(() => {
             db.prepare('DELETE FROM Match_Participants').run();
@@ -963,7 +1124,7 @@ app.delete('/api/admin/full-reset', (req, res) => {
     }
 });
 
-app.post('/api/admin/awards-config', express.json(), (req, res) => {
+app.post('/api/admin/awards-config', requireOfficial, express.json(), (req, res) => {
     const { awards_config } = req.body;
     const manifestPath = path.join(ACTIVE_DIR, 'camporee.json');
 
@@ -985,7 +1146,7 @@ app.post('/api/admin/awards-config', express.json(), (req, res) => {
     }
 });
 
-app.put('/api/scores/:uuid', (req, res) => {
+app.put('/api/scores/:uuid', requireOfficial, (req, res) => {
     const { uuid } = req.params;
     const { score_payload } = req.body;
 
@@ -1071,7 +1232,7 @@ app.post('/api/scores/close-game', (req, res) => {
 
 // --- OFFICIAL GAME FLAGS (DQ) ---
 
-app.put('/api/official/flags/:gameId/:entityId', (req, res) => {
+app.put('/api/official/flags/:gameId/:entityId', requireOfficial, (req, res) => {
     const { gameId, entityId } = req.params;
     const { dq = 0, reason = '' } = req.body;
     try {
@@ -1098,7 +1259,7 @@ app.put('/api/official/flags/:gameId/:entityId', (req, res) => {
     }
 });
 
-app.get('/api/official/flags', (req, res) => {
+app.get('/api/official/flags', requireOfficial, (req, res) => {
     try {
         const flags = db.prepare('SELECT * FROM official_game_flags WHERE dq = 1 ORDER BY updated_at DESC').all();
         res.json(flags);
@@ -1109,7 +1270,7 @@ app.get('/api/official/flags', (req, res) => {
 
 // --- AUDIT LOG ---
 
-app.get('/api/audit', (req, res) => {
+app.get('/api/audit', requireOfficial, (req, res) => {
     const limit = Math.min(parseInt(req.query.limit) || 200, 1000);
     const entity_id = req.query.entity_id || null;
     const game_id = req.query.game_id || null;

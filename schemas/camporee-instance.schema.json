@@ -121,6 +121,11 @@
           "email": {
             "type": "string",
             "format": "email"
+          },
+          "role": {
+            "type": "string",
+            "enum": ["director", "official"],
+            "description": "Event role. 'director' for the event owner; 'official' for all others."
           }
         },
         "additionalProperties": false

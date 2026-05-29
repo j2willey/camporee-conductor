@@ -870,7 +870,8 @@ app.get('/api/events/:eventId/officials', requireAuth, requireEventRole('viewer'
         officials.push({
             user_id: row.user_id,
             display_name: row.display_name || null,
-            email: email || null
+            email: email || null,
+            role: row.role === 'owner' ? 'director' : 'official'
         });
     }
 

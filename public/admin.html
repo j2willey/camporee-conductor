@@ -10,6 +10,18 @@
     <link rel="stylesheet" href="css/spreadsheet.css">
     <script src="/js/qrcode.min.js"></script>
     <script type="module" src="js/admin.js" defer></script>
+    <script>
+    fetch('/collator/api/auth/whoami').then(function(r){return r.json();}).then(function(d){
+        var badge = document.getElementById('collator-mode-badge');
+        if (badge) {
+            badge.textContent = d.mode === 'cloud' ? 'CLOUD' : 'OFFLINE';
+            badge.title = d.display_name ? ('Signed in as ' + d.display_name) : '';
+        }
+        if (d.mode === 'offline' && !d.authenticated) {
+            window.location.replace('/collator/identify.html');
+        }
+    }).catch(function(){});
+    </script>
 </head>
 <body>
     <header class="conductor-header theme-official">
@@ -20,7 +32,7 @@
                     <polyline points="12 19 5 12 12 5"></polyline>
                 </svg>
             </button>
-            <h1>Camporee Collator<span id="header-subtitle"></span></h1>
+            <h1>Camporee Collator<span id="header-subtitle"></span><span id="collator-mode-badge" style="font-size:0.55em;font-weight:normal;opacity:0.7;margin-left:10px;vertical-align:middle;"></span></h1>
         </div>
         <div id="header-actions" class="hidden header-right">
             <div id="mode-filter-container" style="display:flex; align-items:center; gap:10px;">
