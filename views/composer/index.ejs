@@ -10,15 +10,33 @@
     </title>
 
     <link rel="stylesheet" href="/css/bootstrap.min.css">
-
-    <!-- Firebase SDKs -->
     <link rel="stylesheet" href="/css/conductor.css">
     <link rel="stylesheet" href="/css/fontawesome.min.css">
+    <% if (clerkCdnUrl) { %>
+    <script async crossorigin="anonymous"
+        data-clerk-publishable-key="<%= clerkPublishableKey %>"
+        src="<%= clerkCdnUrl %>"
+        type="text/javascript"></script>
+    <% } %>
 </head>
 
 <body>
 
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <% if (!testMode) { %>
+    <!-- Auth screen — shown until Clerk confirms the user is signed in -->
+    <div id="auth-screen" style="position:fixed;top:0;left:0;right:0;bottom:0;background:#f8f9fa;z-index:9999;display:flex;justify-content:center;align-items:center;">
+        <div style="width:min(420px,90vw)">
+            <div class="text-center mb-4">
+                <i class="fas fa-campground fa-3x text-primary d-block mb-3"></i>
+                <h3 class="fw-bold">Camporee Composer</h3>
+                <p class="text-muted small">Sign in to continue</p>
+            </div>
+            <div id="clerk-sign-in"></div>
+        </div>
+    </div>
+    <% } %>
+
+    <nav id="composer-nav" class="navbar navbar-expand-lg navbar-dark bg-dark" style="<%= testMode ? '' : 'display:none' %>">
         <div class="container-fluid">
             <a class="navbar-brand" href="#">
                 <i class="fas fa-campground"></i> Camporee Composer
@@ -47,11 +65,16 @@
                 <button class="btn btn-success btn-sm" onclick="composer.exportCamporee()">
                     <i class="fas fa-download"></i> Export Zip
                 </button>
+                <div class="vr" style="opacity:0.3;"></div>
+                <span id="nav-user-display" class="text-light small d-none"></span>
+                <button class="btn btn-outline-secondary btn-sm" onclick="clerkSignOut()" title="Sign out">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
             </div>
         </div>
     </nav>
 
-    <div id="composer-layout" class="d-flex w-100">
+    <div id="composer-layout" class="d-flex w-100" style="<%= testMode ? '' : 'display:none !important' %>">
         <!-- Sidebar Navigation -->
         <aside id="composer-sidebar" class="bg-light d-flex flex-column h-100" style="width: 320px; flex-shrink: 0;">
             <div class="p-3 border-bottom bg-white">
@@ -648,6 +671,159 @@
             </div>
         </div>
     </div>
+    <!-- Profile Completion Modal -->
+    <div class="modal fade" id="profileModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="fas fa-user-circle me-2"></i>Complete Your Profile</h5>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small">Help other Camporee Directors know who you are.</p>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Display Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="profileDisplayName" placeholder="e.g. Jim Willey">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Council</label>
+                        <input type="text" class="form-control" id="profileCouncil" placeholder="e.g. Greater Los Angeles Area">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">District</label>
+                        <input type="text" class="form-control" id="profileDistrict" placeholder="e.g. Santa Monica Mountains">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Primary Role</label>
+                        <select class="form-select" id="profileRole">
+                            <option value="">Select a role...</option>
+                            <option>Camporee Director</option>
+                            <option>Scoutmaster</option>
+                            <option>Assistant Scoutmaster</option>
+                            <option>Committee Member</option>
+                            <option>District Executive</option>
+                            <option>Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Years in Scouting</label>
+                        <input type="number" class="form-control" id="profileYears" min="0" max="70" placeholder="e.g. 10">
+                    </div>
+                    <div id="profileError" class="text-danger small"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Skip for now</button>
+                    <button type="button" class="btn btn-primary" onclick="clerkSaveProfile()">
+                        <i class="fas fa-save me-1"></i>Save Profile
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <% if (!testMode) { %>
+    <!-- Clerk Auth Init — must come after composer.js so window.onload can be intercepted -->
+    <script type="module">
+        // Capture and replace the window.onload set by composer.js so we can gate it on auth
+        const _composerLoad = window.onload;
+        window.onload = null;
+
+        async function bootstrap() {
+            const signInEl = document.getElementById('clerk-sign-in');
+            try {
+                // With data-clerk-publishable-key, window.Clerk is the pre-initialized singleton.
+                // We just need to call load() to activate it.
+                if (!window.Clerk) throw new Error('Clerk SDK not available — check CDN URL and publishable key');
+                await window.Clerk.load();
+
+                if (window.Clerk.user) {
+                    await showApp();
+                } else {
+                    showSignIn();
+                }
+            } catch (e) {
+                console.error('[auth] Clerk init failed:', e);
+                signInEl.innerHTML = `<div class="alert alert-danger small">
+                    <strong>Auth error:</strong> ${e.message}<br>
+                    <span class="text-muted">Check browser console and verify CLERK_PUBLISHABLE_KEY in .env</span>
+                </div>`;
+            }
+        }
+
+        async function showApp() {
+            document.getElementById('auth-screen').style.display = 'none';
+            document.getElementById('composer-nav').style.display = '';
+            const layout = document.getElementById('composer-layout');
+            layout.style.removeProperty('display');
+            layout.classList.add('d-flex');
+
+            const user = window.Clerk.user;
+            const name = user.fullName || user.primaryEmailAddress?.emailAddress || '';
+            const nameEl = document.getElementById('nav-user-display');
+            if (name) { nameEl.textContent = name; nameEl.classList.remove('d-none'); }
+
+            if (_composerLoad) _composerLoad.call(window);
+
+            await checkProfileCompletion();
+        }
+
+        function showSignIn() {
+            window.Clerk.mountSignIn(document.getElementById('clerk-sign-in'));
+            window.Clerk.addListener(({ user }) => { if (user) location.reload(); });
+        }
+
+        async function checkProfileCompletion() {
+            try {
+                const token = await window.Clerk.session.getToken();
+                const res = await fetch(window.API_BASE + '/api/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) return;
+                const profile = await res.json();
+                if (!profile.display_name) {
+                    window.bootstrap.Modal.getOrCreateInstance(document.getElementById('profileModal')).show();
+                }
+            } catch (e) {
+                console.warn('[auth] Profile check failed:', e);
+            }
+        }
+
+        window.clerkSignOut = async function () {
+            await window.Clerk.signOut();
+            location.reload();
+        };
+
+        window.clerkSaveProfile = async function () {
+            const errEl = document.getElementById('profileError');
+            errEl.textContent = '';
+            const display_name = document.getElementById('profileDisplayName').value.trim();
+            if (!display_name) { errEl.textContent = 'Display name is required.'; return; }
+            try {
+                const token = await window.Clerk.session.getToken();
+                const res = await fetch(window.API_BASE + '/api/me', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({
+                        display_name,
+                        council_name: document.getElementById('profileCouncil').value.trim(),
+                        district:     document.getElementById('profileDistrict').value.trim(),
+                        primary_role: document.getElementById('profileRole').value,
+                        years_in_scouting: parseInt(document.getElementById('profileYears').value) || null
+                    })
+                });
+                if (res.ok) {
+                    window.bootstrap.Modal.getInstance(document.getElementById('profileModal')).hide();
+                } else {
+                    errEl.textContent = 'Save failed. Please try again.';
+                }
+            } catch (e) {
+                errEl.textContent = 'Save failed. Please try again.';
+            }
+        };
+
+        window.addEventListener('load', bootstrap);
+    </script>
+    <% } %>
+
     <!-- Print Game Guides Modal -->
     <div class="modal fade" id="printGuidesModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-scrollable">

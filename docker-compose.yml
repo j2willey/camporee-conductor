@@ -23,6 +23,7 @@ services:
   collator:
     container_name: camporee-collator
     build: .
+    env_file: .env
     ports:
       - "3000:3000"   # Keep direct access for local dev / Composer
     environment:
@@ -30,29 +31,39 @@ services:
       - ACTIVE_SERVICES=collator     # <--- Identity Assignment
       - EVENT_PATH=/app/data/active-event
       - LIBRARY_PATH=/app/data/library
+      - CONDUCTOR_DB_PATH=/app/data/shared/conductor.db
     volumes:
       - ./data/collator:/app/data
       - ./data/curator:/app/data/library
+      - ./data/shared:/app/data/shared
+      - ./migrations:/app/migrations
       - ./src:/app/src
       - ./views:/app/views
       - ./public:/app/public
+      - ./server.js:/app/server.js
     restart: unless-stopped
 
   # 2. THE COMPOSER & CURATOR (Builder/Library) - Port 3001
   composer:
     container_name: camporee-composer
     build: .
+    env_file: .env
     ports:
-      - "3001:3001"  
+      - "3001:3001"
     environment:
       - PORT=3001
       - ACTIVE_SERVICES=curator,composer  # <--- Identity Assignment
       - WORKSPACE_PATH=/app/data/workspaces
       - LIBRARY_PATH=/app/data/library
+      - CONDUCTOR_DB_PATH=/app/data/shared/conductor.db
     volumes:
       - ./data/composer/workspaces:/app/data/workspaces
       - ./data/curator:/app/data/library
+      - ./data/shared:/app/data/shared
+      - ./migrations:/app/migrations
+      - ./scripts:/app/scripts
       - ./src:/app/src
       - ./views:/app/views
-      - ./public:/app/public # Hot reloading for frontend and backend
+      - ./public:/app/public
+      - ./server.js:/app/server.js
     restart: unless-stopped

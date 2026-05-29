@@ -1,0 +1,1 @@
+ALTER TABLE user_profiles ADD COLUMN curator_admin INTEGER NOT NULL DEFAULT 0;

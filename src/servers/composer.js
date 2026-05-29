@@ -5,8 +5,84 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 import dotenv from 'dotenv';
+import { clerkMiddleware, getAuth, createClerkClient } from '@clerk/express';
+import { openConductorDb, runMigrations } from '../db/migrate.js';
 
 dotenv.config();
+
+// --- AAA DATABASE SETUP ---
+const conductorDb = openConductorDb();
+runMigrations(conductorDb);
+
+const clerkClient = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+
+const TEST_MODE = process.env.NODE_ENV === 'test';
+
+const ROLE_HIERARCHY = ['viewer', 'editor', 'owner'];
+
+function requireAuth(req, res, next) {
+    if (TEST_MODE) return next();
+    const { userId } = getAuth(req);
+    if (!userId) return res.status(401).json({ error: 'Authentication required' });
+
+    const now = Math.floor(Date.now() / 1000);
+    conductorDb.prepare(`
+        INSERT INTO user_profiles (user_id, created_at, last_active)
+        VALUES (?, ?, ?)
+        ON CONFLICT(user_id) DO UPDATE SET last_active = excluded.last_active
+    `).run(userId, now, now);
+
+    next();
+}
+
+function requireEventRole(minRole) {
+    return function (req, res, next) {
+        if (TEST_MODE) return next();
+        const { userId } = getAuth(req);
+        if (!userId) return res.status(401).json({ error: 'Authentication required' });
+
+        const profile = conductorDb.prepare('SELECT is_sysadmin FROM user_profiles WHERE user_id = ?').get(userId);
+        if (profile?.is_sysadmin) return next();
+
+        const eventId = req.params.eventId || req.params.id || req.body?.eventId;
+        if (!eventId) return next();
+
+        const permission = conductorDb.prepare(
+            'SELECT role FROM event_permissions WHERE event_id = ? AND user_id = ?'
+        ).get(eventId, userId);
+
+        if (!permission) {
+            // If ANY owner exists for this event, the current user has no access.
+            // If no owner exists yet (legacy event), allow access for backwards compatibility.
+            const anyOwner = conductorDb.prepare(
+                'SELECT user_id FROM event_permissions WHERE event_id = ? LIMIT 1'
+            ).get(eventId);
+            if (anyOwner) return res.status(403).json({ error: 'Access denied' });
+            return next();
+        }
+
+        const userLevel = ROLE_HIERARCHY.indexOf(permission.role);
+        const minLevel  = ROLE_HIERARCHY.indexOf(minRole);
+        if (userLevel < minLevel) return res.status(403).json({ error: 'Insufficient permissions' });
+
+        next();
+    };
+}
+
+function requireSysadmin(req, res, next) {
+    const { userId } = getAuth(req);
+    if (!userId) return res.status(401).json({ error: 'Authentication required' });
+    const profile = conductorDb.prepare('SELECT is_sysadmin FROM user_profiles WHERE user_id = ?').get(userId);
+    if (!profile?.is_sysadmin) return res.status(403).json({ error: 'Sysadmin access required' });
+    next();
+}
+
+function logAudit(userId, action, resourceType, resourceId, metadata = {}) {
+    conductorDb.prepare(`
+        INSERT INTO audit_log (user_id, action, resource_type, resource_id, metadata, ts)
+        VALUES (?, ?, ?, ?, ?, ?)
+    `).run(userId, action, resourceType, resourceId, JSON.stringify(metadata), Math.floor(Date.now() / 1000));
+}
 
 // --- CONFIGURATION ---
 const __filename = fileURLToPath(import.meta.url);
@@ -18,6 +94,7 @@ const PORT = 3001; // Ensure this matches your Docker port map
 
 // Increase payload limit for large Zip uploads
 app.use(bodyParser.json({ limit: '50mb' }));
+if (!TEST_MODE) app.use(clerkMiddleware());
 
 // SERVE STATIC FILES
 app.use((req, res, next) => {
@@ -52,10 +129,22 @@ if (!fs.existsSync(WORKSPACE_PATH)) {
 // --- FRONTEND ROUTES ---
 
 // FIX: Passed the 'title' variable required by index.ejs
+function clerkFrontendApi(publishableKey) {
+    if (!publishableKey) return '';
+    try {
+        const keyPart = publishableKey.replace(/^pk_(test|live)_/, '');
+        return Buffer.from(keyPart, 'base64').toString('utf8').replace(/\$$/, '');
+    } catch { return ''; }
+}
+
 app.get('/', (req, res) => {
     try {
+        const pk = TEST_MODE ? '' : (process.env.CLERK_PUBLISHABLE_KEY || '');
         res.render('composer/index', {
-            title: 'Camporee Composer'
+            title: 'Camporee Composer',
+            clerkPublishableKey: pk,
+            clerkCdnUrl: pk ? `https://${clerkFrontendApi(pk)}/npm/@clerk/clerk-js@latest/dist/clerk.browser.js` : '',
+            testMode: TEST_MODE
         });
     } catch (err) {
         console.error("COMPOSER RENDER ERROR:", err);
@@ -81,29 +170,50 @@ app.get('/api/status', (req, res) => {
  * 2. LIST CAMPOREES
  * Scans the /camporees/ directory for valid projects.
  */
-app.get('/api/camporees', (req, res) => {
+app.get('/api/camporees', requireAuth, (req, res) => {
+    const { userId } = getAuth(req);
+    const profile = conductorDb.prepare('SELECT is_sysadmin FROM user_profiles WHERE user_id = ?').get(userId);
+    const isSysadmin = !!profile?.is_sysadmin;
+
     try {
         const camporees = [];
         const entries = fs.readdirSync(WORKSPACE_PATH, { withFileTypes: true });
 
         entries.forEach(entry => {
-            if (entry.isDirectory()) {
-                const metaPath = path.join(WORKSPACE_PATH, entry.name, 'camporee.json');
+            if (!entry.isDirectory()) return;
+            const metaPath = path.join(WORKSPACE_PATH, entry.name, 'camporee.json');
+            if (!fs.existsSync(metaPath)) return;
+            try {
+                const data = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+                const id = entry.name;
 
-                // Only include if a valid manifest exists
-                if (fs.existsSync(metaPath)) {
-                    try {
-                        const data = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
-                        camporees.push({
-                            id: entry.name, // The UUID directory name
-                            title: data.meta.title,
-                            year: data.meta.year,
-                            theme: data.meta.theme
-                        });
-                    } catch (e) {
-                        console.warn(`Skipping corrupt camporee in dir: ${entry.name}`);
-                    }
+                const userPerm = conductorDb.prepare(
+                    'SELECT role FROM event_permissions WHERE event_id = ? AND user_id = ?'
+                ).get(id, userId);
+
+                let role;
+                if (isSysadmin) {
+                    role = userPerm?.role || 'owner';
+                } else if (userPerm) {
+                    role = userPerm.role;
+                } else {
+                    // No row for this user — check if any permission exists (legacy vs restricted)
+                    const anyPerm = conductorDb.prepare(
+                        'SELECT user_id FROM event_permissions WHERE event_id = ? LIMIT 1'
+                    ).get(id);
+                    if (anyPerm) return; // owned by someone else, not shared with us
+                    role = 'owner'; // legacy event, no permissions yet
                 }
+
+                camporees.push({
+                    id,
+                    title: data.meta.title,
+                    year: data.meta.year,
+                    theme: data.meta.theme,
+                    role
+                });
+            } catch (e) {
+                console.warn(`Skipping corrupt camporee in dir: ${entry.name}`);
             }
         });
 
@@ -118,7 +228,7 @@ app.get('/api/camporees', (req, res) => {
  * 3. GET SINGLE CAMPOREE
  * Loads the manifest, games, and presets for a specific ID.
  */
-app.get('/api/camporee/:id', (req, res) => {
+app.get('/api/camporee/:id', requireAuth, requireEventRole('viewer'), (req, res) => {
     try {
         const id = req.params.id;
 
@@ -177,7 +287,7 @@ app.get('/api/camporee/:id', (req, res) => {
  * 4. CHECK METADATA (For Overwrite Warning)
  * Returns just the meta block to compare client vs server versions.
  */
-app.get('/api/camporee/:id/meta', (req, res) => {
+app.get('/api/camporee/:id/meta', requireAuth, requireEventRole('viewer'), (req, res) => {
     try {
         const id = req.params.id;
         if (!/^[a-zA-Z0-9_-]+$/.test(id)) return res.status(400).json({ error: "Invalid ID" });
@@ -200,10 +310,11 @@ app.get('/api/camporee/:id/meta', (req, res) => {
  * 5. SAVE CAMPOREE
  * Writes all data to the disk structure.
  */
-app.post('/api/camporee/:id', (req, res) => {
+app.post('/api/camporee/:id', requireAuth, requireEventRole('editor'), (req, res) => {
     try {
         const id = req.params.id;
         const payload = req.body; // { meta, games, presets }
+        const { userId } = getAuth(req);
 
         if (!/^[a-zA-Z0-9_-]+$/.test(id)) return res.status(400).json({ error: "Invalid ID" });
 
@@ -261,6 +372,22 @@ app.post('/api/camporee/:id', (req, res) => {
 
         fs.writeFileSync(path.join(dir, 'camporee.json'), JSON.stringify(manifest, null, 2));
 
+        // Wire ownership: insert 'owner' row if this event has no permissions yet
+        const existingPerms = conductorDb.prepare(
+            'SELECT user_id FROM event_permissions WHERE event_id = ? LIMIT 1'
+        ).get(id);
+
+        if (!existingPerms && userId) {
+            const now = Math.floor(Date.now() / 1000);
+            conductorDb.prepare(`
+                INSERT OR IGNORE INTO event_permissions (event_id, user_id, role, granted_by, granted_at)
+                VALUES (?, ?, 'owner', ?, ?)
+            `).run(id, userId, userId, now);
+            logAudit(userId, 'event.created', 'event', id, { title: payload.meta.title });
+        } else {
+            logAudit(userId, 'game.saved', 'event', id, { title: payload.meta.title, game_count: payload.games?.length });
+        }
+
         console.log(`Saved Camporee: ${id} (${payload.meta.title})`);
         res.json({ success: true });
 
@@ -274,7 +401,7 @@ app.post('/api/camporee/:id', (req, res) => {
  * 6. SAVE LIBRARY GAME TEMPLATE
  * Writes a library game JSON file to the Curator Vault.
  */
-app.post('/api/library/save', async (req, res) => {
+app.post('/api/library/save', requireAuth, async (req, res) => {
     try {
         console.log("Received Library Save Request:", JSON.stringify(req.body, null, 2));
         const { path: gamePath, data } = req.body || {};
@@ -328,6 +455,9 @@ app.post('/api/library/save', async (req, res) => {
 
         await fs.promises.writeFile(catalogPath, JSON.stringify(catalog, null, 2), 'utf8');
 
+        const { userId } = getAuth(req);
+        logAudit(userId, 'game.exported', 'game', data.library_uuid || gamePath, { title: newEntry.library_title });
+
         return res.status(200).json({ success: true, catalog: catalog });
     } catch (err) {
         console.error('Library save error:', err);
@@ -339,7 +469,7 @@ app.post('/api/library/save', async (req, res) => {
  * 8. AI Brainstorm Introduction
  * Hits the Gemini API to return 3 distinct introduction options based on a theme.
  */
-app.post('/api/ai/brainstorm-theme', async (req, res) => {
+app.post('/api/ai/brainstorm-theme', requireAuth, async (req, res) => {
     try {
         const { theme, instruction } = req.body;
         if (!process.env.GEMINI_API_KEY) {
@@ -387,7 +517,7 @@ app.post('/api/ai/brainstorm-theme', async (req, res) => {
  * 9. AI Test Key
  * Validates the Gemini API key is configured and working.
  */
-app.get('/api/ai/test', async (req, res) => {
+app.get('/api/ai/test', requireAuth, async (req, res) => {
     try {
         if (!process.env.GEMINI_API_KEY) {
             return res.json({ success: false, message: "GEMINI_API_KEY is missing from .env" });
@@ -411,7 +541,7 @@ app.get('/api/ai/test', async (req, res) => {
  * 10. AI Theme Game
  * Transforms a generic scout game into a themed experience based on camporee context.
  */
-app.post('/api/ai/theme-game', async (req, res) => {
+app.post('/api/ai/theme-game', requireAuth, async (req, res) => {
     try {
         const { camporeeContext, gameJson, instruction } = req.body;
 
@@ -462,7 +592,7 @@ app.post('/api/ai/theme-game', async (req, res) => {
     }
 });
 
-app.post('/api/ai/update-game', async (req, res) => {
+app.post('/api/ai/update-game', requireAuth, async (req, res) => {
     try {
         const { prompt, model, includeContent, currentContent } = req.body;
 
@@ -514,6 +644,170 @@ ${includeContent && currentContent ? `\nCurrent Game Content:\n${JSON.stringify(
         console.error("AI Update Game Error:", err);
         res.status(500).json({ error: err.message || "Failed to update game via AI" });
     }
+});
+
+/**
+ * GET /api/clerk-config — public endpoint: returns Clerk publishable key + CDN URL
+ */
+app.get('/api/clerk-config', (req, res) => {
+    const pk = process.env.CLERK_PUBLISHABLE_KEY || '';
+    res.json({
+        publishableKey: pk,
+        cdnUrl: pk ? `https://${clerkFrontendApi(pk)}/npm/@clerk/clerk-js@latest/dist/clerk.browser.js` : ''
+    });
+});
+
+// ── ADMIN API ────────────────────────────────────────────────────────────────
+
+app.get('/admin/api/stats', requireAuth, requireSysadmin, (req, res) => {
+    const totalUsers    = conductorDb.prepare('SELECT COUNT(*) as n FROM user_profiles').get().n;
+    const totalEvents   = conductorDb.prepare('SELECT COUNT(DISTINCT event_id) as n FROM event_permissions').get().n;
+    const distCouncils  = conductorDb.prepare("SELECT COUNT(DISTINCT council_name) as n FROM user_profiles WHERE council_name IS NOT NULL AND council_name != ''").get().n;
+    const monthStart    = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+    const eventsThisMo  = conductorDb.prepare("SELECT COUNT(DISTINCT resource_id) as n FROM audit_log WHERE action = 'event.created' AND ts >= ?").get(Math.floor(monthStart.getTime() / 1000)).n;
+    res.json({ totalUsers, totalEvents, distCouncils, eventsThisMo });
+});
+
+app.get('/admin/api/users', requireAuth, requireSysadmin, (req, res) => {
+    const search = req.query.search || '';
+    const page   = Math.max(0, parseInt(req.query.page) || 0);
+    const like   = `%${search}%`;
+    const users  = conductorDb.prepare(`
+        SELECT user_id, display_name, council_name, primary_role,
+               is_sysadmin, is_suspended, curator_admin, created_at, last_active
+        FROM user_profiles
+        WHERE display_name LIKE ? OR council_name LIKE ? OR district LIKE ?
+        ORDER BY last_active DESC LIMIT 50 OFFSET ?
+    `).all(like, like, like, page * 50);
+    const total = conductorDb.prepare(`
+        SELECT COUNT(*) as n FROM user_profiles
+        WHERE display_name LIKE ? OR council_name LIKE ? OR district LIKE ?
+    `).get(like, like, like).n;
+    res.json({ users, total, page });
+});
+
+app.get('/admin/api/users/:id', requireAuth, requireSysadmin, (req, res) => {
+    const { id } = req.params;
+    const profile = conductorDb.prepare('SELECT * FROM user_profiles WHERE user_id = ?').get(id);
+    if (!profile) return res.status(404).json({ error: 'User not found' });
+    const events     = conductorDb.prepare('SELECT event_id, role, granted_at FROM event_permissions WHERE user_id = ? ORDER BY granted_at DESC').all(id);
+    const auditTrail = conductorDb.prepare('SELECT * FROM audit_log WHERE user_id = ? ORDER BY ts DESC LIMIT 50').all(id);
+    res.json({ profile, events, auditTrail });
+});
+
+app.put('/admin/api/users/:id', requireAuth, requireSysadmin, (req, res) => {
+    const { id } = req.params;
+    const { userId: currentUserId } = getAuth(req);
+    const { is_suspended, is_sysadmin, curator_admin } = req.body;
+    if (id === currentUserId && is_sysadmin === false) {
+        return res.status(400).json({ error: 'Cannot revoke your own sysadmin access' });
+    }
+    conductorDb.prepare(`
+        UPDATE user_profiles SET is_suspended = ?, is_sysadmin = ?, curator_admin = ? WHERE user_id = ?
+    `).run(is_suspended ? 1 : 0, is_sysadmin ? 1 : 0, curator_admin ? 1 : 0, id);
+    logAudit(currentUserId, 'user.updated', 'user', id, { is_suspended, is_sysadmin, curator_admin });
+    res.json({ success: true });
+});
+
+app.get('/admin/api/audit', requireAuth, requireSysadmin, (req, res) => {
+    const { user_id, action, limit = 100 } = req.query;
+    let sql = 'SELECT * FROM audit_log WHERE 1=1';
+    const params = [];
+    if (user_id) { sql += ' AND user_id = ?'; params.push(user_id); }
+    if (action)  { sql += ' AND action = ?';  params.push(action); }
+    sql += ' ORDER BY ts DESC LIMIT ?';
+    params.push(Math.min(500, parseInt(limit) || 100));
+    res.json(conductorDb.prepare(sql).all(...params));
+});
+
+/**
+ * GET /api/me — current user's profile row
+ */
+app.get('/api/me', requireAuth, (req, res) => {
+    const { userId } = getAuth(req);
+    const profile = conductorDb.prepare('SELECT * FROM user_profiles WHERE user_id = ?').get(userId);
+    res.json(profile || { user_id: userId });
+});
+
+/**
+ * PUT /api/me — update current user's profile
+ */
+app.put('/api/me', requireAuth, (req, res) => {
+    const { userId } = getAuth(req);
+    const { display_name, council_name, district, primary_role, years_in_scouting } = req.body;
+    conductorDb.prepare(`
+        UPDATE user_profiles
+        SET display_name = ?, council_name = ?, district = ?, primary_role = ?, years_in_scouting = ?
+        WHERE user_id = ?
+    `).run(display_name || null, council_name || null, district || null, primary_role || null, years_in_scouting || null, userId);
+    res.json({ success: true });
+});
+
+// ── COLLABORATION ────────────────────────────────────────────────────────────
+
+app.get('/api/events/:eventId/collaborators', requireAuth, requireEventRole('viewer'), (req, res) => {
+    const { eventId } = req.params;
+    const collaborators = conductorDb.prepare(`
+        SELECT ep.user_id, ep.role, ep.granted_at, up.display_name
+        FROM event_permissions ep
+        LEFT JOIN user_profiles up ON ep.user_id = up.user_id
+        WHERE ep.event_id = ?
+        ORDER BY ep.role DESC, ep.granted_at ASC
+    `).all(eventId);
+    res.json(collaborators);
+});
+
+app.post('/api/events/:eventId/collaborators', requireAuth, requireEventRole('owner'), async (req, res) => {
+    const { eventId } = req.params;
+    const { userId } = getAuth(req);
+    const { email, role } = req.body;
+
+    if (!email || !['editor', 'viewer'].includes(role)) {
+        return res.status(400).json({ error: 'email and role (editor or viewer) required' });
+    }
+
+    try {
+        const response = await clerkClient.users.getUserList({ emailAddress: [email] });
+        const users = response.data ?? response;
+        if (!users?.length) {
+            return res.status(404).json({ error: 'No account found for that email' });
+        }
+
+        const invitee = users[0];
+        const now = Math.floor(Date.now() / 1000);
+
+        conductorDb.prepare(`
+            INSERT INTO event_permissions (event_id, user_id, role, granted_by, granted_at)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(event_id, user_id) DO UPDATE SET role = excluded.role, granted_by = excluded.granted_by, granted_at = excluded.granted_at
+        `).run(eventId, invitee.id, role, userId, now);
+
+        // Ensure the invitee has a user_profiles stub so the join in GET collaborators works
+        conductorDb.prepare(`
+            INSERT INTO user_profiles (user_id, created_at, last_active)
+            VALUES (?, ?, ?)
+            ON CONFLICT(user_id) DO NOTHING
+        `).run(invitee.id, now, now);
+
+        logAudit(userId, 'collaborator.invited', 'event', eventId, { email, role });
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Invite collaborator error:', err);
+        res.status(500).json({ error: 'Failed to invite collaborator' });
+    }
+});
+
+app.delete('/api/events/:eventId/collaborators/:targetUserId', requireAuth, requireEventRole('owner'), (req, res) => {
+    const { eventId, targetUserId } = req.params;
+    const { userId: currentUserId } = getAuth(req);
+
+    if (targetUserId === currentUserId) {
+        return res.status(400).json({ error: 'Cannot remove yourself as owner' });
+    }
+
+    conductorDb.prepare('DELETE FROM event_permissions WHERE event_id = ? AND user_id = ?').run(eventId, targetUserId);
+    logAudit(currentUserId, 'collaborator.removed', 'event', eventId, { removed_user: targetUserId });
+    res.json({ success: true });
 });
 
 // --- START SERVER ---

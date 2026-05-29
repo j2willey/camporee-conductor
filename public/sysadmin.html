@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sysadmin — Camporee Conductor</title>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/fontawesome.min.css">
+    <style>
+        body { background: #f0f2f5; }
+        .stat-card { border-left: 4px solid #0d6efd; }
+        .stat-value { font-size: 2.2rem; font-weight: 700; line-height: 1; }
+        .stat-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: .05em; color: #6c757d; }
+        .audit-entry { border-left: 3px solid #dee2e6; padding-left: .75rem; }
+        .audit-entry:hover { border-left-color: #0d6efd; }
+        tr.clickable { cursor: pointer; }
+        tr.clickable:hover td { background: #f8f9fa; }
+        #auth-screen { position: fixed; top:0; left:0; right:0; bottom:0; background:#f8f9fa; z-index:9999;
+                        display:flex; justify-content:center; align-items:center; }
+    </style>
+</head>
+<body>
+
+<div id="auth-screen">
+    <div style="width:min(420px,90vw)">
+        <div class="text-center mb-4">
+            <i class="fas fa-campground fa-3x text-primary d-block mb-3"></i>
+            <h3 class="fw-bold">Camporee Conductor</h3>
+            <p class="text-muted small">Sign in to continue</p>
+        </div>
+        <div id="clerk-sign-in"></div>
+    </div>
+</div>
+
+<div id="app-shell" style="display:none">
+
+    <nav class="navbar navbar-dark bg-dark px-3 py-2 d-flex justify-content-between">
+        <span class="navbar-brand mb-0 fw-bold">
+            <i class="fas fa-shield-alt me-2"></i>Sysadmin Panel
+        </span>
+        <div class="d-flex align-items-center gap-3">
+            <span id="nav-user" class="text-light small"></span>
+            <a href="javascript:void(0)" class="btn btn-outline-secondary btn-sm" onclick="sysadminSignOut()">
+                <i class="fas fa-sign-out-alt"></i> Sign Out
+            </a>
+        </div>
+    </nav>
+
+    <div class="container-fluid py-3" style="max-width:1200px">
+
+        <!-- Tab navigation -->
+        <ul class="nav nav-tabs mb-3" id="mainTabs">
+            <li class="nav-item">
+                <a class="nav-link active" href="#" data-tab="stats" onclick="showTab('stats',this)">
+                    <i class="fas fa-chart-bar me-1"></i>Stats
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#" data-tab="users" onclick="showTab('users',this)">
+                    <i class="fas fa-users me-1"></i>Users
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#" data-tab="audit" onclick="showTab('audit',this)">
+                    <i class="fas fa-history me-1"></i>Audit Log
+                </a>
+            </li>
+        </ul>
+
+        <!-- ── STATS ─────────────────────────────────────────── -->
+        <div id="tab-stats" class="tab-panel">
+            <div class="row g-3" id="stats-cards">
+                <div class="col-6 col-md-3">
+                    <div class="card stat-card p-3">
+                        <div class="stat-value text-primary" id="stat-users">—</div>
+                        <div class="stat-label mt-1">Total Users</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card stat-card p-3" style="border-color:#198754">
+                        <div class="stat-value text-success" id="stat-events">—</div>
+                        <div class="stat-label mt-1">Total Events</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card stat-card p-3" style="border-color:#fd7e14">
+                        <div class="stat-value text-warning" id="stat-councils">—</div>
+                        <div class="stat-label mt-1">Councils</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card stat-card p-3" style="border-color:#6f42c1">
+                        <div class="stat-value text-purple" id="stat-month" style="color:#6f42c1">—</div>
+                        <div class="stat-label mt-1">Events This Month</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── USERS ─────────────────────────────────────────── -->
+        <div id="tab-users" class="tab-panel d-none">
+
+            <!-- User list -->
+            <div id="users-list-view">
+                <div class="d-flex gap-2 mb-3">
+                    <input type="text" id="user-search" class="form-control" placeholder="Search by name, council, or district…" oninput="searchUsers()">
+                </div>
+                <div class="card">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Council</th>
+                                    <th>Role</th>
+                                    <th>Sysadmin</th>
+                                    <th>Suspended</th>
+                                    <th>Last Active</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-tbody"></tbody>
+                        </table>
+                    </div>
+                    <div class="card-footer d-flex justify-content-between align-items-center py-2">
+                        <span class="small text-muted" id="users-count"></span>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-outline-secondary" id="btn-prev" onclick="changePage(-1)" disabled>‹ Prev</button>
+                            <button class="btn btn-sm btn-outline-secondary" id="btn-next" onclick="changePage(1)" disabled>Next ›</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User detail (hidden until row clicked) -->
+            <div id="users-detail-view" class="d-none">
+                <button class="btn btn-sm btn-outline-secondary mb-3" onclick="showUserList()">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Users
+                </button>
+                <div class="row g-3">
+                    <div class="col-md-5">
+                        <div class="card h-100">
+                            <div class="card-header bg-dark text-white fw-bold">Profile</div>
+                            <div class="card-body" id="detail-profile"></div>
+                            <div class="card-footer bg-light d-flex flex-wrap gap-2" id="detail-actions"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-7">
+                        <div class="card mb-3">
+                            <div class="card-header bg-light fw-bold">Events</div>
+                            <div class="table-responsive">
+                                <table class="table table-sm mb-0">
+                                    <thead><tr><th>Event ID</th><th>Role</th><th>Granted</th></tr></thead>
+                                    <tbody id="detail-events"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header bg-light fw-bold">Recent Activity</div>
+                            <div class="card-body p-2" id="detail-audit" style="max-height:260px;overflow-y:auto"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── AUDIT LOG ──────────────────────────────────────── -->
+        <div id="tab-audit" class="tab-panel d-none">
+            <div class="d-flex flex-wrap gap-2 mb-3">
+                <input type="text" id="audit-user-filter" class="form-control" style="max-width:280px" placeholder="Filter by User ID…">
+                <select id="audit-action-filter" class="form-select" style="max-width:220px">
+                    <option value="">All actions</option>
+                    <option value="event.created">event.created</option>
+                    <option value="game.saved">game.saved</option>
+                    <option value="game.exported">game.exported</option>
+                    <option value="user.updated">user.updated</option>
+                </select>
+                <button class="btn btn-primary" onclick="loadAudit()"><i class="fas fa-filter me-1"></i>Apply</button>
+            </div>
+            <div class="card">
+                <div class="card-body p-0" id="audit-feed" style="max-height:600px;overflow-y:auto"></div>
+            </div>
+        </div>
+
+    </div><!-- /container -->
+</div><!-- /app-shell -->
+
+<script src="js/bootstrap.bundle.min.js"></script>
+<script type="module">
+
+let currentPage = 0;
+let currentSearch = '';
+let searchTimer = null;
+let currentUserId = null;
+
+// ── AUTH INIT ────────────────────────────────────────────────
+
+async function bootstrap() {
+    try {
+        const config = await fetch('api/clerk-config').then(r => r.json());
+        if (!config.cdnUrl) throw new Error('Clerk not configured — set CLERK_PUBLISHABLE_KEY in .env');
+
+        await new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = config.cdnUrl;
+            s.setAttribute('data-clerk-publishable-key', config.publishableKey);
+            s.crossOrigin = 'anonymous';
+            s.onload = resolve;
+            s.onerror = () => reject(new Error('Failed to load Clerk SDK'));
+            document.head.appendChild(s);
+        });
+
+        await window.Clerk.load();
+
+        if (!window.Clerk.user) {
+            window.Clerk.mountSignIn(document.getElementById('clerk-sign-in'));
+            window.Clerk.addListener(({ user }) => { if (user) location.reload(); });
+            return;
+        }
+
+        // Verify sysadmin
+        const token = await window.Clerk.session.getToken();
+        const me = await apiFetch('admin/api/stats', token).catch(() => null);
+        if (!me) {
+            document.getElementById('clerk-sign-in').innerHTML =
+                '<div class="alert alert-danger">Access denied — sysadmin required.</div>';
+            return;
+        }
+
+        // Show app
+        document.getElementById('auth-screen').style.display = 'none';
+        document.getElementById('app-shell').style.display = '';
+        const name = window.Clerk.user.fullName || window.Clerk.user.primaryEmailAddress?.emailAddress || '';
+        document.getElementById('nav-user').textContent = name;
+
+        renderStats(me);
+        loadUsers();
+
+    } catch (e) {
+        document.getElementById('clerk-sign-in').innerHTML =
+            `<div class="alert alert-danger small"><strong>Error:</strong> ${e.message}</div>`;
+    }
+}
+
+async function apiFetch(path, token, options = {}) {
+    const headers = { ...(options.headers || {}), 'Authorization': `Bearer ${token}` };
+    const res = await fetch(path, { ...options, headers });
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    return res.json();
+}
+
+async function authFetch(path, options = {}) {
+    const token = await window.Clerk.session.getToken();
+    return apiFetch(path, token, options);
+}
+
+window.sysadminSignOut = async () => { await window.Clerk.signOut(); location.reload(); };
+
+// ── TABS ─────────────────────────────────────────────────────
+
+window.showTab = function(tab, el) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('d-none'));
+    document.querySelectorAll('#mainTabs .nav-link').forEach(a => a.classList.remove('active'));
+    document.getElementById(`tab-${tab}`).classList.remove('d-none');
+    el.classList.add('active');
+    if (tab === 'audit') loadAudit();
+    return false;
+};
+
+// ── STATS ────────────────────────────────────────────────────
+
+function renderStats(data) {
+    document.getElementById('stat-users').textContent    = data.totalUsers    ?? '—';
+    document.getElementById('stat-events').textContent   = data.totalEvents   ?? '—';
+    document.getElementById('stat-councils').textContent = data.distCouncils  ?? '—';
+    document.getElementById('stat-month').textContent    = data.eventsThisMo  ?? '—';
+}
+
+// ── USERS ────────────────────────────────────────────────────
+
+window.searchUsers = function() {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+        currentPage = 0;
+        currentSearch = document.getElementById('user-search').value;
+        loadUsers();
+    }, 300);
+};
+
+window.changePage = function(dir) {
+    currentPage += dir;
+    loadUsers();
+};
+
+async function loadUsers() {
+    const params = new URLSearchParams({ search: currentSearch, page: currentPage });
+    const data = await authFetch(`admin/api/users?${params}`).catch(e => { console.error(e); return null; });
+    if (!data) return;
+
+    const tbody = document.getElementById('users-tbody');
+    tbody.innerHTML = data.users.map(u => `
+        <tr class="clickable" onclick="openUser('${u.user_id}')">
+            <td>${esc(u.display_name || '—')}</td>
+            <td>${esc(u.council_name || '—')}</td>
+            <td><span class="badge bg-secondary">${esc(u.primary_role || '—')}</span></td>
+            <td>${u.is_sysadmin ? '<i class="fas fa-check text-success"></i>' : ''}</td>
+            <td>${u.is_suspended ? '<span class="badge bg-danger">Suspended</span>' : ''}</td>
+            <td class="small text-muted">${fmtTs(u.last_active)}</td>
+        </tr>`).join('');
+
+    document.getElementById('users-count').textContent =
+        `${data.total} user${data.total !== 1 ? 's' : ''} — page ${currentPage + 1}`;
+    document.getElementById('btn-prev').disabled = currentPage === 0;
+    document.getElementById('btn-next').disabled = (currentPage + 1) * 50 >= data.total;
+}
+
+window.openUser = async function(id) {
+    currentUserId = id;
+    const data = await authFetch(`admin/api/users/${id}`).catch(e => { alert(e.message); return null; });
+    if (!data) return;
+
+    const { profile, events, auditTrail } = data;
+
+    document.getElementById('detail-profile').innerHTML = `
+        <dl class="row mb-0 small">
+            <dt class="col-5">User ID</dt><dd class="col-7 text-truncate font-monospace small">${esc(profile.user_id)}</dd>
+            <dt class="col-5">Display Name</dt><dd class="col-7">${esc(profile.display_name || '—')}</dd>
+            <dt class="col-5">Council</dt><dd class="col-7">${esc(profile.council_name || '—')}</dd>
+            <dt class="col-5">District</dt><dd class="col-7">${esc(profile.district || '—')}</dd>
+            <dt class="col-5">Role</dt><dd class="col-7">${esc(profile.primary_role || '—')}</dd>
+            <dt class="col-5">Yrs Scouting</dt><dd class="col-7">${profile.years_in_scouting ?? '—'}</dd>
+            <dt class="col-5">Sysadmin</dt><dd class="col-7">${profile.is_sysadmin ? '<span class="text-success fw-bold">Yes</span>' : 'No'}</dd>
+            <dt class="col-5">Curator Admin</dt><dd class="col-7">${profile.curator_admin ? '<span class="text-success fw-bold">Yes</span>' : 'No'}</dd>
+            <dt class="col-5">Suspended</dt><dd class="col-7">${profile.is_suspended ? '<span class="text-danger fw-bold">Yes</span>' : 'No'}</dd>
+            <dt class="col-5">Last Active</dt><dd class="col-7">${fmtTs(profile.last_active)}</dd>
+        </dl>`;
+
+    document.getElementById('detail-actions').innerHTML = `
+        <button class="btn btn-sm ${profile.is_suspended ? 'btn-outline-success' : 'btn-outline-danger'}"
+            onclick="toggleField('${profile.user_id}', 'is_suspended', ${!profile.is_suspended})">
+            <i class="fas fa-${profile.is_suspended ? 'check' : 'ban'} me-1"></i>
+            ${profile.is_suspended ? 'Unsuspend' : 'Suspend'}
+        </button>
+        <button class="btn btn-sm ${profile.is_sysadmin ? 'btn-outline-warning' : 'btn-outline-primary'}"
+            onclick="toggleField('${profile.user_id}', 'is_sysadmin', ${!profile.is_sysadmin})">
+            <i class="fas fa-shield-alt me-1"></i>
+            ${profile.is_sysadmin ? 'Revoke Sysadmin' : 'Grant Sysadmin'}
+        </button>
+        <button class="btn btn-sm ${profile.curator_admin ? 'btn-outline-warning' : 'btn-outline-secondary'}"
+            onclick="toggleField('${profile.user_id}', 'curator_admin', ${!profile.curator_admin})">
+            <i class="fas fa-book me-1"></i>
+            ${profile.curator_admin ? 'Revoke Curator Admin' : 'Grant Curator Admin'}
+        </button>`;
+
+    document.getElementById('detail-events').innerHTML = events.length
+        ? events.map(e => `<tr><td class="font-monospace small text-truncate" style="max-width:160px">${esc(e.event_id)}</td>
+            <td><span class="badge bg-secondary">${esc(e.role)}</span></td>
+            <td class="small text-muted">${fmtTs(e.granted_at)}</td></tr>`).join('')
+        : '<tr><td colspan="3" class="text-muted small text-center py-2">No events</td></tr>';
+
+    document.getElementById('detail-audit').innerHTML = auditTrail.length
+        ? auditTrail.map(a => `
+            <div class="audit-entry mb-2 py-1">
+                <span class="badge bg-light text-dark border me-1">${esc(a.action)}</span>
+                <span class="small text-muted">${esc(a.resource_type)}:${esc(a.resource_id || '')}</span>
+                <span class="float-end small text-muted">${fmtTs(a.ts)}</span>
+            </div>`).join('')
+        : '<p class="text-muted small text-center py-2">No activity</p>';
+
+    document.getElementById('users-list-view').classList.add('d-none');
+    document.getElementById('users-detail-view').classList.remove('d-none');
+};
+
+window.showUserList = function() {
+    document.getElementById('users-list-view').classList.remove('d-none');
+    document.getElementById('users-detail-view').classList.add('d-none');
+};
+
+window.toggleField = async function(userId, field, value) {
+    const body = { is_suspended: false, is_sysadmin: false, curator_admin: false };
+    // Re-fetch current values first to avoid stomping other fields
+    const data = await authFetch(`admin/api/users/${userId}`).catch(() => null);
+    if (!data) return;
+    const p = data.profile;
+    body.is_suspended  = field === 'is_suspended'  ? value : !!p.is_suspended;
+    body.is_sysadmin   = field === 'is_sysadmin'   ? value : !!p.is_sysadmin;
+    body.curator_admin = field === 'curator_admin'  ? value : !!p.curator_admin;
+
+    const token = await window.Clerk.session.getToken();
+    await apiFetch(`admin/api/users/${userId}`, token, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    }).catch(e => alert(e.message));
+
+    openUser(userId); // refresh detail
+};
+
+// ── AUDIT LOG ────────────────────────────────────────────────
+
+window.loadAudit = async function() {
+    const user_id = document.getElementById('audit-user-filter').value.trim();
+    const action  = document.getElementById('audit-action-filter').value;
+    const params  = new URLSearchParams({ limit: 200 });
+    if (user_id) params.set('user_id', user_id);
+    if (action)  params.set('action', action);
+
+    const entries = await authFetch(`admin/api/audit?${params}`).catch(() => []);
+    const feed = document.getElementById('audit-feed');
+    feed.innerHTML = entries.length
+        ? entries.map(a => `
+            <div class="audit-entry border-bottom px-3 py-2">
+                <span class="badge bg-light text-dark border me-2">${esc(a.action)}</span>
+                <span class="small">${esc(a.resource_type)}:<strong>${esc(a.resource_id || '')}</strong></span>
+                ${a.user_id ? `<span class="text-muted small ms-2 font-monospace">${esc(a.user_id.slice(0,20))}…</span>` : ''}
+                <span class="float-end small text-muted">${fmtTs(a.ts)}</span>
+            </div>`).join('')
+        : '<p class="text-muted small text-center py-4">No entries match</p>';
+};
+
+// ── HELPERS ──────────────────────────────────────────────────
+
+function esc(s) {
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function fmtTs(ts) {
+    if (!ts) return '—';
+    return new Date(ts * 1000).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+}
+
+window.addEventListener('load', bootstrap);
+
+</script>
+</body>
+</html>

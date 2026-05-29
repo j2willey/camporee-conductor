@@ -316,14 +316,20 @@ const composer = {
 
             if (list.length > 0) {
                 listEl.innerHTML = list.map(c => `
-                    <a href="#" class="list-group-item list-group-item-action" onclick="composer.loadFromServer('${c.id}')">
-                        <div class="d-flex w-100 justify-content-between">
-                            <h5 class="mb-1">${c.title || "Untitled"}</h5>
-                            <small>${c.year}</small>
+                    <div class="list-group-item list-group-item-action d-flex align-items-center gap-2">
+                        <div class="flex-grow-1" style="cursor:pointer;min-width:0" onclick="composer.loadFromServer('${c.id}')">
+                            <div class="d-flex w-100 justify-content-between align-items-center">
+                                <h5 class="mb-1 text-truncate">${c.title || "Untitled"}</h5>
+                                <div class="d-flex align-items-center gap-1 flex-shrink-0 ms-2">
+                                    <small>${c.year}</small>
+                                    ${c.role !== 'owner' ? `<span class="badge bg-info text-dark">Shared</span>` : ''}
+                                </div>
+                            </div>
+                            <p class="mb-1 small text-muted">${c.theme || "No theme"}</p>
+                            <small class="text-muted">ID: ${c.id}</small>
                         </div>
-                        <p class="mb-1 small text-muted">${c.theme || "No theme"}</p>
-                        <small class="text-muted">ID: ${c.id}</small>
-                    </a>`).join("");
+                        ${c.role === 'owner' ? `<button class="btn btn-sm btn-outline-secondary flex-shrink-0" title="Share / Collaborators" onclick="event.stopPropagation(); composer.openShareModal('${c.id}')"><i class="fas fa-user-plus"></i></button>` : ''}
+                    </div>`).join("");
             } else {
                 listEl.innerHTML = '<div class="p-3 text-center text-muted">No saved camporees.</div>';
             }
@@ -370,6 +376,60 @@ const composer = {
             }
         } catch (e) {
             alert("Error: " + e.message);
+        }
+    },
+
+    openShareModal: async function (eventId) {
+        this._shareEventId = eventId;
+        const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('shareModal'));
+        modal.show();
+        await this._refreshCollaborators();
+    },
+
+    _refreshCollaborators: async function () {
+        const eventId = this._shareEventId;
+        const listEl = document.getElementById('collaboratorList');
+        listEl.innerHTML = '<div class="text-center text-muted small py-2">Loading...</div>';
+        try {
+            const collabs = await this.api.getCollaborators(eventId);
+            if (!collabs.length) {
+                listEl.innerHTML = '<p class="text-muted small mb-0 mt-2">No collaborators yet.</p>';
+                return;
+            }
+            listEl.innerHTML = `<hr class="my-2"><div class="list-group list-group-flush">` +
+                collabs.map(c => `
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-1">
+                        <div>
+                            <span>${c.display_name || c.user_id}</span>
+                            <span class="badge bg-secondary ms-1">${c.role}</span>
+                        </div>
+                        ${c.role !== 'owner' ? `<button class="btn btn-sm btn-outline-danger py-0" onclick="composer.removeCollaborator('${c.user_id}')" title="Remove"><i class="fas fa-times"></i></button>` : ''}
+                    </div>`).join('') + `</div>`;
+        } catch (e) {
+            listEl.innerHTML = '<p class="text-danger small mb-0 mt-2">Failed to load collaborators.</p>';
+        }
+    },
+
+    inviteCollaborator: async function () {
+        const email = document.getElementById('shareEmail').value.trim();
+        const role = document.getElementById('shareRole').value;
+        if (!email) return;
+        try {
+            await this.api.inviteCollaborator(this._shareEventId, email, role);
+            document.getElementById('shareEmail').value = '';
+            await this._refreshCollaborators();
+        } catch (e) {
+            alert(e.message || 'Failed to invite collaborator');
+        }
+    },
+
+    removeCollaborator: async function (targetUserId) {
+        if (!confirm('Remove this collaborator?')) return;
+        try {
+            await this.api.removeCollaborator(this._shareEventId, targetUserId);
+            await this._refreshCollaborators();
+        } catch (e) {
+            alert(e.message || 'Failed to remove collaborator');
         }
     },
 
@@ -503,6 +563,27 @@ const composer = {
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            </div>`,
+            `<div class="modal fade" id="shareModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title"><i class="fas fa-user-plus me-1"></i> Share Event</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="d-flex gap-2 mb-2">
+                                <input type="email" class="form-control" id="shareEmail" placeholder="collaborator@example.com">
+                                <select class="form-select" style="width:auto" id="shareRole">
+                                    <option value="editor">Editor</option>
+                                    <option value="viewer">Viewer</option>
+                                </select>
+                                <button class="btn btn-primary" onclick="composer.inviteCollaborator()">Invite</button>
+                            </div>
+                            <div id="collaboratorList"></div>
                         </div>
                     </div>
                 </div>

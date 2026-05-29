@@ -124,20 +124,20 @@ test('POST /api/setup/upload installs the Circus cartridge and redirects to admi
             contentType: 'application/zip'
         });
 
-    // Should redirect to /admin.html after a successful fresh install
+    // Should redirect to /collator/admin.html after a successful fresh install
     expect(response.status).toBe(302);
-    expect(response.headers.location).toBe('/admin.html');
+    expect(response.headers.location).toBe('/collator/admin.html');
 });
 
 // ---------------------------------------------------------------------------
 // Test 2: GET /games.json — 19 games loaded, correct metadata
 // ---------------------------------------------------------------------------
-test('GET /games.json returns all 19 Circus games with correct metadata', async () => {
+test('GET /games.json returns all 34 Circus games with correct metadata', async () => {
     const response = await request(app).get('/games.json');
 
     expect(response.status).toBe(200);
     expect(response.body).toHaveProperty('games');
-    expect(response.body.games).toHaveLength(19);
+    expect(response.body.games).toHaveLength(34);
 
     expect(response.body.metadata).toBeDefined();
     expect(response.body.metadata.title).toBe('Coyote Creek District Camporee 2026');
@@ -174,14 +174,14 @@ test('GET /games.json — the-high-wire-fire-act has fields array with common pr
 });
 
 // ---------------------------------------------------------------------------
-// Test 5: Exhibition game 'hi-wire-act' has type === 'exhibition'
+// Test 5: Exhibition game 'slack-lining' has type === 'exhibition'
 // ---------------------------------------------------------------------------
-test('GET /games.json — hi-wire-act has type exhibition', async () => {
+test('GET /games.json — slack-lining has type exhibition', async () => {
     const response = await request(app).get('/games.json');
 
     expect(response.status).toBe(200);
 
-    const game = response.body.games.find(g => g.id === 'hi-wire-act');
+    const game = response.body.games.find(g => g.id === 'slack-lining');
     expect(game).toBeDefined();
     expect(game.type).toBe('exhibition');
 });

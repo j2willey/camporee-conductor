@@ -1,0 +1,271 @@
+
+Overview of All Steps
+Phase 0 — Accounts & Keys (do this before writing any code)
+
+Create Clerk account + application, get API keys
+Set up Google OAuth in Google Cloud Console, wire it into Clerk
+Add keys to your .env
+
+Phase 1 — Database Foundation
+4. Design and migrate the new tables: user_profiles, event_permissions, audit_log, feature_flags
+5. Establish a migration runner (numbered SQL files, runs on startup)
+Phase 2 — Server-Side Auth
+6. Add Clerk middleware to composer.js — protect all API routes
+7. Add authorization layer — event_permissions checks as reusable middleware
+8. Wire ownership into event create/load/save/delete flows
+Phase 3 — Frontend Auth
+9. Add Clerk's JS SDK to Composer SPA — sign in/out UI, pass session token on API calls
+10. Add auth to Curator (public read, admin-gated write)
+Phase 4 — User Profile
+11. Post-signup profile completion flow (council, district, role)
+12. Profile edit UI
+Phase 5 — Collaboration
+13. Invite collaborators by email (editor/viewer roles)
+14. Shared event dashboard
+Phase 6 — Sysadmin
+15. Sysadmin panel: user list, audit log viewer, curator admin grant/revoke, suspend user
+Phase 7 — Collator as a Service
+16. Collator auth: event-scoped access, judge tokens (no full account required)
+
+Step 1 in Detail — Clerk Account + Google OAuth
+1a. Create Your Clerk Application
+
+Go to clerk.com → Sign Up (use your Google account)
+Click Create application
+Name it Camporee Conductor
+On the "How will users sign in?" screen: enable Google and Email (keep Email as fallback). Disable everything else for now.
+Select framework: Other (you're not using React)
+You'll land on the API Keys page. Copy these to your .env:
+
+CLERK_PUBLISHABLE_KEY=pk_test_...
+CLERK_SECRET_KEY=sk_test_...
+Clerk creates two instances automatically — Development (what you just set up) and Production (you'll configure this later before VPS deploy). You'll have separate key pairs for each.
+1b. Set Up Google OAuth in Google Cloud Console
+Clerk handles the OAuth flow, but you need to register your app with Google so it gets a real "Sign in with Google" button rather than a Clerk-branded one.
+
+Go to console.cloud.google.com
+Create a new project: camporee-conductor
+Left menu → APIs & Services → OAuth consent screen
+
+User Type: External
+App name: Camporee Conductor
+User support email: your Gmail
+Authorized domains: you'll add clerk.com (Clerk handles the callback)
+Save and continue through the scopes screen (defaults are fine — you only need email and profile)
+
+
+Left menu → Credentials → Create Credentials → OAuth 2.0 Client ID
+
+Application type: Web application
+Name: Camporee Conductor Web
+Authorized redirect URIs: Clerk will give you this URL. Find it in your Clerk dashboard under Configure → SSO Connections → Google → Settings. It looks like https://accounts.clerk.dev/v1/oauth_callback
+Click Create → copy Client ID and Client Secret
+
+
+Back in Clerk dashboard → Configure → SSO Connections → Google → paste the Client ID and Client Secret → Save
+
+1c. Verify It Works
+In Clerk dashboard → Users tab, click Create test user or use the hosted sign-in page Clerk gives you (shown on your app's dashboard) to test Google sign-in end to end before writing a line of code.
+
+The Claude Prompts
+Hand these to Claude in order. Each is self-contained.
+
+Prompt 1 — DB Schema & Migration System
+You are working on Camporee Conductor, an offline-first BSA event management 
+system. Read CLAUDE.md first for full architecture context.
+
+Task: Design and implement the AAA database foundation.
+
+Create a migration runner that:
+- Looks for numbered SQL files in a new `migrations/` directory (e.g. 
+  001_create_user_profiles.sql, 002_create_event_permissions.sql)
+- Tracks applied migrations in a `schema_migrations` table
+- Runs pending migrations on server startup (both composer.js and collator.js)
+- Is idempotent — safe to run multiple times
+
+Then write the initial migration files for these tables:
+
+user_profiles:
+  user_id (TEXT PK — Clerk user ID, e.g. "user_2abc123")
+  display_name (TEXT)
+  council_name (TEXT)
+  council_number (TEXT)
+  district (TEXT)
+  primary_role (TEXT)  -- "Camporee Director", "Scoutmaster", etc.
+  years_in_scouting (INTEGER)
+  bsa_member_id (TEXT, nullable)
+  is_sysadmin (BOOLEAN DEFAULT false)
+  is_suspended (BOOLEAN DEFAULT false)
+  created_at (INTEGER — unix timestamp)
+  last_active (INTEGER)
+
+event_permissions:
+  event_id (TEXT)
+  user_id (TEXT)
+  role (TEXT)  -- 'owner' | 'editor' | 'viewer'
+  granted_by (TEXT — user_id of who invited them)
+  granted_at (INTEGER)
+  PRIMARY KEY (event_id, user_id)
+
+audit_log:
+  id (INTEGER PK autoincrement)
+  user_id (TEXT, nullable — null for anonymous/system actions)
+  action (TEXT)  -- e.g. 'event.created', 'game.updated', 'user.suspended'
+  resource_type (TEXT)  -- 'event', 'game', 'user'
+  resource_id (TEXT)
+  metadata (TEXT — JSON blob for any extra context)
+  ts (INTEGER — unix timestamp)
+
+feature_flags:
+  name (TEXT PK)
+  enabled (BOOLEAN DEFAULT false)
+  description (TEXT)
+  user_ids_override (TEXT — JSON array of user_ids for whom flag is forced on)
+
+The migration runner should be a shared module imported by both server files. 
+Use better-sqlite3 (already in the project). Do not use an ORM.
+
+Prompt 2 — Clerk Middleware & Route Protection (Composer)
+You are working on Camporee Conductor. Read CLAUDE.md first.
+
+Clerk has been added as the auth provider. The following env vars are set:
+  CLERK_PUBLISHABLE_KEY
+  CLERK_SECRET_KEY
+
+Task: Integrate Clerk into src/servers/composer.js for server-side 
+authentication.
+
+1. Install @clerk/express (add to package.json, update Dockerfile if needed)
+
+2. Add Clerk middleware to the composer Express app so that req.auth is 
+   populated on every request (use clerkMiddleware())
+
+3. Create a requireAuth middleware that:
+   - Checks req.auth.userId exists
+   - Returns 401 JSON if not authenticated
+   - Upserts a row in user_profiles (last_active = now) on every authenticated 
+     request — creates the profile row if it's the user's first request
+
+4. Create a requireEventRole(minRole) middleware factory where minRole is 
+   'viewer' | 'editor' | 'owner':
+   - Reads event_id from req.params.eventId or req.body.eventId
+   - Checks event_permissions for req.auth.userId
+   - Returns 403 if insufficient role
+   - Sysadmins (is_sysadmin = true in user_profiles) bypass all role checks
+
+5. Apply requireAuth to all existing Composer API routes. Do NOT apply it to 
+   the Curator public browse routes (GET /api/curator/games, 
+   GET /api/curator/library — these stay public).
+
+6. Wire event ownership: when a new workspace/event is created, insert an 
+   'owner' row into event_permissions for req.auth.userId.
+
+7. Write a helper logAudit(db, userId, action, resourceType, resourceId, 
+   metadata) that inserts into audit_log. Call it on: event create, event 
+   delete, game save, cartridge export.
+
+Preserve all existing API behavior — this is auth layering only, no logic 
+changes to the event/game handling.
+
+Prompt 3 — Frontend Auth (Composer SPA)
+You are working on Camporee Conductor. Read CLAUDE.md first.
+
+The backend is now Clerk-protected. Task: add Clerk to the Composer frontend.
+
+The Composer SPA is vanilla JS (ES Modules), served via EJS template at 
+views/composer/index.ejs. No React. No bundler.
+
+1. Add Clerk's JS SDK via CDN script tag in the EJS layout. Use the 
+   CLERK_PUBLISHABLE_KEY injected as a template variable from the server.
+
+2. On page load, initialize Clerk and check authentication state:
+   - If not signed in: show a sign-in UI (Clerk's mountSignIn component) 
+     centered on the page, hide the main app
+   - If signed in: show the main app, hide the sign-in UI
+   - Add a "Sign out" button to the existing nav/header area
+
+3. Update public/js/core/api.js (the HTTP client wrapper):
+   - Before every request, get the current session token from Clerk 
+     (clerk.session.getToken())
+   - Add it as Authorization: Bearer <token> header on all API calls
+   - Handle 401 responses by redirecting to sign-in
+
+4. After sign-in, if the user has no display_name in their profile yet 
+   (check GET /api/me), show a profile completion modal asking for:
+   display_name, council_name, district, primary_role, years_in_scouting
+   This modal should be dismissible but re-appear on next login until complete.
+
+5. Add GET /api/me endpoint in composer.js that returns the current user's 
+   user_profiles row (or a minimal object if the row is incomplete).
+
+Keep all existing Composer functionality intact. Auth is a wrapper, not a 
+rewrite.
+
+Prompt 4 — Sysadmin Panel
+You are working on Camporee Conductor. Read CLAUDE.md first.
+
+Task: Build a minimal sysadmin panel, accessible only to users where 
+is_sysadmin = true in user_profiles.
+
+Create a new server route prefix /admin/* in composer.js protected by a 
+requireSysadmin middleware (checks is_sysadmin, returns 403 otherwise).
+
+Create a new static page public/sysadmin.html with vanilla JS (same pattern 
+as admin.js / official.js in the project).
+
+API endpoints to build:
+  GET  /admin/api/users          — paginated user list (50/page), searchable 
+                                   by name/council/email
+  GET  /admin/api/users/:id      — single user detail + their events list
+  PUT  /admin/api/users/:id      — update is_suspended, is_sysadmin, 
+                                   curator_admin fields
+  GET  /admin/api/audit          — recent audit_log entries, filterable by 
+                                   user_id and action
+  GET  /admin/api/stats          — aggregate counts: total users, total events,
+                                   distinct councils, events this month
+
+UI panels:
+  - User table with search, click-through to detail
+  - User detail: profile fields, events list, audit trail for that user, 
+    toggle suspended/sysadmin buttons
+  - Audit log viewer: scrollable feed, filter by user
+  - Stats dashboard: simple numbers, no charts needed yet
+
+Seed: add a one-time CLI script (scripts/make-sysadmin.js) that takes an 
+email address as argv, looks up the Clerk user ID via Clerk API, and upserts 
+is_sysadmin = true in user_profiles. This is how the first admin is created.
+
+Prompt 5 — Collaboration (Event Sharing)
+You are working on Camporee Conductor. Read CLAUDE.md first.
+
+Task: Add event collaboration — the ability for an event owner to invite other 
+users to edit or view their event.
+
+Backend (composer.js):
+  POST /api/events/:eventId/collaborators
+    body: { email, role }  — role is 'editor' or 'viewer'
+    - Look up the invitee's Clerk user ID by email via Clerk API
+      (use @clerk/express's clerkClient().users.getUserList({ emailAddress }))
+    - If not found: return 404 with message "No account found for that email"
+    - If found: insert into event_permissions, log to audit_log
+    - Only 'owner' role can invite
+
+  GET /api/events/:eventId/collaborators
+    - Returns list of collaborators with their display_name, role, granted_at
+
+  DELETE /api/events/:eventId/collaborators/:userId
+    - Remove collaborator (owner only, cannot remove self)
+
+  GET /api/events  (new or update existing)
+    - Returns all events where the calling user has ANY role in event_permissions
+    - Include the caller's role in the response
+
+Frontend (Composer SPA):
+  - In the event list view, show a share icon on events the user owns
+  - Clicking it opens a modal: text input for email + role dropdown 
+    (Editor / Viewer) + Invite button
+  - Below the input, list current collaborators with a remove (×) button
+  - Events where the user is editor/viewer (not owner) show a "Shared with me" 
+    badge
+
+

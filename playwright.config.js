@@ -11,6 +11,30 @@ export default defineConfig({
     baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
   },
+  webServer: [
+    {
+      command: 'node server.js',
+      port: 3001,
+      reuseExistingServer: !process.env.CI,
+      timeout: 20000,
+      env: {
+        NODE_ENV: 'test',
+        PORT: '3001',
+        ACTIVE_SERVICES: 'curator,composer',
+      },
+    },
+    {
+      command: 'node server.js',
+      port: 3000,
+      reuseExistingServer: !process.env.CI,
+      timeout: 20000,
+      env: {
+        NODE_ENV: 'test',
+        PORT: '3000',
+        ACTIVE_SERVICES: 'collator',
+      },
+    },
+  ],
   projects: [
     {
       name: 'chromium',

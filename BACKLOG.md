@@ -36,6 +36,10 @@
 - [ ] **Common Fields panel** — UI for editing type_defaults and previewing injected fields per game type
 - [ ] **"Print All" scoresheet button** — currently only accessible in Collator tools (utils.html); should be available in Composer export flow
 
+### Composer / UI
+
+- [ ] **Dashboard service-card contrast** — card description text is too dark on the dark `#2b3035` background; `text-muted` (#6c757d) doesn't meet WCAG AA on that surface
+
 ### Infrastructure
 
 - [ ] **Server consolidation** — root-level legacy files (composer_server.js) still exist alongside src/servers/; clean up after confirming nothing depends on them

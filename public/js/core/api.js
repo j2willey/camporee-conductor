@@ -7,13 +7,32 @@ export class ApiClient {
         this.baseUrl = baseUrl;
     }
 
+    async _getToken() {
+        if (window.Clerk?.session) {
+            try { return await window.Clerk.session.getToken(); } catch { return null; }
+        }
+        return null;
+    }
+
+    async _fetch(url, options = {}) {
+        const token = await this._getToken();
+        const headers = { ...(options.headers || {}) };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        const res = await fetch(url, { ...options, headers });
+        if (res.status === 401) {
+            window.location.reload();
+            throw new Error('Authentication required');
+        }
+        return res;
+    }
+
     /**
      * Checks if the server is online and writable.
      * @returns {Promise<boolean>}
      */
     async getStatus() {
         try {
-            const res = await fetch(`${this.baseUrl}/status`, {
+            const res = await this._fetch(`${this.baseUrl}/status`, {
                 method: 'GET',
                 signal: AbortSignal.timeout(2000)
             });
@@ -28,7 +47,7 @@ export class ApiClient {
      * @returns {Promise<Array>}
      */
     async getCamporees() {
-        const res = await fetch(`${this.baseUrl}/camporees`);
+        const res = await this._fetch(`${this.baseUrl}/camporees`);
         if (!res.ok) throw new Error("Failed to fetch camporee list");
         return await res.json();
     }
@@ -39,7 +58,7 @@ export class ApiClient {
      * @returns {Promise<Object>}
      */
     async getCamporee(id) {
-        const res = await fetch(`${this.baseUrl}/camporee/${id}`);
+        const res = await this._fetch(`${this.baseUrl}/camporee/${id}`);
         if (!res.ok) throw new Error(`Failed to load camporee ${id}`);
         return await res.json();
     }
@@ -50,7 +69,7 @@ export class ApiClient {
      * @returns {Promise<Object>} { exists: boolean, meta: Object }
      */
     async getCamporeeMeta(id) {
-        const res = await fetch(`${this.baseUrl}/camporee/${id}/meta`);
+        const res = await this._fetch(`${this.baseUrl}/camporee/${id}/meta`);
         if (!res.ok) throw new Error("Failed to check camporee status");
         return await res.json();
     }
@@ -62,7 +81,7 @@ export class ApiClient {
      * @returns {Promise<Object>} { success: true }
      */
     async saveCamporee(id, payload) {
-        const res = await fetch(`${this.baseUrl}/camporee/${id}`, {
+        const res = await this._fetch(`${this.baseUrl}/camporee/${id}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -76,7 +95,7 @@ export class ApiClient {
      * @returns {Promise<Object>} { success: true, catalog: Array }
      */
     async saveLibraryGame(payload) {
-        const res = await fetch(`${this.baseUrl}/library/save`, {
+        const res = await this._fetch(`${this.baseUrl}/library/save`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -90,7 +109,7 @@ export class ApiClient {
      * @returns {Promise<Object>} { action, lore, skill }
      */
     async brainstormTheme(payload) {
-        const res = await fetch(`${this.baseUrl}/ai/brainstorm-theme`, {
+        const res = await this._fetch(`${this.baseUrl}/ai/brainstorm-theme`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -107,7 +126,7 @@ export class ApiClient {
      * @returns {Promise<Object>} { success, message }
      */
     async testAIKey() {
-        const res = await fetch(`${this.baseUrl}/ai/test`);
+        const res = await this._fetch(`${this.baseUrl}/ai/test`);
         return await res.json();
     }
 
@@ -117,7 +136,7 @@ export class ApiClient {
      * @returns {Promise<Object>} Themed Game JSON
      */
     async themeGame(payload) {
-        const res = await fetch(`${this.baseUrl}/ai/theme-game`, {
+        const res = await this._fetch(`${this.baseUrl}/ai/theme-game`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -135,7 +154,7 @@ export class ApiClient {
      * @returns {Promise<Object>} Partial game content update
      */
     async updateGame(payload) {
-        const res = await fetch(`${this.baseUrl}/ai/update-game`, {
+        const res = await this._fetch(`${this.baseUrl}/ai/update-game`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -145,5 +164,31 @@ export class ApiClient {
             throw new Error(err.error || "AI update failed.");
         }
         return await res.json();
+    }
+
+    async getCollaborators(eventId) {
+        const res = await this._fetch(`${this.baseUrl}/events/${eventId}/collaborators`);
+        if (!res.ok) throw new Error('Failed to load collaborators');
+        return await res.json();
+    }
+
+    async inviteCollaborator(eventId, email, role) {
+        const res = await this._fetch(`${this.baseUrl}/events/${eventId}/collaborators`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, role })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Invite failed');
+        return data;
+    }
+
+    async removeCollaborator(eventId, targetUserId) {
+        const res = await this._fetch(`${this.baseUrl}/events/${eventId}/collaborators/${targetUserId}`, {
+            method: 'DELETE'
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Remove failed');
+        return data;
     }
 }

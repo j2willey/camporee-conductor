@@ -16,9 +16,18 @@ vi.mock('@google/genai', () => {
     };
 });
 
+vi.mock('@clerk/express', () => ({
+    clerkMiddleware: () => (req, res, next) => next(),
+    getAuth: () => ({ userId: 'user_test' }),
+    createClerkClient: () => ({
+        users: { getUserList: async () => ({ data: [] }) }
+    })
+}));
+
 // Set environment variables before the app is imported
 process.env.GEMINI_API_KEY = 'test-key';
-process.env.WORKSPACE_PATH = '/tmp/composer_test_workspace'; // Prevent messing with real data
+process.env.WORKSPACE_PATH = '/tmp/composer_test_workspace';
+process.env.CONDUCTOR_DB_PATH = '/tmp/conductor_test.db';
 
 const { default: app } = await import('../../src/servers/composer.js');
 
