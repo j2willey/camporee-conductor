@@ -49,7 +49,7 @@ const renderDashboard = (activeServices) => `
                         <div class="icon-wrapper"><i class="fas fa-book-open"></i></div>
                         <h3 class="card-title fw-bold">Curator</h3>
                         <p class="card-text" style="color:#adb5bd">The Global Vault. Master repository of Game Templates and library schemas.</p>
-                        <span class="btn btn-outline-primary mt-auto">Open Curator</span>
+                        <span class="btn btn-primary mt-auto">Open Curator</span>
                     </div>
                 </a>
             </div>` : ''}
@@ -61,7 +61,7 @@ const renderDashboard = (activeServices) => `
                         <div class="icon-wrapper"><i class="fas fa-drafting-compass"></i></div>
                         <h3 class="card-title fw-bold">Composer</h3>
                         <p class="card-text" style="color:#adb5bd">The Planner's Workbench. Design, arrange, and export specific camporee blueprints.</p>
-                        <span class="btn btn-outline-primary mt-auto">Open Composer</span>
+                        <span class="btn btn-primary mt-auto">Open Composer</span>
                     </div>
                 </a>
             </div>` : ''}
@@ -73,7 +73,7 @@ const renderDashboard = (activeServices) => `
                         <div class="icon-wrapper"><i class="fas fa-server"></i></div>
                         <h3 class="card-title fw-bold">Collator</h3>
                         <p class="card-text" style="color:#adb5bd">The Offline Engine. Live scoring, bracket management, and event execution.</p>
-                        <span class="btn btn-outline-primary mt-auto">Open Collator</span>
+                        <span class="btn btn-primary mt-auto">Open Collator</span>
                     </div>
                 </a>
             </div>` : ''}
