@@ -20,7 +20,7 @@ const TEST_MODE = process.env.NODE_ENV === 'test';
 
 const ROLE_HIERARCHY = ['viewer', 'editor', 'owner'];
 
-function requireAuth(req, res, next) {
+async function requireAuth(req, res, next) {
     if (TEST_MODE) return next();
     const { userId } = getAuth(req);
     if (!userId) return res.status(401).json({ error: 'Authentication required' });
@@ -31,6 +31,20 @@ function requireAuth(req, res, next) {
         VALUES (?, ?, ?)
         ON CONFLICT(user_id) DO UPDATE SET last_active = excluded.last_active
     `).run(userId, now, now);
+
+    // Fetch and cache email from Clerk if not yet stored
+    const existing = conductorDb.prepare('SELECT email FROM user_profiles WHERE user_id = ?').get(userId);
+    if (!existing?.email) {
+        try {
+            const clerkUser = await clerkClient.users.getUser(userId);
+            const email = clerkUser.emailAddresses?.[0]?.emailAddress;
+            if (email) {
+                conductorDb.prepare('UPDATE user_profiles SET email = ? WHERE user_id = ?').run(email, userId);
+            }
+        } catch {
+            // Non-fatal — email will be fetched on next request
+        }
+    }
 
     next();
 }
@@ -748,7 +762,7 @@ app.put('/api/me', requireAuth, (req, res) => {
 app.get('/api/events/:eventId/collaborators', requireAuth, requireEventRole('viewer'), (req, res) => {
     const { eventId } = req.params;
     const collaborators = conductorDb.prepare(`
-        SELECT ep.user_id, ep.role, ep.granted_at, up.display_name
+        SELECT ep.user_id, ep.role, ep.granted_at, ep.is_collator_official, up.display_name, up.email
         FROM event_permissions ep
         LEFT JOIN user_profiles up ON ep.user_id = up.user_id
         WHERE ep.event_id = ?
@@ -783,11 +797,12 @@ app.post('/api/events/:eventId/collaborators', requireAuth, requireEventRole('ow
         `).run(eventId, invitee.id, role, userId, now);
 
         // Ensure the invitee has a user_profiles stub so the join in GET collaborators works
+        const inviteeEmail = invitee.emailAddresses?.[0]?.emailAddress || null;
         conductorDb.prepare(`
-            INSERT INTO user_profiles (user_id, created_at, last_active)
-            VALUES (?, ?, ?)
-            ON CONFLICT(user_id) DO NOTHING
-        `).run(invitee.id, now, now);
+            INSERT INTO user_profiles (user_id, email, created_at, last_active)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET email = COALESCE(excluded.email, email)
+        `).run(invitee.id, inviteeEmail, now, now);
 
         logAudit(userId, 'collaborator.invited', 'event', eventId, { email, role });
         res.json({ success: true });
@@ -799,7 +814,7 @@ app.post('/api/events/:eventId/collaborators', requireAuth, requireEventRole('ow
 
 app.delete('/api/events/:eventId/collaborators/:targetUserId', requireAuth, requireEventRole('owner'), (req, res) => {
     const { eventId, targetUserId } = req.params;
-    const { userId: currentUserId } = getAuth(req);
+    const { userId: currentUserId } = TEST_MODE ? { userId: 'user_test' } : getAuth(req);
 
     if (targetUserId === currentUserId) {
         return res.status(400).json({ error: 'Cannot remove yourself as owner' });
@@ -808,6 +823,58 @@ app.delete('/api/events/:eventId/collaborators/:targetUserId', requireAuth, requ
     conductorDb.prepare('DELETE FROM event_permissions WHERE event_id = ? AND user_id = ?').run(eventId, targetUserId);
     logAudit(currentUserId, 'collaborator.removed', 'event', eventId, { removed_user: targetUserId });
     res.json({ success: true });
+});
+
+app.put('/api/events/:eventId/collaborators/:targetUserId/official', requireAuth, requireEventRole('owner'), (req, res) => {
+    const { eventId, targetUserId } = req.params;
+    const { userId } = TEST_MODE ? { userId: 'user_test' } : getAuth(req);
+    const { is_official } = req.body;
+
+    const result = conductorDb.prepare(
+        'UPDATE event_permissions SET is_collator_official = ? WHERE event_id = ? AND user_id = ?'
+    ).run(is_official ? 1 : 0, eventId, targetUserId);
+
+    if (result.changes === 0) {
+        return res.status(404).json({ error: 'Collaborator not found' });
+    }
+
+    logAudit(userId, is_official ? 'official.granted' : 'official.revoked', 'event', eventId, { target: targetUserId });
+    res.json({ success: true });
+});
+
+app.get('/api/events/:eventId/officials', requireAuth, requireEventRole('viewer'), async (req, res) => {
+    const { eventId } = req.params;
+
+    const rows = conductorDb.prepare(`
+        SELECT ep.user_id, ep.role, up.display_name, up.email
+        FROM event_permissions ep
+        LEFT JOIN user_profiles up ON ep.user_id = up.user_id
+        WHERE ep.event_id = ? AND (ep.role = 'owner' OR ep.is_collator_official = 1)
+        ORDER BY ep.role DESC, ep.granted_at ASC
+    `).all(eventId);
+
+    const officials = [];
+    for (const row of rows) {
+        let email = row.email;
+        if (!email && !TEST_MODE) {
+            try {
+                const clerkUser = await clerkClient.users.getUser(row.user_id);
+                email = clerkUser.emailAddresses?.[0]?.emailAddress || null;
+                if (email) {
+                    conductorDb.prepare('UPDATE user_profiles SET email = ? WHERE user_id = ?').run(email, row.user_id);
+                }
+            } catch {
+                email = null;
+            }
+        }
+        officials.push({
+            user_id: row.user_id,
+            display_name: row.display_name || null,
+            email: email || null
+        });
+    }
+
+    res.json(officials);
 });
 
 // --- START SERVER ---

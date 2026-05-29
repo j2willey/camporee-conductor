@@ -191,4 +191,21 @@ export class ApiClient {
         if (!res.ok) throw new Error(data.error || 'Remove failed');
         return data;
     }
+
+    async toggleOfficial(eventId, targetUserId, isOfficial) {
+        const res = await this._fetch(`${this.baseUrl}/events/${eventId}/collaborators/${targetUserId}/official`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ is_official: isOfficial })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to update official status');
+        return data;
+    }
+
+    async getOfficials(eventId) {
+        const res = await this._fetch(`${this.baseUrl}/events/${eventId}/officials`);
+        if (!res.ok) throw new Error('Failed to load officials');
+        return await res.json();
+    }
 }

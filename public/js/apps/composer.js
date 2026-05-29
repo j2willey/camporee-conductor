@@ -397,14 +397,35 @@ const composer = {
                 return;
             }
             listEl.innerHTML = `<hr class="my-2"><div class="list-group list-group-flush">` +
-                collabs.map(c => `
-                    <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-1">
-                        <div>
-                            <span>${c.display_name || c.user_id}</span>
-                            <span class="badge bg-secondary ms-1">${c.role}</span>
-                        </div>
-                        ${c.role !== 'owner' ? `<button class="btn btn-sm btn-outline-danger py-0" onclick="composer.removeCollaborator('${c.user_id}')" title="Remove"><i class="fas fa-times"></i></button>` : ''}
-                    </div>`).join('') + `</div>`;
+                collabs.map(c => {
+                    const isOwner = c.role === 'owner';
+                    const isOfficial = isOwner || !!c.is_collator_official;
+                    const roleBadge = isOwner
+                        ? `<span class="badge bg-primary ms-1">Director</span>`
+                        : `<span class="badge bg-secondary ms-1">${c.role}</span>`;
+                    const officialToggle = `
+                        <div class="form-check form-switch mb-0 ms-2 d-flex align-items-center gap-1" title="Also Official in Collator">
+                            <input class="form-check-input mt-0" type="checkbox" role="switch"
+                                   id="official-${c.user_id}"
+                                   ${isOfficial ? 'checked' : ''}
+                                   ${isOwner ? 'disabled' : `onchange="composer.toggleOfficial('${c.user_id}', this.checked)"`}>
+                            <label class="form-check-label small text-muted" for="official-${c.user_id}">Official</label>
+                        </div>`;
+                    const removeBtn = !isOwner
+                        ? `<button class="btn btn-sm btn-outline-danger py-0 ms-2" onclick="composer.removeCollaborator('${c.user_id}')" title="Remove"><i class="fas fa-times"></i></button>`
+                        : '';
+                    return `
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-1">
+                            <div>
+                                <span>${c.display_name || c.email || c.user_id}</span>
+                                ${roleBadge}
+                            </div>
+                            <div class="d-flex align-items-center">
+                                ${officialToggle}
+                                ${removeBtn}
+                            </div>
+                        </div>`;
+                }).join('') + `</div>`;
         } catch (e) {
             listEl.innerHTML = '<p class="text-danger small mb-0 mt-2">Failed to load collaborators.</p>';
         }
@@ -430,6 +451,15 @@ const composer = {
             await this._refreshCollaborators();
         } catch (e) {
             alert(e.message || 'Failed to remove collaborator');
+        }
+    },
+
+    toggleOfficial: async function (targetUserId, isOfficial) {
+        try {
+            await this.api.toggleOfficial(this._shareEventId, targetUserId, isOfficial);
+        } catch (e) {
+            alert(e.message || 'Failed to update official status');
+            await this._refreshCollaborators();
         }
     },
 
@@ -2990,8 +3020,19 @@ ${gameHtml}
                 order: i + 1
             }));
 
+        // Fetch officials from server if in server mode
+        let officials = [];
+        if (this.isServerMode && this.data.meta.camporeeId) {
+            try {
+                officials = await this.api.getOfficials(this.data.meta.camporeeId);
+            } catch (e) {
+                console.warn('Failed to fetch officials for export:', e);
+            }
+        }
+
         const camporeeConfig = {
             schemaVersion: "2.9",
+            officials: officials,
             meta: this.data.meta,
             playlist: playlist,
             type_defaults: this.data.type_defaults || DEFAULT_TYPE_DEFAULTS
