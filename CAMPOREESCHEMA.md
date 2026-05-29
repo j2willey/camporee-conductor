@@ -25,8 +25,8 @@ This file is the entry point. It tells the Collator which games to load, in what
 {
   "schemaVersion": "2.9",
   "officials": [
-    { "user_id": "user_2abc123", "display_name": "Jane Smith",  "email": "jane@example.com" },
-    { "user_id": null,           "display_name": "Bob Nguyen",  "email": "bob@example.com"  }
+    { "user_id": "user_2abc123", "display_name": "Jane Smith", "email": "jane@example.com", "role": "director" },
+    { "user_id": "user_2def456", "display_name": "Bob Nguyen",  "email": "bob@example.com", "role": "official" }
   ],
   "meta": {
     "camporeeId": "550e8400-e29b-41d4-a716-446655440000",
@@ -73,10 +73,11 @@ This file is the entry point. It tells the Collator which games to load, in what
 * **`playlist`**: Defines the runtime sequence.
     * **`gameId`**: Must match a filename in the `games/` folder (minus extension).
     * **`order`**: The integer sort order (1, 2, 3...).
-* **`officials`**: *(optional, defaults to `[]`)* Array of personnel who serve as official scorers or event administrators. Each entry:
+* **`officials`**: *(optional, defaults to `[]`)* Array of personnel who serve as official scorers or event administrators. Built by the Composer from `event_permissions` at export time. Each entry:
     * **`display_name`** *(required)*: Human-readable name shown on admin screens.
-    * **`email`** *(required)*: Contact address. Used to match against judge logins in the Collator.
-    * **`user_id`** *(optional)*: Clerk user ID (`user_2abc...`). Set when the official has a Conductor account. `null` for offline-only events or officials without accounts.
+    * **`email`** *(required)*: Contact address. Used by the offline Collator's `POST /api/auth/identify` to match the signing-in official.
+    * **`user_id`** *(optional)*: Clerk user ID (`user_2abc...`). Required by the cloud Collator to seed `event_permissions`. `null` for offline-only events or officials without Conductor accounts.
+    * **`role`** *(optional)*: `"director"` for the event owner; `"official"` for all others. Used by the offline Collator to set session role on identify, and by the cloud Collator as the initial `event_permissions.role`.
 * **`type_defaults`**: Maps each game type to an ordered list of preset IDs. The Collator's `injectCommonFields()` function reads this at serve time to prepend prefix fields and append suffix fields around the game's own scoring inputs. `exhibition` games are not listed here and receive no injected fields.
 
 ---
@@ -281,3 +282,34 @@ This object defines a single input widget on the Judge's tablet. It is used in `
 
 * **`judge`**: Visible to field judges and all dashboard views. This is the default.
 * **`admin`**: Hidden on the field tablet. Visible only in the Collator dashboard (used for official adjustments, final rankings, and overall points).
+
+---
+
+## 7. Deployment Modes
+
+The Collator's behavior on cartridge load is controlled by the `COLLATOR_MODE` environment variable (default: `offline`). The cartridge format is identical in both modes.
+
+### `COLLATOR_MODE=offline` (default)
+
+Designed for single-laptop event-day deployments on a local WiFi network. No internet required after initial cert provisioning.
+
+- The Collator reads `officials[]` directly from `camporee.json` at runtime.
+- Officials sign in via `GET /collator/identify.html` — they enter their email address, the server matches it against `officials[].email`, and sets a server-side session with the matching `role`.
+- Sessions are held in memory (`express-session` MemoryStore) and are lost on server restart. This is intentional — event-day sessions are ephemeral.
+- Admin and official dashboard routes require an active session. Judge-facing routes (score submission, game loading) remain open with no auth.
+
+### `COLLATOR_MODE=cloud`
+
+Designed for cloud-hosted deployments where multiple officials access the Collator over the internet.
+
+- Requires Clerk authentication (`@clerk/express`). All admin routes require a valid Clerk JWT matched against a local `event_permissions` table.
+- On cartridge upload, the authenticated uploader is inserted as `role = 'director'`. The `officials[]` array seeds the remaining entries (by `user_id`).
+- In cloud mode, `officials[].user_id` must be populated. Officials without Conductor accounts (`user_id: null`) will not have Collator access until they create an account and the cartridge is re-deployed.
+
+### Field Behavior by Mode
+
+| `officials[]` field | `offline` | `cloud` |
+| :--- | :--- | :--- |
+| `email` | Required — used to match on identify | Informational only |
+| `user_id` | Ignored | Required — used to seed `event_permissions` |
+| `role` | Used to set session role (`director` / `official`) | Sets initial `event_permissions.role` |

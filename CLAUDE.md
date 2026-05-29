@@ -25,6 +25,52 @@ The `ACTIVE_SERVICES` env var tells each container which pillars to serve (`coll
 
 ---
 
+## AAA Architecture
+
+Authentication, Authorization, and Audit infrastructure for the Composer and Collator.
+
+### Auth Provider
+
+- **Composer** and **cloud Collator**: Clerk (`@clerk/express`). JWT tokens sent as `Authorization: Bearer` headers from the browser Clerk SDK; verified server-side via `getAuth(req)`.
+- **Offline Collator**: email honor system — officials identify via `POST /api/auth/identify` with their email address, matched against `officials[]` in `camporee.json`. Session stored in `express-session` MemoryStore (intentionally ephemeral; lost on restart).
+- **Judges**: no accounts required. Judge-facing routes (`GET /games.json`, `POST /api/score`, `GET|POST /api/entities`, `POST /api/scores/close-game`) are always open. A per-event token system is planned but not yet implemented.
+
+### Composer Permission Model
+
+Stored in `data/shared/conductor.db`, shared by both Composer and the sysadmin script. Managed by the migration runner (`src/db/migrate.js`).
+
+| Table | Purpose |
+|---|---|
+| `user_profiles` | One row per Clerk user. Stores display_name, email (cached from Clerk on first login), council info, `is_sysadmin`, `is_suspended`. |
+| `event_permissions` | `(event_id, user_id) → role`. Roles: `owner` (full control, can invite/remove), `editor` (can save), `viewer` (read-only). Events with no rows are accessible to all users (legacy backwards-compat). |
+| `audit_log` | Append-only log of Composer actions (collaborator.invited, official.granted/revoked, game.saved, etc.). |
+| `feature_flags` | Named boolean flags with optional per-user override list. |
+
+### Collator Permission Model
+
+Controlled by the `COLLATOR_MODE` environment variable (default: `offline`). Logged at startup.
+
+| Mode | Auth mechanism | Who can upload a cartridge | How officials are recognized |
+|---|---|---|---|
+| `offline` | `express-session` + email identify | Anyone with server access | Email match against `officials[]` in `camporee.json` |
+| `cloud` | Clerk JWT | Any authenticated Clerk user | `event_permissions` table in `camporee.db`, seeded from cartridge `officials[]` on upload |
+
+In cloud mode, the user who uploads the cartridge is inserted as `role = 'director'` regardless of whether they appear in the officials array.
+
+### Officials
+
+Officials are embedded in the cartridge's `camporee.json` as `officials[]`. Each entry: `{ user_id, display_name, email, role }`. The Composer "Share" modal has a per-collaborator "Collator Official" toggle; owners are always included as `role: 'director'`. The `GET /api/events/:eventId/officials` endpoint builds this list at export time from `event_permissions`.
+
+### Sysadmin
+
+`is_sysadmin = 1` in `user_profiles` grants access to `/sysadmin.html` and all `/admin/api/*` endpoints on the Composer. Set via `scripts/make-sysadmin.js` (run inside the Docker container). Sysadmins bypass `requireEventRole` for all events.
+
+### Migration Runner
+
+`src/db/migrate.js` — opens `conductor.db` and applies pending `migrations/*.sql` files in filename order. Tracked in `schema_migrations` table. Called at Composer startup and by the sysadmin script. Current migrations: 001 (user_profiles), 002 (event_permissions), 003 (audit_log), 004 (feature_flags), 005 (curator_admin), 007 (is_collator_official), 008 (email on user_profiles).
+
+---
+
 ## Memory Management
 
 Maintain a structured memory system rooted at .claude/memory/
@@ -88,6 +134,8 @@ npm test                  # all three
 - **Middleware Sanitization** — The Collator strips `source_snapshot` and `variants` before serving `/games.json` to keep judge payloads light. Do not serve these to clients.
 - **Scout-Appropriate AI** — All Gemini-generated content must be G-rated, age 11–17, Scout values aligned.
 - **`data/` is gitignored** — Runtime data (SQLite DB, game JSON files, presets.json, workspaces) lives in `data/` and is never committed. Code and schema changes are committed.
+- **Never run Clerk middleware when `COLLATOR_MODE=offline`** — `clerkMiddleware()` and `getAuth()` must only be invoked in the cloud branch. Calling them in offline mode will throw because no Clerk keys are configured.
+- **Never expose judge tokens in API responses beyond their creation endpoint** — when judge tokens are implemented, the raw token string is returned exactly once (at creation). All subsequent API responses return only the token ID or a masked representation.
 
 ---
 
@@ -133,6 +181,25 @@ Common patrol scoring fields (Patrol Flag, Patrol Yell, Scout Spirit, 10 Essenti
 | `data/collator/active-event/` | Unpacked live cartridge (gitignored) |
 | `data/composer/workspaces/` | Composer design workspaces (gitignored) |
 | `data/curator/` | Game template library (gitignored) |
+| `migrations/` | Numbered SQL migration files applied to `conductor.db` by `src/db/migrate.js` |
+| `scripts/make-sysadmin.js` | CLI tool to grant `is_sysadmin` by email address |
+| `public/sysadmin.html` | Sysadmin panel — user management, stats, audit log |
+| `public/identify.html` | Collator offline sign-in page (email identify flow) |
+
+**`data/shared/conductor.db` tables** (Composer + AAA, gitignored):
+
+| Table | Status | Purpose |
+|---|---|---|
+| `user_profiles` | ✅ built | Clerk user cache — display_name, email, sysadmin/suspended flags |
+| `event_permissions` | ✅ built | Composer event roles: owner / editor / viewer |
+| `audit_log` | ✅ built | Append-only action log (Composer operations) |
+| `feature_flags` | ✅ built | Named boolean flags with per-user overrides |
+| `judge_tokens` | 🔲 planned | Per-event judge access tokens |
+| `collator_events` | 🔲 planned | Cloud-hosted event registry |
+
+**`data/collator/camporee.db` tables** (Collator runtime, gitignored):
+
+In `COLLATOR_MODE=cloud`, also contains `event_permissions (camporee_id, user_id, role)` seeded from the cartridge on upload.
 
 ---
 

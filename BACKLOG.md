@@ -14,6 +14,12 @@
 - ✅ Print freeze fix (all print paths) — Blob URL + popup-injected print() prevents calling tab from freezing during print dialog
 - ✅ Critical: Composer printPreview data-loss bug — body-swap pattern was wiping camporee on print cancel; replaced with Blob URL approach
 - ✅ Coyote Creek Camporee 2026 "The Circus" — ran live May 15–17 at Camp Chesebrough
+- ✅ Migration runner — `src/db/migrate.js` applies numbered SQL files in `migrations/` to `conductor.db`; tracked in `schema_migrations`
+- ✅ Clerk authentication for Composer — `@clerk/express` middleware; sign-in gate in EJS template; TEST_MODE bypass for CI
+- ✅ event_permissions — owner/editor/viewer roles per event; legacy backwards-compat (no rows = open access)
+- ✅ Collaborator invite by email with Officials toggle — share modal in Composer; per-collaborator "Collator Official" toggle; officials embedded in exported camporee.json
+- ✅ Sysadmin panel — `/sysadmin.html` with user management, stats, audit log; `is_sysadmin` flag; `scripts/make-sysadmin.js`
+- ✅ Collator two-mode AAA — `COLLATOR_MODE=cloud` (Clerk + event_permissions seeded from cartridge) or `offline` (email honor system via express-session); `requireOfficial` on all admin routes; `identify.html` for offline sign-in; mode badge in admin header
 
 ---
 
@@ -39,6 +45,15 @@
 ### Composer / UI
 
 - [ ] **Dashboard service-card contrast** — card description text is too dark on the dark `#2b3035` background; `text-muted` (#6c757d) doesn't meet WCAG AA on that surface
+
+### AAA / Infrastructure
+
+- [ ] **Judge token management UI** — director dashboard to generate, view, and revoke per-event judge access tokens; `judge_tokens` table not yet created
+- [ ] **Post-cartridge-deploy official sync** — adding an official after the cartridge is deployed currently requires a full cartridge re-deploy; should support incremental sync
+- [ ] **Email notification to invited collaborators/officials** — no notification is sent when a user is invited to an event in the Composer
+- [ ] **Spectator leaderboard** — scores revealed only after the director declares a game final; prevents mid-event result peeking
+- [ ] **Collator as a Service provisioning** — decide architecture: shared multi-tenant instance vs per-event containers; `collator_events` table not yet created
+- [ ] **Public-facing documentation** — policy, behavior, and onboarding guide for cloud-hosted Camporee Conductor (`cloud.camporeeconductor.com`)
 
 ### Infrastructure
 
