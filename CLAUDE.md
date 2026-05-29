@@ -67,7 +67,7 @@ Officials are embedded in the cartridge's `camporee.json` as `officials[]`. Each
 
 ### Migration Runner
 
-`src/db/migrate.js` — opens `conductor.db` and applies pending `migrations/*.sql` files in filename order. Tracked in `schema_migrations` table. Called at Composer startup and by the sysadmin script. Current migrations: 001 (user_profiles), 002 (event_permissions), 003 (audit_log), 004 (feature_flags), 005 (curator_admin), 007 (is_collator_official), 008 (email on user_profiles).
+`src/db/migrate.js` — opens `conductor.db` and applies pending `migrations/*.sql` files in filename order. Tracked in `schema_migrations` table. Called at Composer startup and by the sysadmin script. Current migrations: 001 (user_profiles), 002 (event_permissions), 003 (audit_log), 004 (feature_flags), 005 (curator_admin), 006 (event_metadata), 007 (is_collator_official), 008 (email on user_profiles), 009 (judge_tokens).
 
 ---
 
@@ -194,7 +194,7 @@ Common patrol scoring fields (Patrol Flag, Patrol Yell, Scout Spirit, 10 Essenti
 | `event_permissions` | ✅ built | Composer event roles: owner / editor / viewer |
 | `audit_log` | ✅ built | Append-only action log (Composer operations) |
 | `feature_flags` | ✅ built | Named boolean flags with per-user overrides |
-| `judge_tokens` | 🔲 planned | Per-event judge access tokens |
+| `judge_tokens` | ✅ built | Per-event judge access tokens — token_hash (SHA-256), label, expires_at, revoked_at, last_used |
 | `collator_events` | 🔲 planned | Cloud-hosted event registry |
 
 **`data/collator/camporee.db` tables** (Collator runtime, gitignored):
