@@ -24,6 +24,10 @@ This file is the entry point. It tells the Collator which games to load, in what
 ```json
 {
   "schemaVersion": "2.9",
+  "officials": [
+    { "user_id": "user_2abc123", "display_name": "Jane Smith",  "email": "jane@example.com" },
+    { "user_id": null,           "display_name": "Bob Nguyen",  "email": "bob@example.com"  }
+  ],
   "meta": {
     "camporeeId": "550e8400-e29b-41d4-a716-446655440000",
     "title": "Coyote Creek Camporee 2026",
@@ -69,6 +73,10 @@ This file is the entry point. It tells the Collator which games to load, in what
 * **`playlist`**: Defines the runtime sequence.
     * **`gameId`**: Must match a filename in the `games/` folder (minus extension).
     * **`order`**: The integer sort order (1, 2, 3...).
+* **`officials`**: *(optional, defaults to `[]`)* Array of personnel who serve as official scorers or event administrators. Each entry:
+    * **`display_name`** *(required)*: Human-readable name shown on admin screens.
+    * **`email`** *(required)*: Contact address. Used to match against judge logins in the Collator.
+    * **`user_id`** *(optional)*: Clerk user ID (`user_2abc...`). Set when the official has a Conductor account. `null` for offline-only events or officials without accounts.
 * **`type_defaults`**: Maps each game type to an ordered list of preset IDs. The Collator's `injectCommonFields()` function reads this at serve time to prepend prefix fields and append suffix fields around the game's own scoring inputs. `exhibition` games are not listed here and receive no injected fields.
 
 ---

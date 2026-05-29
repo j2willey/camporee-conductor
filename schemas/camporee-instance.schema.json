@@ -102,6 +102,30 @@
         }
       }
     },
+    "officials": {
+      "type": "array",
+      "description": "Personnel who serve as official scorers or administrators for this event.",
+      "default": [],
+      "items": {
+        "type": "object",
+        "required": ["display_name", "email"],
+        "properties": {
+          "user_id": {
+            "type": ["string", "null"],
+            "description": "Clerk user_id. Null for officials who do not have a Conductor account."
+          },
+          "display_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
     "playlist": {
       "type": "array",
       "items": {
