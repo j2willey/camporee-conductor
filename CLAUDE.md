@@ -136,6 +136,8 @@ npm test                  # all three
 - **`data/` is gitignored** — Runtime data (SQLite DB, game JSON files, presets.json, workspaces) lives in `data/` and is never committed. Code and schema changes are committed.
 - **Never run Clerk middleware when `COLLATOR_MODE=offline`** — `clerkMiddleware()` and `getAuth()` must only be invoked in the cloud branch. Calling them in offline mode will throw because no Clerk keys are configured.
 - **Never expose judge tokens in API responses beyond their creation endpoint** — when judge tokens are implemented, the raw token string is returned exactly once (at creation). All subsequent API responses return only the token ID or a masked representation.
+- **`sysadmin.html` is gated — do not add new static HTML pages with admin functionality** — `express.static('public')` runs in `server.js` before sub-app routes and will serve any file in `public/` without auth. Sensitive pages must have an explicit `app.get(path, requireAuth, ...)` route registered before the static middleware in the relevant sub-app, plus a redirect at the root `server.js` level.
+- **`SESSION_SECRET` has an insecure hardcoded default** — `collator.js` falls back to `'collator-offline-secret'` if `SESSION_SECRET` is unset. Always set a real secret via env var in any internet-facing deployment.
 
 ---
 

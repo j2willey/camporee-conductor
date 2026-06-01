@@ -20,6 +20,12 @@
 - ✅ Collaborator invite by email with Officials toggle — share modal in Composer; per-collaborator "Collator Official" toggle; officials embedded in exported camporee.json
 - ✅ Sysadmin panel — `/sysadmin.html` with user management, stats, audit log; `is_sysadmin` flag; `scripts/make-sysadmin.js`
 - ✅ Collator two-mode AAA — `COLLATOR_MODE=cloud` (Clerk + event_permissions seeded from cartridge) or `offline` (email honor system via express-session); `requireOfficial` on all admin routes; `identify.html` for offline sign-in; mode badge in admin header
+- ✅ Secrets audit — git history confirmed clean; no .env, Clerk keys, or Gemini keys ever committed
+- ✅ `.env.example` — full env var inventory with descriptions; documents all required prod vars and docker-compose-managed vars
+- ✅ `.nvmrc` — pins Node 22; consistent with Dockerfile and package.json engines field
+- ✅ Sysadmin gate fix — `express.static` was serving `sysadmin.html` before auth; now gated by `requireAuth + requireSysadmin` in composer.js; root-level `/sysadmin.html` redirects to `/composer/sysadmin.html`
+- ✅ Dashboard CTA button contrast — `btn-outline-primary` (2.96:1, fails AA) → `btn-primary` (4.51:1, passes AA) on dark `#2b3035` cards
+- ✅ `judge_tokens` migration (009) — SHA-256 hash, per-event scope, label, expiry, revocation, last_used tracking
 
 ---
 
@@ -44,11 +50,10 @@
 
 ### Composer / UI
 
-- [ ] **Dashboard service-card contrast** — card description text is too dark on the dark `#2b3035` background; `text-muted` (#6c757d) doesn't meet WCAG AA on that surface
 
 ### AAA / Infrastructure
 
-- [ ] **Judge token management UI** — director dashboard to generate, view, and revoke per-event judge access tokens; `judge_tokens` table not yet created
+- [ ] **Judge token management UI** — director dashboard to generate, view, and revoke per-event judge access tokens; `judge_tokens` table (migration 009) is ready; need token generation API + UI
 - [ ] **Post-cartridge-deploy official sync** — adding an official after the cartridge is deployed currently requires a full cartridge re-deploy; should support incremental sync
 - [ ] **Email notification to invited collaborators/officials** — no notification is sent when a user is invited to an event in the Composer
 - [ ] **Spectator leaderboard** — scores revealed only after the director declares a game final; prevents mid-event result peeking
@@ -58,7 +63,6 @@
 ### Infrastructure
 
 - [ ] **Server consolidation** — root-level legacy files (composer_server.js) still exist alongside src/servers/; clean up after confirming nothing depends on them
-- [ ] **Node.js version pin** — add .nvmrc to prevent build failures on future Node versions
 
 ### Documentation
 
