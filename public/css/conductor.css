@@ -1,18 +1,31 @@
 * { box-sizing: border-box; }
 
 :root {
-    --conductor-primary: #0d6efd;
+    /* Brand palette — shared across suite and landing page */
+    --green-dark:  #1a3a2a;
+    --green-mid:   #2d6a4f;
+    --green-light: #40916c;
+    --gold:        #d4a017;
+    --gold-light:  #f0c040;
+    --cream:       #f8f4ec;
+    --slate:       #2b3240;
+    --slate-light: #4a5568;
+    --white:       #ffffff;
+    --shadow:      rgba(0,0,0,0.12);
+
+    /* App semantic tokens */
+    --conductor-primary: var(--green-mid);
     --conductor-secondary: #008000;
     --conductor-success: #198754;
     --conductor-info: #0dcaf0;
-    --conductor-warning: #ffc107;
+    --conductor-warning: var(--gold);
     --conductor-danger: #dc3545;
     --conductor-light: #f8f9fa;
-    --conductor-dark: #2c3e50;
+    --conductor-dark: var(--slate);
 
-    --brand-main: var(--conductor-primary);
-    --brand-header: #34495e;
-    --brand-accent: #3498db;
+    --brand-main: var(--green-mid);
+    --brand-header: var(--green-dark);
+    --brand-accent: var(--gold);
 
     --conductor-spacing-sm: 0.5rem;
     --conductor-spacing-md: 1rem;
@@ -510,9 +523,9 @@ main.has-fixed-header {
 
 .nav-tabs .nav-link.active {
     font-weight: bold !important;
-    color: #0d6efd !important;
+    color: var(--conductor-primary) !important;
     border: none !important;
-    border-bottom: 3px solid #0d6efd !important;
+    border-bottom: 3px solid var(--conductor-primary) !important;
     background: transparent !important;
 }
 
