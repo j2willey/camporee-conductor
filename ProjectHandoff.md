@@ -168,25 +168,27 @@ Requires `GEMINI_API_KEY` in `.env` for AI features. Do not commit this file.
 
 ---
 
-## 11. Current State (May 14, 2026)
+## 11. Current State (June 2, 2026)
 
-### Completed
-- All 34 games authored and loaded (patrol, troop, and exhibition events)
-- "The Big Top Goes Down" (P3 first aid) — full 3-victim scenario, 8-input scoring rubric (0–100 pts)
-- Theme Color Picker — Circus colors applied (Red/Blue/Gold)
-- Common Field Injection — fully implemented and tested
-- Close Game handshake — implemented in Collator
-- Print Scoresheets — grouped by type with checkboxes via `utils.html`
-- Official leaderboard — overview, matrix, detail, and exhibition views
-- Collator redirect paths — fixed for sub-path mounting
+### Completed (post-event, as of Jun 2)
+- Coyote Creek District Camporee "The Circus" — ran live May 15–17, 2026 ✅
+- Full AAA: Clerk auth for Composer + cloud Collator; offline email-honor mode; `event_permissions` (owner/editor/viewer); sysadmin panel; migration runner
+- `judge_tokens` DB table (migration 009) — ready for token API + UI
+- Secrets audit — git history confirmed clean; `.env.example` and `.nvmrc` committed
+- Security fix — sysadmin.html now gated before `express.static`
+- Landing page — `public/camporee-conductor-landing.html` with full early-access form (12 fields); `POST /composer/api/early-access` writes to `data/early-access/submissions.json`; served at `GET /` for single-composer deployments
+- Brand palette — green/gold theme unified across `conductor.css` (app) and `landing.css` (marketing)
 
 ### Open Backlog
-- **Challenge Match ("True 2nd Place")** — bracket tournament logic; `Matches`/`Match_Participants` DB tables exist, trigger logic TODO
+- **VPS deployment** — Hetzner or DigitalOcean; pre-VPS checklist nearly complete; remaining: browser smoke test, Clerk Production instance config, `SESSION_SECRET` in `.env`
+- **Judge token API + UI** — `judge_tokens` table ready; need `POST /api/events/:eventId/judge-tokens` and director panel
+- **Challenge Match ("True 2nd Place")** — bracket tournament logic; DB tables exist, trigger logic TODO
 - **WebSocket leaderboard** — `official.js` currently polls every 15s
 - **Server consolidation** — legacy root files still present
 - **Practice Mode** — judges cannot test forms without affecting live scores
 - **Composer "Common Fields" panel** — no UI for editing `type_defaults` or previewing injected fields per game type
 - **Exhibition award print template** — not yet created
+- **E2E test suite** — 4 tests fail when Docker containers running (real Clerk vs TEST_MODE mismatch)
 
 ---
 

@@ -137,6 +137,8 @@ npm test                  # all three
 - **Never run Clerk middleware when `COLLATOR_MODE=offline`** — `clerkMiddleware()` and `getAuth()` must only be invoked in the cloud branch. Calling them in offline mode will throw because no Clerk keys are configured.
 - **Never expose judge tokens in API responses beyond their creation endpoint** — when judge tokens are implemented, the raw token string is returned exactly once (at creation). All subsequent API responses return only the token ID or a masked representation.
 - **`sysadmin.html` is gated — do not add new static HTML pages with admin functionality** — `express.static('public')` runs in `server.js` before sub-app routes and will serve any file in `public/` without auth. Sensitive pages must have an explicit `app.get(path, requireAuth, ...)` route registered before the static middleware in the relevant sub-app, plus a redirect at the root `server.js` level.
+- **`landing.css` depends on `conductor.css` for all color variables** — `landing.html` loads `conductor.css` first, then `landing.css`. The `landing.css` file contains no `:root` color definitions; it references `--green-dark`, `--gold`, etc. from `conductor.css`. If you remove the `conductor.css` link from `landing.html`, all colors will break. This is intentional: `conductor.css` is the single source of truth for the brand palette.
+- **`POST /composer/api/early-access` is public (no auth)** — the early-access endpoint in `composer.js` has no `requireAuth` middleware. `clerkMiddleware()` runs but does not reject unauthenticated requests — only `requireAuth` does that. Submissions go to `data/early-access/submissions.json` (gitignored under `data/`).
 - **`SESSION_SECRET` has an insecure hardcoded default** — `collator.js` falls back to `'collator-offline-secret'` if `SESSION_SECRET` is unset. Always set a real secret via env var in any internet-facing deployment.
 
 ---
@@ -186,6 +188,8 @@ Common patrol scoring fields (Patrol Flag, Patrol Yell, Scout Spirit, 10 Essenti
 | `migrations/` | Numbered SQL migration files applied to `conductor.db` by `src/db/migrate.js` |
 | `scripts/make-sysadmin.js` | CLI tool to grant `is_sysadmin` by email address |
 | `public/sysadmin.html` | Sysadmin panel — user management, stats, audit log |
+| `public/camporee-conductor-landing.html` | Marketing landing page — served at `GET /` for single-composer deployments |
+| `public/css/landing.css` | Landing page styles — references color vars from `conductor.css` |
 | `public/identify.html` | Collator offline sign-in page (email identify flow) |
 
 **`data/shared/conductor.db` tables** (Composer + AAA, gitignored):
@@ -275,7 +279,7 @@ Judge phones connect to the Opal WiFi, navigate to `https://camporeeconductor.co
 
 ---
 
-## Known Backlog (as of 2026-05-17)
+## Known Backlog (as of 2026-06-02)
 
 ### Completed Since 2026-03-30
 
@@ -294,6 +298,9 @@ Judge phones connect to the Opal WiFi, navigate to `https://camporeeconductor.co
 - **Troop overall flat award** — "Top Dog / Best in Show" mode: awards top N% of troops the same text, no rank differentiation; configurable name, text, and percentage
 - **Announcer Sheet** — `utils.html` new print mode: readable per-game ranked list (title + numbered entries + scores), `break-inside: avoid` per block, isolated from sticker print path
 - **Judge "Reset Local Data" button** — removed from production judge.html (function preserved in judge.js; see DEV-NOTES.md to restore)
+- **AAA (Auth/Authz/Audit)** — Clerk for Composer + cloud Collator; email honor system for offline Collator; `event_permissions`, `audit_log`, `feature_flags`, `judge_tokens` tables; sysadmin panel; migration runner
+- **Landing page** — `public/camporee-conductor-landing.html`; CSS in `public/css/landing.css`; early-access form (12 fields) POSTs to `POST /composer/api/early-access`; `GET /` serves landing for single-composer deployments
+- **Brand palette** — green/gold palette (`--green-dark`, `--green-mid`, `--green-light`, `--gold`, `--gold-light`, `--cream`, `--slate`) added to `conductor.css` `:root`; app brand vars (`--brand-main`, `--brand-header`, `--brand-accent`) remapped to green/gold; `landing.css` references these vars — `conductor.css` is the single source of truth
 
 ### Still Open
 

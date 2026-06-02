@@ -26,6 +26,9 @@
 - ✅ Sysadmin gate fix — `express.static` was serving `sysadmin.html` before auth; now gated by `requireAuth + requireSysadmin` in composer.js; root-level `/sysadmin.html` redirects to `/composer/sysadmin.html`
 - ✅ Dashboard CTA button contrast — `btn-outline-primary` (2.96:1, fails AA) → `btn-primary` (4.51:1, passes AA) on dark `#2b3035` cards
 - ✅ `judge_tokens` migration (009) — SHA-256 hash, per-event scope, label, expiry, revocation, last_used tracking
+- ✅ Landing page CSS extraction — `public/css/landing.css` extracted from inline `<style>`; `conductor.css` now defines shared green/gold brand palette as `:root` vars; both stylesheets linked from landing.html
+- ✅ Landing page early-access form — expanded from email-only to 12-field form (name, email, council, district, role, years, units, patrols, scouts, unit_adults, adult_staff, youth_staff); POSTs JSON to `POST /composer/api/early-access`; submissions appended to `data/early-access/submissions.json`
+- ✅ GET / landing page routing — `server.js` serves `landing.html` at root for single-composer deployments; Collator-only still redirects to `/collator/`; multi-service dev still shows dashboard; app remains at `/composer/`
 
 ---
 
