@@ -22,6 +22,8 @@ services:
   nginx:
     container_name: camporee-nginx
     image: nginx:alpine
+    ports:
+      - "8080:80"   # Dev preview only — remove in prod (Caddy handles routing)
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
       - ./public/camporee-conductor-landing.html:/usr/share/nginx/html/index.html:ro
