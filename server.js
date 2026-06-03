@@ -1,7 +1,6 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
-import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 dotenv.config();
@@ -124,8 +123,8 @@ async function startServer() {
     // --- ROOT ROUTING (The Gateway) ---
     app.get('/', (req, res) => {
         if (ACTIVE_SERVICES.length === 1 && ACTIVE_SERVICES[0] === 'composer') {
-            // Production Composer deployment: landing page at root, app at /composer/
-            res.sendFile(path.join(__dirname, 'public', 'camporee-conductor-landing.html'));
+            // Production: marketing site is served by nginx at camporeeconductor.com
+            res.redirect('/composer/');
         } else if (ACTIVE_SERVICES.length === 1) {
             // Single-service non-composer (e.g. collator-only): redirect into the service
             res.redirect(`/${ACTIVE_SERVICES[0]}/`);

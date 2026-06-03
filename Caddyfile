@@ -1,14 +1,11 @@
-{
-    auto_https off
+camporeeconductor.com {
+    reverse_proxy nginx:8080
 }
 
-# HTTPS — serve judge PWA with real cert
-{$CADDY_DOMAIN} {
-    tls /certs/fullchain.pem /certs/privkey.pem
+composer.camporeeconductor.com {
+    reverse_proxy composer:3001
+}
+
+collator.camporeeconductor.com {
     reverse_proxy collator:3000
-}
-
-# Redirect plain HTTP → HTTPS
-http://{$CADDY_DOMAIN} {
-    redir https://{host}{uri} permanent
 }
