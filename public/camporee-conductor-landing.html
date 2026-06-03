@@ -413,7 +413,7 @@
     btn.textContent = 'Sending…';
 
     try {
-      const res = await fetch('https://composer.camporeeconductor.com/composer/api/early-access', {
+      const res = await fetch('/api/early-access', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)

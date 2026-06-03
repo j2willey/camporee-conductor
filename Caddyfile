@@ -1,5 +1,5 @@
 camporeeconductor.com {
-    reverse_proxy nginx:8080
+    reverse_proxy landing:3002
 }
 
 composer.camporeeconductor.com {
