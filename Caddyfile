@@ -1,11 +1,14 @@
 {$CADDY_HOST:localhost} {
+    tls internal
     reverse_proxy landing:3002
 }
 
 composer.{$CADDY_HOST:localhost} {
+    tls internal
     reverse_proxy composer:3001
 }
 
 collator.{$CADDY_HOST:localhost} {
+    tls internal
     reverse_proxy collator:3000
 }
