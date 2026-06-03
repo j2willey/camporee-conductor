@@ -1,11 +1,11 @@
-camporeeconductor.com {
+{$CADDY_HOST:localhost} {
     reverse_proxy landing:3002
 }
 
-composer.camporeeconductor.com {
+composer.{$CADDY_HOST:localhost} {
     reverse_proxy composer:3001
 }
 
-collator.camporeeconductor.com {
+collator.{$CADDY_HOST:localhost} {
     reverse_proxy collator:3000
 }
