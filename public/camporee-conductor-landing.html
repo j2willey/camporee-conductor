@@ -108,29 +108,21 @@
     <p class="section-label sans">The Solution</p>
     <h2>One Suite, Built for the Whole Event</h2>
     <p class="lead sans">
-      Camporee Conductor is three tools that work together — from designing your event weeks in advance to generating awards on the day. Each piece is purpose-built for how Scouting events actually run.
+      Camporee Conductor is two tools that work together — design your event before the weekend, run it on the day. Each piece is purpose-built for how Scouting competitions actually work.
     </p>
     <div class="pillars">
 
       <div class="pillar">
-        <div class="pillar-icon">📚</div>
-        <p class="pillar-num sans">Step 1 · Before the Event</p>
-        <h3>Curator</h3>
-        <p>A library of ready-made game definitions. Browse patrol events, troop competitions, and exhibition activities — each with pre-built scoring rubrics. Start from a template or build your own and add it to your library for next year.</p>
-        <span class="pillar-tag sans">Game Template Library</span>
-      </div>
-
-      <div class="pillar">
         <div class="pillar-icon">🎨</div>
-        <p class="pillar-num sans">Step 2 · Design Your Event</p>
+        <p class="pillar-num sans">Before the Event</p>
         <h3>Composer</h3>
-        <p>Visually design your camporee — stations, scoring fields, roster configuration, theme colors. When you're done, export a <strong>Digital Cartridge</strong>: a single file that carries your entire event configuration to the field. Share it with your co-directors and officials.</p>
+        <p>Design your camporee from scratch — or browse a built-in library of patrol events, troop challenges, and exhibition activities and pull in individual games or an entire pre-configured camporee as your starting point. Customize scoring rubrics, roster configuration, and theme colors. When you're done, export a <strong>Digital Cartridge</strong>: a single file that carries your entire event to the field.</p>
         <span class="pillar-tag sans">Visual Event Designer</span>
       </div>
 
       <div class="pillar">
         <div class="pillar-icon">📡</div>
-        <p class="pillar-num sans">Step 3 · Run the Day</p>
+        <p class="pillar-num sans">On the Day</p>
         <h3>Collator</h3>
         <p>Load your cartridge, plug in the router, and you're live. Judges scan a QR code and score from their phones — no app install. Scores aggregate in real time. One click generates ranked results, printable awards stickers, and an announcer sheet.</p>
         <span class="pillar-tag sans">Live Event Runtime</span>
@@ -151,7 +143,7 @@
       <div class="step">
         <div class="step-num">1</div>
         <h3>Design Your Event</h3>
-        <p>Use <strong>Curator</strong> + <strong>Composer</strong> to build your game list, scoring rubrics, and roster. Set your patrol and troop names. Pick your theme colors. Invite your co-directors to collaborate.</p>
+        <p>Open <strong>Composer</strong>, browse the game library, and pull in the events you want — or build your own from scratch. Set scoring rubrics, roster, theme colors. Invite your co-directors to collaborate.</p>
         <p class="step-detail">Days or weeks before the event — at home, no pressure</p>
       </div>
 
@@ -418,7 +410,7 @@
     btn.textContent = 'Sending…';
 
     try {
-      const res = await fetch('/composer/api/early-access', {
+      const res = await fetch('https://composer.camporeeconductor.com/composer/api/early-access', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
