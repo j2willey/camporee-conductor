@@ -1,0 +1,20 @@
+FROM node:22-alpine
+
+WORKDIR /app
+
+# Only the two dependencies landing.js actually uses
+COPY src/servers/landing.package.json ./package.json
+RUN npm install --production
+
+# Server code
+COPY src/servers/landing.js ./src/servers/landing.js
+
+# Public assets served by the landing page
+COPY public/camporee-conductor-landing.html ./public/camporee-conductor-landing.html
+COPY public/favicon.ico ./public/favicon.ico
+COPY public/css ./public/css
+COPY public/images ./public/images
+
+EXPOSE 3002
+
+CMD ["node", "src/servers/landing.js"]

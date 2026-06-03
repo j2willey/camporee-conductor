@@ -21,7 +21,9 @@ services:
   # 1. LANDING — standalone marketing site + early-access form (camporeeconductor.com)
   landing:
     container_name: camporee-landing
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.landing
     ports:
       - "3002:3002"   # Direct access for local dev
     environment:
@@ -29,9 +31,6 @@ services:
       - SUBMISSIONS_PATH=/app/data/submissions
     volumes:
       - ./data/landing:/app/data/submissions
-      - ./src:/app/src
-      - ./public:/app/public
-    command: node src/servers/landing.js
     restart: unless-stopped
 
   # 2. THE COLLATOR (Scorer) - Port 3000
