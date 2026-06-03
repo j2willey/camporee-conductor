@@ -34,6 +34,11 @@
 
 ## Active Backlog
 
+### Infrastructure / Analytics
+
+- ✅ **Analytics — Cloudflare** — basic traffic stats (page views, requests, bots vs humans, countries) available free via Cloudflare dashboard; no setup required since domain already runs through Cloudflare
+- [ ] **Analytics — expand if needed** — Plausible ($9/mo, privacy-first, no cookie banner, adds referrer/journey data) or Google Analytics 4 (free, requires cookie consent) as next step when Cloudflare's basic stats aren't enough
+
 ### Scoring
 
 - [ ] **Challenge Match ("True 2nd Place")** — bracket tournament logic; Matches/Match_Participants DB tables exist, trigger logic not yet implemented
