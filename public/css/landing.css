@@ -105,6 +105,12 @@ nav .inner { display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 40px;
   max-width: 560px;
 }
+.hero-scout-law {
+  font-size: 1.1rem;
+  color: var(--gold-light);
+  letter-spacing: .04em;
+  margin-bottom: 32px;
+}
 .hero-cta { display: flex; gap: 16px; flex-wrap: wrap; }
 
 /* ── SECTION BASICS ── */
