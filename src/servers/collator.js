@@ -8,7 +8,7 @@ import AdmZip from 'adm-zip';
 import dotenv from 'dotenv';
 import session from 'express-session';
 import { clerkMiddleware, getAuth } from '@clerk/express';
-import { normalizeGameDefinition } from '../../public/js/core/schema.js';
+import { normalizeGameDefinition, getGameTier } from '../../public/js/core/schema.js';
 
 dotenv.config();
 
@@ -288,16 +288,20 @@ function applyTemplate(str, variables) {
     return str.replace(/\{\{(\w+)\}\}/g, (_, key) => variables[key] || '___');
 }
 
-function injectCommonFields(normalizedGame, presets, typeDefaults) {
-    const defaults = typeDefaults[normalizedGame.type];
+function injectCommonFields(normalizedGame, presets, typeDefaults, leagues) {
+    const defaults = typeDefaults[normalizedGame.league];
     if (!defaults || !Array.isArray(normalizedGame.fields)) return;
 
+    const tier = getGameTier(normalizedGame, { leagues: leagues || [] });
     const presetsById = Object.fromEntries(presets.map(p => [p.id, p]));
     const variables = normalizedGame.variables || {};
 
     function resolvePreset(id) {
         const p = presetsById[id];
         if (!p) return null;
+        // Tier safety check: skip presets that belong to the wrong roster tier.
+        // Presets with tier "all" are always injected.
+        if (tier && p.tier && p.tier !== 'all' && p.tier !== tier) return null;
         const { config = {}, position, sortOrder, ...rest } = p;
         return {
             ...rest,
@@ -364,7 +368,7 @@ function loadCamporeeData() {
                         normalizedGame.match_label = gameDef.match_label || '';
 
                         // Inject common prefix/suffix fields from presets
-                        injectCommonFields(normalizedGame, presets, typeDefaults);
+                        injectCommonFields(normalizedGame, presets, typeDefaults, manifest.leagues);
 
                         games.push(normalizedGame);
                     }
@@ -374,12 +378,12 @@ function loadCamporeeData() {
 
         games.sort((a, b) => a.sortOrder - b.sortOrder);
 
-        // Assign per-type display numbers so p1/p2/p3 count only patrol games, etc.
-        const typeCounters = {};
+        // Assign per-league display numbers so p1/p2/p3 count only patrol games, etc.
+        const leagueCounters = {};
         games.forEach(game => {
-            const t = game.type || 'g';
-            typeCounters[t] = (typeCounters[t] || 0) + 1;
-            game.displayOrder = typeCounters[t];
+            const l = game.league || 'unknown';
+            leagueCounters[l] = (leagueCounters[l] || 0) + 1;
+            game.displayOrder = leagueCounters[l];
         });
 
         return {
