@@ -42,6 +42,12 @@
 ### Scoring
 
 - [ ] **Challenge Match ("True 2nd Place")** — bracket tournament logic; Matches/Match_Participants DB tables exist, trigger logic not yet implemented
+- [ ] **Score reassignment operation** — `PATCH /api/scores/reassign` to move all scores from one entrant id to another; needed when a patrol is added on the fly by a judge (e.g. "Firehawks") and must be merged into the pre-registered entrant after the fact. Currently requires manual DB edit.
+
+### Judge UI / Entrant Lookup
+
+- [ ] **Entrant search with progressive disambiguation** — judge searches by patrol name; 1 result = confirm with unit name shown; multiple results = show unit name alongside each to disambiguate (e.g. "Troop2-MB" vs "Troop2-SJ"); 0 results = fall back to id lookup or browse by unit; still nothing = add new entrant flagged for official review
+- [ ] **Display unit name alongside subunit name in judge entrant picker** — unit names are not required to be unique but must be shown with subunit name so judges can disambiguate duplicate patrol names across units (e.g. two "Sharks" patrols from different troops)
 
 ### Collator / Runtime
 
