@@ -6,6 +6,8 @@
   "required": [
     "schemaVersion",
     "meta",
+    "leagues",
+    "rosters",
     "playlist"
   ],
   "properties": {
@@ -47,23 +49,15 @@
         "location": {
           "type": "object",
           "properties": {
-            "name": {
-              "type": "string"
-            },
-            "address": {
-              "type": "string"
-            }
+            "name": { "type": "string" },
+            "address": { "type": "string" }
           }
         },
         "dates": {
           "type": "object",
           "properties": {
-            "start": {
-              "type": "string"
-            },
-            "end": {
-              "type": "string"
-            }
+            "start": { "type": "string" },
+            "end": { "type": "string" }
           }
         },
         "contacts": {
@@ -71,18 +65,10 @@
           "items": {
             "type": "object",
             "properties": {
-              "role": {
-                "type": "string"
-              },
-              "name": {
-                "type": "string"
-              },
-              "email": {
-                "type": "string"
-              },
-              "phone": {
-                "type": "string"
-              }
+              "role": { "type": "string" },
+              "name": { "type": "string" },
+              "email": { "type": "string" },
+              "phone": { "type": "string" }
             }
           }
         },
@@ -91,9 +77,121 @@
         }
       }
     },
+    "terminology": {
+      "type": "object",
+      "description": "Configurable display labels for participant tiers. UI still uses hardcoded BSA labels in Phase 1.",
+      "properties": {
+        "unit": { "type": ["string", "null"] },
+        "subunit": { "type": ["string", "null"] },
+        "member": { "type": ["string", "null"] },
+        "event": { "type": ["string", "null"] },
+        "organizer": { "type": ["string", "null"] }
+      }
+    },
+    "leagues": {
+      "type": "array",
+      "description": "Director-defined scoring pools. Every game references a league by id.",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "label", "tier", "registration"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Primary key. Referenced by game.league."
+          },
+          "label": {
+            "type": "string",
+            "description": "Display name (e.g. 'Patrol Games')."
+          },
+          "tier": {
+            "type": "string",
+            "enum": ["unit", "subunit", "individual"],
+            "description": "Which roster tier competes in this league."
+          },
+          "registration": {
+            "type": "string",
+            "enum": ["registered", "open"],
+            "description": "registered = entrants from roster; open = judge enters names at station."
+          },
+          "divisions": {
+            "type": "array",
+            "description": "Phase 3 placeholder. Always empty array for now.",
+            "items": {
+              "type": "object",
+              "required": ["id", "label"],
+              "properties": {
+                "id": { "type": "string" },
+                "label": { "type": "string" }
+              }
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "sessions": {
+      "type": "array",
+      "description": "Phase 2 placeholder. Named time slots for judge display grouping. Empty = flat game list.",
+      "default": [],
+      "items": {
+        "type": "object",
+        "required": ["id", "label"],
+        "properties": {
+          "id": { "type": "string" },
+          "label": { "type": "string" },
+          "start": { "type": "string" },
+          "end": { "type": "string" }
+        }
+      }
+    },
+    "rosters": {
+      "type": "object",
+      "description": "All competing entities for the event. units = primary competitive entities, subunits = patrols/dens.",
+      "required": ["units", "subunits", "individuals"],
+      "properties": {
+        "units": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "name"],
+            "properties": {
+              "id": { "type": "integer" },
+              "name": { "type": "string" }
+            }
+          }
+        },
+        "subunits": {
+          "type": ["array", "null"],
+          "items": {
+            "type": "object",
+            "required": ["id", "name"],
+            "properties": {
+              "id": { "type": "integer" },
+              "name": { "type": "string" },
+              "unit_id": { "type": ["integer", "null"] }
+            }
+          }
+        },
+        "individuals": {
+          "type": "array",
+          "description": "Phase 3 placeholder. Always empty array for now.",
+          "items": {
+            "type": "object",
+            "required": ["id", "name"],
+            "properties": {
+              "id": { "type": "integer" },
+              "name": { "type": "string" },
+              "subunit_id": { "type": ["integer", "null"] },
+              "unit_id": { "type": ["integer", "null"] }
+            }
+          }
+        }
+      }
+    },
     "type_defaults": {
       "type": "object",
-      "description": "Defines which common preset fields are injected for each game type at runtime.",
+      "description": "Defines which common preset fields are injected for each league at runtime. Keyed by league id (e.g. 'patrol-games', 'troop-challenges', 'exhibition').",
       "additionalProperties": {
         "type": "object",
         "properties": {
@@ -137,7 +235,6 @@
         "type": "object",
         "required": [
           "gameId",
-          "enabled",
           "order"
         ],
         "properties": {

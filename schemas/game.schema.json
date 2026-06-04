@@ -5,9 +5,7 @@
     "description": "Defines a game concept. Can be used as a Library template (with variants) or an Active Camporee instance.",
     "type": "object",
     "required": [
-        "library_uuid",
-        "library_title",
-        "type",
+        "league",
         "content",
         "scoring_model"
     ],
@@ -15,12 +13,8 @@
         "library_uuid": {
             "type": "string",
             "anyOf": [
-                {
-                    "format": "uuid"
-                },
-                {
-                    "maxLength": 0
-                }
+                { "format": "uuid" },
+                { "maxLength": 0 }
             ]
         },
         "library_title": {
@@ -33,24 +27,22 @@
         },
         "id": {
             "type": "string",
-            "description": "Short identifier (e.g., p10)"
+            "description": "Short identifier (e.g., the-high-wire-fire-act)"
+        },
+        "league": {
+            "type": "string",
+            "description": "FK → camporee.leagues[].id. Determines which leaderboard this game contributes to."
+        },
+        "session": {
+            "type": ["string", "null"],
+            "description": "FK → camporee.sessions[].id. Null = always visible. Phase 2 — do not expose in UI."
         },
         "category": {
             "type": "string"
         },
-        "type": {
-            "type": "string",
-            "enum": [
-                "patrol",
-                "troop",
-                "exhibition"
-            ]
-        },
         "tags": {
             "type": "array",
-            "items": {
-                "type": "string"
-            }
+            "items": { "type": "string" }
         },
         "content": {
             "$ref": "definitions/content.json",
@@ -62,17 +54,13 @@
         "source_snapshot": {
             "type": "object",
             "properties": {
-                "content": {
-                    "$ref": "definitions/content.json"
-                },
-                "scoring_model": {
-                    "$ref": "definitions/scoring.json"
-                }
+                "content": { "$ref": "definitions/content.json" },
+                "scoring_model": { "$ref": "definitions/scoring.json" }
             }
         },
         "variables": {
             "type": "object",
-            "description": "Key/value pairs for template substitution in injected common fields (e.g. ten_essentials_item).",
+            "description": "Key/value pairs for template substitution in injected common fields.",
             "additionalProperties": { "type": "string" }
         },
         "variants": {
@@ -94,12 +82,8 @@
                         "type": "string",
                         "description": "Name of the variant (e.g. 'Space Theme')"
                     },
-                    "content": {
-                        "$ref": "definitions/content.json"
-                    },
-                    "scoring_model": {
-                        "$ref": "definitions/scoring.json"
-                    }
+                    "content": { "$ref": "definitions/content.json" },
+                    "scoring_model": { "$ref": "definitions/scoring.json" }
                 }
             }
         }

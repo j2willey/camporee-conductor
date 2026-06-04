@@ -1,0 +1,9 @@
+-- Schema v3.0 migration note
+--
+-- The v3.0 schema changes affect JSON cartridge files (camporee.json, games/*.json,
+-- presets.json), not the SQLite database. No database schema changes are required.
+--
+-- Data migration was performed by: scripts/migrate-schema-v3.js
+-- Applied: 2026-06-04
+-- Files affected: data/collator/active-event/, data/composer/workspaces/
+-- Result: 3 camporee.json, 119 game files, 3 presets.json migrated to schemaVersion 3.0

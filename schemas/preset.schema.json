@@ -1,0 +1,68 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://localhost:3000/schemas/preset.json",
+  "title": "Common Field Preset",
+  "description": "A reusable scoring field injected into game definitions at runtime by the Collator.",
+  "type": "object",
+  "required": ["id", "label", "type", "kind", "weight", "position", "tier"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique preset identifier. Referenced by type_defaults prefix/suffix arrays."
+    },
+    "label": {
+      "type": "string",
+      "description": "Display label. May contain {{variable_name}} template syntax."
+    },
+    "type": {
+      "type": "string",
+      "enum": ["number", "stopwatch", "text", "textarea", "range", "select", "checkbox"],
+      "description": "Input widget type."
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["points", "penalty", "metric", "info", "entryname"],
+      "description": "Scoring behavior."
+    },
+    "weight": {
+      "type": "number",
+      "description": "Multiplier applied to this field's value when computing total score."
+    },
+    "sortOrder": {
+      "type": "integer",
+      "description": "Display order within the prefix or suffix group."
+    },
+    "position": {
+      "type": "string",
+      "enum": ["prefix", "suffix"],
+      "description": "Whether this preset is injected before or after game-specific fields."
+    },
+    "tier": {
+      "type": "string",
+      "enum": ["unit", "subunit", "all"],
+      "description": "Which league tier this preset applies to. 'all' = injected for every scored game."
+    },
+    "audience": {
+      "type": "string",
+      "enum": ["judge", "admin"],
+      "description": "Visibility: judge = shown on field tablet; admin = Collator dashboard only."
+    },
+    "required": {
+      "type": "boolean"
+    },
+    "config": {
+      "type": "object",
+      "description": "Widget-specific config: min, max, placeholder, options, defaultValue.",
+      "properties": {
+        "min": { "type": "number" },
+        "max": { "type": "number" },
+        "placeholder": { "type": "string" },
+        "defaultValue": {},
+        "options": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}

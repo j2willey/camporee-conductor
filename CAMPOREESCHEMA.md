@@ -476,27 +476,32 @@ Unchanged from v2.9. See `COLLATOR_MODE=offline` vs `cloud` in CLAUDE.md.
 
 ## 10. Migration from v2.9
 
-A one-time migration script `scripts/migrate-schema-v3.js` converts all existing data:
+**Status: ✅ Complete — 2026-06-04**
 
-| v2.9 | v3.0 |
-|---|---|
-| `game.type: "patrol"` | `game.league: "patrol-games"` |
-| `game.type: "troop"` | `game.league: "troop-challenges"` |
-| `game.type: "exhibition"` | `game.league: "exhibition"` |
-| `type_defaults.patrol` | `type_defaults["patrol-games"]` |
-| `type_defaults.troop` | `type_defaults["troop-challenges"]` |
-| no exhibition in type_defaults | `type_defaults["exhibition"]` — prefix: `[]`, suffix: `["off_score", "final_rank", "overall_points"]` |
-| No `terminology` | Add default BSA terminology object |
-| No `leagues` | Add default leagues array |
-| No `rosters` | Add `rosters: { units: [], subunits: [], individuals: [] }` |
-| No `sessions` | Add `sessions: []` |
+Migration script: `scripts/migrate-schema-v3.js`
+Result: 3 camporee.json, 119 game files, 3 presets.json migrated. Script is idempotent.
+
+| v2.9 | v3.0 | Status |
+|---|---|---|
+| `game.type: "patrol"` | `game.league: "patrol-games"` | ✅ migrated |
+| `game.type: "troop"` | `game.league: "troop-challenges"` | ✅ migrated |
+| `game.type: "exhibition"` | `game.league: "exhibition"` | ✅ migrated |
+| `type_defaults.patrol` | `type_defaults["patrol-games"]` | ✅ migrated |
+| `type_defaults.troop` | `type_defaults["troop-challenges"]` | ✅ migrated |
+| no exhibition in type_defaults | `type_defaults["exhibition"]` — prefix: `[]`, suffix: `["off_score", "final_rank", "overall_points"]` | ✅ added |
+| No `terminology` | Add default BSA terminology object | ✅ added |
+| No `leagues` | Add default leagues array | ✅ added |
+| No `rosters` | Add `rosters: { units: [], subunits: [], individuals: [] }` | ✅ added |
+| No `sessions` | Add `sessions: []` | ✅ added |
+| `preset.tier` missing | `tier: "subunit" \| "unit" \| "all"` on all presets | ✅ added |
 
 The script reads and writes:
-- `data/curator/` — game template library
-- `data/composer/workspaces/` — Composer event workspaces
-- `data/collator/active-event/` — active cartridge (if present)
+- `data/curator/` — game template library (empty at time of migration)
+- `data/composer/workspaces/` — 3 Composer event workspaces
+- `data/collator/active-event/` — active cartridge
 
-All presets.json files get `tier` field added per field (`"subunit"` for patrol-specific, `"unit"` for troop-specific, `"all"` for admin fields).
+All presets.json files received `tier` field per the mapping in `scripts/migrate-schema-v3.js`.
+The `bracket_result` preset (not in the standard tier map) received `tier: "all"` as the safe default.
 
 ---
 
