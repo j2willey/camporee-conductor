@@ -29,9 +29,16 @@ const COMMON_FIELD_IDS = new Set([
     'off_score', 'final_rank', 'overall_points'
 ]);
 
+const DEFAULT_LEAGUES = [
+    { id: 'patrol-games',     label: 'Patrol Games',       tier: 'subunit', registration: 'registered', divisions: [] },
+    { id: 'exhibition',       label: 'Exhibition Events',  tier: 'subunit', registration: 'registered', divisions: [] },
+    { id: 'troop-challenges', label: 'Troop Challenges',   tier: 'unit',    registration: 'registered', divisions: [] },
+];
+
 const DEFAULT_TYPE_DEFAULTS = {
-    patrol: { prefix: ["p_flag", "p_yell", "p_spirit", "ten_ess"], suffix: ["unscout", "off_notes", "off_score", "final_rank", "overall_points"] },
-    troop:  { prefix: [], suffix: ["off_score", "final_rank", "overall_points"] }
+    'patrol-games':     { prefix: ["p_flag", "p_yell", "p_spirit", "ten_ess"], suffix: ["unscout", "off_notes", "off_score", "final_rank", "overall_points"] },
+    'exhibition':       { prefix: [], suffix: ["off_score", "final_rank", "overall_points"] },
+    'troop-challenges': { prefix: [], suffix: ["off_score", "final_rank", "overall_points"] }
 };
 
 const composer = {
@@ -48,6 +55,10 @@ const composer = {
             director: ""
         },
         games: [],
+        leagues: JSON.parse(JSON.stringify(DEFAULT_LEAGUES)),
+        sessions: [],
+        rosters: { units: [], subunits: [], individuals: [] },
+        terminology: null,
         type_defaults: JSON.parse(JSON.stringify(DEFAULT_TYPE_DEFAULTS))
     },
     presets: JSON.parse(JSON.stringify(SYSTEM_PRESETS)),
@@ -297,6 +308,10 @@ const composer = {
             year: new Date().getFullYear(),
             theme_colors: { main: '#0d6efd', header: '#34495e', accent: '#3498db' }
         };
+        this.data.leagues = JSON.parse(JSON.stringify(DEFAULT_LEAGUES));
+        this.data.sessions = [];
+        this.data.rosters = { units: [], subunits: [], individuals: [] };
+        this.data.terminology = null;
         this.data.type_defaults = JSON.parse(JSON.stringify(DEFAULT_TYPE_DEFAULTS));
         this.presets = JSON.parse(JSON.stringify(SYSTEM_PRESETS));
         this.activeGameId = null;
@@ -352,6 +367,10 @@ const composer = {
             const camporee = await this.api.getCamporee(id);
             this.data.meta = camporee.meta;
             this.data.games = camporee.games || [];
+            this.data.leagues = camporee.leagues || JSON.parse(JSON.stringify(DEFAULT_LEAGUES));
+            this.data.sessions = camporee.sessions || [];
+            this.data.rosters = camporee.rosters || { units: [], subunits: [], individuals: [] };
+            this.data.terminology = camporee.terminology || null;
             this.data.type_defaults = camporee.type_defaults || JSON.parse(JSON.stringify(DEFAULT_TYPE_DEFAULTS));
             if (camporee.presets) {
                 this.presets = camporee.presets;
@@ -491,6 +510,10 @@ const composer = {
         const id = this.data.meta.camporeeId;
         const payload = {
             meta: this.data.meta,
+            leagues: this.data.leagues,
+            sessions: this.data.sessions,
+            rosters: this.data.rosters,
+            terminology: this.data.terminology,
             games: this.data.games,
             presets: this.presets,
             type_defaults: this.data.type_defaults
@@ -660,12 +683,12 @@ const composer = {
     },
 
     normalizeGameSortOrders: function () {
-        const groups = { patrol: [], troop: [], exhibition: [] };
+        const groups = {};
 
         this.data.games.forEach(g => {
-            const type = g.type || "patrol";
-            if (!groups[type]) groups[type] = [];
-            groups[type].push(g);
+            const league = g.league || "patrol-games";
+            if (!groups[league]) groups[league] = [];
+            groups[league].push(g);
         });
 
         Object.values(groups).forEach(list => {
@@ -682,10 +705,10 @@ const composer = {
         const srcGame = this.data.games.find(g => g.id === srcId);
         const targetGame = this.data.games.find(g => g.id === targetId);
 
-        if (!srcGame || !targetGame || srcGame.type !== targetGame.type) return;
+        if (!srcGame || !targetGame || srcGame.league !== targetGame.league) return;
 
-        const type = srcGame.type || "patrol";
-        const group = this.data.games.filter(g => (g.type || "patrol") === type);
+        const leagueId = srcGame.league || "patrol-games";
+        const group = this.data.games.filter(g => (g.league || "patrol-games") === leagueId);
 
         group.sort((a, b) => a.sortOrder - b.sortOrder);
 
@@ -721,14 +744,23 @@ const composer = {
         }
     },
 
-    addGame: function (type = "patrol") {
+    addGame: function (leagueOrType = "patrol-games") {
+        // Accept legacy type strings passed from EJS buttons ("patrol", "troop", "exhibition")
+        const legacyTypeMap = { patrol: 'patrol-games', troop: 'troop-challenges', exhibition: 'exhibition' };
+        const leagueId = legacyTypeMap[leagueOrType] || leagueOrType;
+        const leagues = this.data.leagues || DEFAULT_LEAGUES;
+        const league = leagues.find(l => l.id === leagueId) || leagues[0];
+        const resolvedLeagueId = league?.id || 'patrol-games';
+        const isSubunit = league?.tier !== 'unit';
+
         const id = `game_${Date.now()}`;
         const newGame = {
             id: id,
-            library_uuid: null, // "Bespoke" game
-            library_title: type === "patrol" ? "New Game" : "New Event",
-            game_title: type === "patrol" ? "New Game" : "New Event",
-            type: type,
+            library_uuid: null,
+            library_title: isSubunit ? "New Game" : "New Event",
+            game_title: isSubunit ? "New Game" : "New Event",
+            league: resolvedLeagueId,
+            session: null,
             enabled: true,
             bracketMode: false,
             scoring_mode: "sequential",
@@ -971,7 +1003,8 @@ const composer = {
                 library_uuid: template.library_uuid || template.id,
                 library_title: template.library_title || template.base_title || template.content?.title || "Untitled",
                 game_title: template.game_title || template.content?.title || template.base_title || "Untitled Game",
-                type: template.type || (path.includes("troop") ? "troop" : "patrol"),
+                league: template.league || (path.includes("troop") ? "troop-challenges" : "patrol-games"),
+                session: template.session !== undefined ? template.session : null,
                 enabled: true,
                 category: template.category || "Teamwork",
                 sortOrder: (this.data.games.length + 1) * 10,
@@ -1051,21 +1084,21 @@ const composer = {
 
         this.data.games.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
 
-        const typeCounters = {};
+        const leagueCounters = {};
         this.data.games.forEach(game => {
             const activeClass = game.id === this.activeGameId ? "active" : "";
-            const type = game.type || 'patrol';
-            const targetList = type === 'troop' ? troopList
-                             : type === 'exhibition' ? (exhibitionList || troopList)
+            const leagueId = game.league || 'patrol-games';
+            const targetList = leagueId === 'troop-challenges' ? troopList
+                             : leagueId === 'exhibition' ? (exhibitionList || troopList)
                              : patrolList;
 
-            if (type === 'patrol') pCount++;
-            else if (type === 'troop') tCount++;
+            if (leagueId === 'patrol-games') pCount++;
+            else if (leagueId === 'troop-challenges') tCount++;
             else eCount++;
 
-            const prefixLetter = type === 'troop' ? 't' : type === 'exhibition' ? 'e' : 'p';
-            typeCounters[prefixLetter] = (typeCounters[prefixLetter] || 0) + 1;
-            const displayPrefix = `${prefixLetter}${typeCounters[prefixLetter]}`;
+            const prefixLetter = leagueId === 'troop-challenges' ? 't' : leagueId === 'exhibition' ? 'e' : 'p';
+            leagueCounters[prefixLetter] = (leagueCounters[prefixLetter] || 0) + 1;
+            const displayPrefix = `${prefixLetter}${leagueCounters[prefixLetter]}`;
 
             const item = document.createElement("div");
             item.className = `list-group-item list-group-item-action d-flex align-items-center ${activeClass}`;
@@ -1131,7 +1164,7 @@ const composer = {
         const game = this.data.games.find(g => g.id === id);
         if (!game) return;
 
-        if (!game.type) game.type = "patrol";
+        if (!game.league) game.league = (this.data.leagues || DEFAULT_LEAGUES)[0]?.id || "patrol-games";
         if (!game.game_title) game.game_title = game.content?.title || "";
 
         this.renderGameLists();
@@ -1198,11 +1231,11 @@ const composer = {
                     </div>
                     <div class="row">
                         <div class="col-md-5 mb-3">
-                            <label class="form-label">Type</label>
-                            <select class="form-select" id="gameType">
-                                <option value="patrol">Patrol Competition</option>
-                                <option value="troop">Troop Competition</option>
-                                <option value="exhibition">Exhibition / Individual</option>
+                            <label class="form-label">League</label>
+                            <select class="form-select" id="gameLeague">
+                                ${(this.data.leagues || DEFAULT_LEAGUES).map(l =>
+                                    `<option value="${l.id}"${game.league === l.id ? ' selected' : ''}>${l.label}</option>`
+                                ).join('')}
                             </select>
                         </div>
                         <div class="col-md-7 mb-3">
@@ -1511,13 +1544,15 @@ const composer = {
             tagsEl.onchange = (e) => this.updateGameField("tags", e.target.value);
         }
 
-        const typeEl = document.getElementById("gameType");
-        typeEl.value = game.type;
-        typeEl.onchange = (e) => {
-            game.type = e.target.value;
-            this.normalizeGameSortOrders();
-            this.renderGameLists();
-        };
+        const leagueEl = document.getElementById("gameLeague");
+        if (leagueEl) {
+            leagueEl.onchange = (e) => {
+                game.league = e.target.value;
+                this._markDirty();
+                this.normalizeGameSortOrders();
+                this.renderGameLists();
+            };
+        }
 
         const methodEl = document.getElementById("gameScoringMethod");
         methodEl.value = game.scoring_model.method || "points_desc";
@@ -1751,9 +1786,9 @@ const composer = {
         if (!prefixEl || !suffixEl) return;
 
         const typeDefaults = this.data.type_defaults || {};
-        const defaults = typeDefaults[game.type];
+        const defaults = typeDefaults[game.league];
 
-        if (!defaults || game.type === 'exhibition') {
+        if (!defaults) {
             prefixEl.innerHTML = '';
             suffixEl.innerHTML = '';
             return;
@@ -1774,12 +1809,13 @@ const composer = {
         const prefixIds = defaults.prefix || [];
         const suffixIds = defaults.suffix || [];
 
-        const editBtn = `<button class="btn btn-outline-secondary btn-sm ms-2 py-0 px-2" style="font-size:0.7rem;" onclick="composer.openCommonFieldsModal('${game.type}')"><i class="fas fa-pencil-alt"></i> Edit</button>`;
+        const leagueLabel = (this.data.leagues || DEFAULT_LEAGUES).find(l => l.id === game.league)?.label || game.league;
+        const editBtn = `<button class="btn btn-outline-secondary btn-sm ms-2 py-0 px-2" style="font-size:0.7rem;" onclick="composer.openCommonFieldsModal('${game.league}')"><i class="fas fa-pencil-alt"></i> Edit</button>`;
 
         prefixEl.innerHTML = `
             <div class="border rounded px-2 py-1 bg-white mb-1" style="border-style: dashed !important; opacity: 0.85;">
                 <div class="d-flex justify-content-between align-items-center">
-                    <small class="text-muted fw-bold"><i class="fas fa-arrow-down fa-fw"></i> Injected Prefix (${game.type}):</small>
+                    <small class="text-muted fw-bold"><i class="fas fa-arrow-down fa-fw"></i> Injected Prefix (${leagueLabel}):</small>
                     ${editBtn}
                 </div>
                 <div class="mt-1">${prefixIds.length ? renderChips(prefixIds) : '<em class="text-muted small">None</em>'}</div>
@@ -1788,7 +1824,7 @@ const composer = {
         suffixEl.innerHTML = `
             <div class="border rounded px-2 py-1 bg-white mt-1" style="border-style: dashed !important; opacity: 0.85;">
                 <div class="d-flex justify-content-between align-items-center">
-                    <small class="text-muted fw-bold"><i class="fas fa-arrow-up fa-fw"></i> Injected Suffix (${game.type}):</small>
+                    <small class="text-muted fw-bold"><i class="fas fa-arrow-up fa-fw"></i> Injected Suffix (${leagueLabel}):</small>
                     ${editBtn}
                 </div>
                 <div class="mt-1">${suffixIds.length ? renderChips(suffixIds) : '<em class="text-muted small">None</em>'}</div>
@@ -1806,21 +1842,20 @@ const composer = {
         document.documentElement.style.setProperty('--brand-accent', defaults.accent);
     },
 
-    openCommonFieldsModal: function (gameType) {
+    openCommonFieldsModal: function (leagueId) {
         const typeDefaults = this.data.type_defaults || {};
-        const presetsById = Object.fromEntries((this.presets || []).map(p => [p.id, p]));
-        // Only show presets that are not bracket-specific
         const eligiblePresets = (this.presets || []).filter(p => p.id !== 'bracket_result');
+        const leagues = this.data.leagues || DEFAULT_LEAGUES;
 
-        const renderSection = (type, position, label) => {
-            const currentIds = (typeDefaults[type]?.[position] || []);
+        const renderSection = (lid, position, label) => {
+            const currentIds = (typeDefaults[lid]?.[position] || []);
             const rows = eligiblePresets.map(p => {
                 const checked = currentIds.includes(p.id) ? 'checked' : '';
                 const badgeClass = p.kind === 'penalty' ? 'bg-danger' : p.audience === 'admin' ? 'bg-warning text-dark' : 'bg-success';
                 return `<div class="form-check py-1 border-bottom d-flex align-items-center gap-2">
-                    <input class="form-check-input cf-check" type="checkbox" id="cf_${type}_${position}_${p.id}"
-                           data-type="${type}" data-position="${position}" data-preset="${p.id}" ${checked}>
-                    <label class="form-check-label flex-grow-1 small" for="cf_${type}_${position}_${p.id}">
+                    <input class="form-check-input cf-check" type="checkbox" id="cf_${lid}_${position}_${p.id}"
+                           data-league="${lid}" data-position="${position}" data-preset="${p.id}" ${checked}>
+                    <label class="form-check-label flex-grow-1 small" for="cf_${lid}_${position}_${p.id}">
                         <span class="badge ${badgeClass} me-1" style="font-size:0.65rem;">${p.kind}</span>
                         ${p.label}
                     </label>
@@ -1833,22 +1868,23 @@ const composer = {
             </div>`;
         };
 
-        document.getElementById('common-fields-editor-body').innerHTML =
-            renderSection('patrol', 'prefix', '🔵 Patrol — Prefix (before game fields)') +
-            renderSection('patrol', 'suffix', '🔵 Patrol — Suffix (after game fields)') +
-            renderSection('troop', 'prefix', '🟢 Troop — Prefix (before game fields)') +
-            renderSection('troop', 'suffix', '🟢 Troop — Suffix (after game fields)');
+        document.getElementById('common-fields-editor-body').innerHTML = leagues.map(l =>
+            renderSection(l.id, 'prefix', `${l.label} — Prefix (before game fields)`) +
+            renderSection(l.id, 'suffix', `${l.label} — Suffix (after game fields)`)
+        ).join('');
 
         window.bootstrap.Modal.getOrCreateInstance(document.getElementById('commonFieldsModal')).show();
     },
 
     saveCommonFields: function () {
-        const typeDefaults = { patrol: { prefix: [], suffix: [] }, troop: { prefix: [], suffix: [] } };
+        const leagues = this.data.leagues || DEFAULT_LEAGUES;
+        const typeDefaults = {};
+        leagues.forEach(l => { typeDefaults[l.id] = { prefix: [], suffix: [] }; });
 
         document.querySelectorAll('.cf-check:checked').forEach(el => {
-            const { type, position, preset } = el.dataset;
-            if (typeDefaults[type] && typeDefaults[type][position]) {
-                typeDefaults[type][position].push(preset);
+            const { league, position, preset } = el.dataset;
+            if (typeDefaults[league] && typeDefaults[league][position]) {
+                typeDefaults[league][position].push(preset);
             }
         });
 
@@ -2262,7 +2298,7 @@ const composer = {
 
         // Inject common prefix/suffix fields from presets, mirroring Collator runtime behavior
         const typeDefaults = this.data.type_defaults || {};
-        const defaults = typeDefaults[normalized.type] || {};
+        const defaults = typeDefaults[normalized.league] || {};
         const presetsById = Object.fromEntries((this.presets || []).map(p => [p.id, p]));
         const variables = normalized.variables || {};
 
@@ -2357,8 +2393,8 @@ const composer = {
         const allGames = this.data.games
             .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
 
-        const patrol = allGames.filter(g => (g.type || 'patrol') === 'patrol');
-        const troop  = allGames.filter(g => g.type === 'troop');
+        const patrol = allGames.filter(g => (g.league || 'patrol-games') === 'patrol-games');
+        const troop  = allGames.filter(g => g.league === 'troop-challenges');
 
         if (!patrol.length && !troop.length) {
             alert('No games found.');
@@ -2528,12 +2564,16 @@ const composer = {
         }
     },
 
-    printAllGuides: async function (type) {
+    printAllGuides: async function (leagueOrType) {
+        // Accept legacy type strings passed from EJS buttons
+        const legacyTypeMap = { patrol: 'patrol-games', troop: 'troop-challenges', exhibition: 'exhibition' };
+        const leagueId = legacyTypeMap[leagueOrType] || leagueOrType;
+
         const games = this.data.games
-            .filter(g => (g.type || 'patrol') === type)
+            .filter(g => (g.league || 'patrol-games') === leagueId)
             .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
 
-        if (!games.length) { alert(`No ${type} games found.`); return; }
+        if (!games.length) { alert(`No games found for this league.`); return; }
 
         try {
             if (!this._gameGuideTemplate) {
@@ -2545,14 +2585,15 @@ const composer = {
             const template = Handlebars.compile(this._gameGuideTemplate);
             const workspaceId = this.data.meta.camporeeId || 'camp0002';
 
-            const prefixLetter = type === 'troop' ? 't' : type === 'exhibition' ? 'e' : 'p';
+            const prefixLetter = leagueId === 'troop-challenges' ? 't' : leagueId === 'exhibition' ? 'e' : 'p';
             const sections = games.map((game, i) => {
                 const context = { ...game, displayPrefix: `${prefixLetter}${i + 1}` };
                 const markdown = template(context);
                 return marked.parse(markdown, { baseUrl: `/api/camporee/${workspaceId}/games/` });
             });
 
-            const title = `${type === 'patrol' ? 'Patrol Game Guides' : 'Troop Challenge Guides'} — ${this.data.meta.title || 'Camporee'}`;
+            const league = (this.data.leagues || DEFAULT_LEAGUES).find(l => l.id === leagueId);
+            const title = `${league?.label || leagueId} Guides — ${this.data.meta.title || 'Camporee'}`;
             this._printGuidesWindow(sections, title);
         } catch (e) {
             console.error(e);
@@ -2563,9 +2604,9 @@ const composer = {
     printSupplies: function (mode) {
         const sorted = (arr) => [...arr].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
 
-        const patrol = sorted(this.data.games.filter(g => (g.type || 'patrol') === 'patrol'));
-        const troop  = sorted(this.data.games.filter(g => g.type === 'troop'));
-        const other  = sorted(this.data.games.filter(g => g.type && g.type !== 'patrol' && g.type !== 'troop'));
+        const patrol = sorted(this.data.games.filter(g => (g.league || 'patrol-games') === 'patrol-games'));
+        const troop  = sorted(this.data.games.filter(g => g.league === 'troop-challenges'));
+        const other  = sorted(this.data.games.filter(g => g.league && g.league !== 'patrol-games' && g.league !== 'troop-challenges'));
 
         const games = [...patrol, ...troop, ...other];
         if (!games.length) { alert('No games to print.'); return; }
@@ -3031,9 +3072,13 @@ ${gameHtml}
         }
 
         const camporeeConfig = {
-            schemaVersion: "2.9",
-            officials: officials,
+            schemaVersion: "3.0",
             meta: this.data.meta,
+            terminology: this.data.terminology || null,
+            leagues: this.data.leagues || DEFAULT_LEAGUES,
+            sessions: this.data.sessions || [],
+            rosters: this.data.rosters || { units: [], subunits: [], individuals: [] },
+            officials: officials,
             playlist: playlist,
             type_defaults: this.data.type_defaults || DEFAULT_TYPE_DEFAULTS
         };
@@ -3045,9 +3090,10 @@ ${gameHtml}
         this.data.games.forEach(g => {
             const gameFile = {
                 id: g.id,
-                type: g.type,
+                league: g.league,
+                session: g.session !== undefined ? g.session : null,
                 sortOrder: g.sortOrder,
-                schemaVersion: "2.9",
+                schemaVersion: "3.0",
                 content: g.content,
                 scoring_model: {
                     ...g.scoring_model,
@@ -3098,6 +3144,11 @@ ${gameHtml}
                 const configStr = await zip.file("camporee.json").async("string");
                 const config = JSON.parse(configStr);
                 this.data.meta = config.meta;
+                this.data.leagues = config.leagues || JSON.parse(JSON.stringify(DEFAULT_LEAGUES));
+                this.data.sessions = config.sessions || [];
+                this.data.rosters = config.rosters || { units: [], subunits: [], individuals: [] };
+                this.data.terminology = config.terminology || null;
+                this.data.type_defaults = config.type_defaults || JSON.parse(JSON.stringify(DEFAULT_TYPE_DEFAULTS));
 
                 if (zip.file("presets.json")) {
                     const presetsStr = await zip.file("presets.json").async("string");
@@ -3133,7 +3184,7 @@ ${gameHtml}
                         }
                     }
                     if (!g.scoring_model.inputs) g.scoring_model.inputs = [];
-                    if (!g.type) g.type = "patrol";
+                    if (!g.league) g.league = "patrol-games";
                     g.bracketMode = !!g.bracketMode;
                     g.match_label = g.match_label || "";
 
@@ -3226,11 +3277,11 @@ ${gameHtml}
 
                     const listEl = document.getElementById("importList");
                     listEl.innerHTML = this.pendingImportGames.map((g, i) => `
-    < label class="list-group-item d-flex gap-2" >
+    <label class="list-group-item d-flex gap-2">
         <input class="form-check-input flex-shrink-0" type="checkbox" value="${i}" checked>
             <span>
                 <strong>${g.content?.title || g.id}</strong><br>
-                    <small class="text-muted">${g.type || "patrol"}</small>
+                    <small class="text-muted">${g.league || "patrol-games"}</small>
             </span>
         </label>`).join("");
 

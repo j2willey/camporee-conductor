@@ -331,6 +331,11 @@ app.get('/api/camporee/:id', requireAuth, requireEventRole('viewer'), (req, res)
 
         res.json({
             meta: camporeeData.meta,
+            leagues: camporeeData.leagues,
+            sessions: camporeeData.sessions,
+            rosters: camporeeData.rosters,
+            terminology: camporeeData.terminology,
+            type_defaults: camporeeData.type_defaults,
             games: games,
             presets: presets
         });
@@ -407,8 +412,10 @@ app.post('/api/camporee/:id', requireAuth, requireEventRole('editor'), (req, res
                 library_uuid: game.library_uuid || "",
                 library_title: game.library_title || "",
                 id: game.id,
-                type: game.type,
+                league: game.league,
+                session: game.session !== undefined ? game.session : null,
                 sortOrder: game.sortOrder,
+                schemaVersion: "3.0",
                 content: game.content,
                 scoring_model: game.scoring_model,
                 bracketMode: game.bracketMode || false,
@@ -422,9 +429,15 @@ app.post('/api/camporee/:id', requireAuth, requireEventRole('editor'), (req, res
 
         // 3. Save Manifest
         const manifest = {
-            schemaVersion: "2.9",
+            schemaVersion: "3.0",
             meta: payload.meta,
-            playlist: playlist
+            terminology: payload.terminology || null,
+            leagues: payload.leagues || [],
+            sessions: payload.sessions || [],
+            rosters: payload.rosters || { units: [], subunits: [], individuals: [] },
+            officials: [],
+            playlist: playlist,
+            type_defaults: payload.type_defaults || {}
         };
         manifest.meta.camporeeId = id;
 
@@ -505,7 +518,7 @@ app.post('/api/library/save', requireAuth, async (req, res) => {
             library_uuid: data.library_uuid,
             library_title: data.library_title || data.meta?.title || data.base_title || data.content?.title || 'Untitled',
             tags: data.meta?.tags || data.tags || [],
-            type: data.type || 'patrol'
+            league: data.league || 'patrol-games'
         };
 
         if (entryIndex >= 0) catalog[entryIndex] = newEntry;
