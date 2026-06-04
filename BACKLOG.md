@@ -39,37 +39,45 @@
 This is a breaking schema change. No backwards compatibility. One existing cartridge to migrate.
 Full design spec: `CAMPOREESCHEMA.md`. Full UML: see session history 2026-06-04.
 
-### Prompt 1 — Schema + Migration (no app code changes)
+### Prompt 1 — Schema + Migration ✅ 2026-06-04
 
-- [ ] Update `schemas/` — rewrite camporee and game AJV schemas. Remove `type`. Add `league`, `session?`, `terminology`, `leagues[]`, `sessions[]`, `rosters{}`, `divisions[]` (placeholder on each league).
-- [ ] Write `scripts/migrate-schema-v3.js` — reads all game/camporee JSON in `data/curator/`, `data/composer/workspaces/`, `data/collator/active-event/`. Converts `type → league`, adds `terminology`, `leagues`, `sessions: []`, `rosters`. Writes in place. Logs every file touched.
-- [ ] Update `presets.json` files — add `tier: "subunit"|"unit"|"all"` to each preset. Rename `type_defaults` keys from `patrol/troop` to `patrol-games/troop-challenges`.
-- [ ] Run migration script and verify output before any app code changes.
-- [ ] Add migration 010 as a no-op placeholder (schema changes are in JSON files, not DB).
+- [x] `schemas/camporee-instance.schema.json` — leagues (required), rosters (required), terminology, sessions (optional) added; type removed; type_defaults updated to accept league ids
+- [x] `schemas/game.schema.json` — type removed, league (required) + session (optional) added
+- [x] `schemas/preset.schema.json` — new file with tier: unit|subunit|all required field
+- [x] `scripts/migrate-schema-v3.js` — idempotent; 3 camporee.json, 119 games, 3 presets.json migrated; bracket_result preset tier: "all" (warned, expected)
+- [x] `migrations/010_schema_v3_note.sql` — no-op placeholder documenting JSON-only migration
 
-### Prompt 2 — Core schema.js + Collator
+### Prompt 2 — Core schema.js + Collator ✅ 2026-06-04
 
-- [ ] Update `normalizeGameDefinition()` in `public/js/core/schema.js` — remove all `type` references. Add `getGameTier(game, camporee)` helper that returns `unit|subunit|null` by looking up `game.league` in `camporee.leagues[]`.
-- [ ] Update `injectCommonFields()` in `src/servers/collator.js` — replace `game.type` branch with `getGameTier()`. Read `type_defaults[game.league]` instead of `type_defaults[game.type]`.
-- [ ] Update preset injection logic to use `preset.tier` field instead of hardcoded patrol/troop checks.
+- [x] `getGameTier(game, camporee)` added to `public/js/core/schema.js` — exported, browser+Node safe
+- [x] `formatGameTitle()` — game.type checks replaced with game.league checks
+- [x] `injectCommonFields()` in `src/servers/collator.js` — uses `typeDefaults[game.league]`; tier safety check skips presets whose tier doesn't match the game's league tier
+- [x] `loadCamporeeData()` — typeCounters → leagueCounters; leagues passed to injectCommonFields
 
-### Prompt 3 — Composer server + SPA
+Flagged for post-schema-v3 cleanup:
+- [ ] `collator.js` ~line 50: `entities.type IN ('patrol','troop')` — DB entity tier column, needs DB migration
+- [ ] `collator.js` ~line 818: `entity_type: 'patrol'` hardcoded in POST /api/score audit log — should use actual entity tier
 
-- [ ] Update `src/servers/composer.js` — replace any `type` field references in save/export/validation logic with `league`.
-- [ ] Update `public/js/apps/composer.js` — replace `type` field reads/writes with `league`. Game editor league picker populated from `camporee.leagues[]`. UI labels remain hardcoded BSA strings (no terminology lookup yet). Do NOT add session or division UI.
+### Prompt 3 — Composer server + SPA ✅ 2026-06-04
 
-### Prompt 4 — Collator views + utilities
+- [x] `src/servers/composer.js` — GET returns leagues/sessions/rosters/terminology; POST writes league+session; library catalog uses league; manifest includes all v3 fields
+- [x] `public/js/apps/composer.js` — DEFAULT_LEAGUES + updated DEFAULT_TYPE_DEFAULTS; leagues/sessions/rosters/terminology in this.data; game editor league selector dynamic; all game.type reads/writes replaced; export writes schemaVersion 3.0
 
-- [ ] Update `public/js/admin.js`, `official.js`, `judge.js`, `utils.js` — replace `game.type` comparisons with `getGameTier()` or `game.league` checks. No UI label changes.
-- [ ] Update print scoresheet grouping (currently groups by `type`) to group by `league`.
-- [ ] Update awards sticker renderer (currently uses `type` toggle) to use league.
+### Prompt 4 — Collator views + utilities ✅ 2026-06-04
 
-### Prompt 5 — Tests + verification
+- [x] `public/js/official.js` — getLeagueForViewMode() helper; getFilteredGames(), renderMatrix(), renderExhibitionOverview(), openExhibitionDetail() updated
+- [x] `public/js/utils.js` — getLeagueForViewMode() helper; getWinnersRegistry(), exportAwardsCSV(), renderAnnouncerSheet(), getFilteredGames(), populateScoresheetGroups(), buildScoresheetHTML() updated
+- [x] `public/js/judge.js` — getEntityTypeForLeague() helper; renderStationList(), renderEntityList(), renderBracketLobby(), bracketCreateChallengeMatch() updated
+- [x] `public/js/admin.js` — no changes (e.type references are DB entity columns, not game types)
 
-- [ ] Update all test fixtures in `tests/` that reference `game.type`.
-- [ ] Update test assertions that check for `type: "patrol"` etc.
-- [ ] Run full test suite: `npm test`. All tests must pass.
-- [ ] Manual smoke test: load migrated cartridge in Collator, verify judge view, verify leaderboard.
+### Prompt 5 — Tests + verification ✅ 2026-06-04
+
+- [x] `tests/unit/schema.test.js` — 6 game fixtures updated: type → league
+- [x] `tests/integration/collator.test.js` — fixture camporee.json + p1.json migrated to v3.0; type_defaults key fixed
+- [x] `tests/integration/collator-circus.test.js` — TYPE_DEFAULTS keys updated; buildCircusZip() includes v3 fields; test 5+6 assertions updated
+- [x] 22/22 unit + integration tests passing
+- [x] Smoke test: Composer API, /games.json (34 games, 18 patrol-games / 12 troop-challenges / 4 exhibition), field injection, score submission — all green
+- [x] 4 pre-existing E2E failures (Docker/Clerk) confirmed unrelated to schema-v3
 
 ---
 
