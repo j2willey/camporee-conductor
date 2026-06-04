@@ -233,65 +233,50 @@ In `COLLATOR_MODE=cloud`, also contains `event_permissions (camporee_id, user_id
 
 ---
 
-## Offline Event Deployment (Caddy + Let's Encrypt)
+## Deployment Architecture (as of 2026-06-04)
 
-The Collator must be served over HTTPS. Android blocked plain HTTP in early 2026; the judge PWA requires HTTPS or localhost for service workers to register.
+### Docker services (4 containers)
 
-### Certificate Strategy (DNS-01 Challenge — No Internet Required at Event)
+| Service | Container | Port | Role |
+|---|---|---|---|
+| `caddy` | camporee-caddy | 80, 443 | TLS reverse proxy — routes subdomains to services |
+| `landing` | camporee-landing | 3002 (internal) | Marketing site + early-access form (`Dockerfile.landing`) |
+| `composer` | camporee-composer | 3001 | Composer + Curator Node app |
+| `collator` | camporee-collator | 3000 | Collator Node app |
 
-Obtain certs **before** the event while still online. The DNS-01 ACME challenge proves domain ownership via a TXT record in Cloudflare — no HTTP server needed.
+### Caddyfile — `{$CADDY_HOST}` pattern
 
-```bash
-# Install certbot + Cloudflare plugin (once)
-sudo apt install certbot python3-certbot-dns-cloudflare
-
-# Create credentials file (do not commit)
-# ~/.secrets/certbot/cloudflare.ini
-#   dns_cloudflare_api_token = YOUR_CF_API_TOKEN
-chmod 600 ~/.secrets/certbot/cloudflare.ini
-
-# Obtain cert (domain: camporeeconductor.com)
-sudo certbot certonly \
-  --dns-cloudflare \
-  --dns-cloudflare-credentials ~/.secrets/certbot/cloudflare.ini \
-  -d camporeeconductor.com \
-  -d "*.camporeeconductor.com"
-
-# Copy certs to project ./certs/ (gitignored)
-cp /etc/letsencrypt/live/camporeeconductor.com/fullchain.pem ./certs/
-cp /etc/letsencrypt/live/camporeeconductor.com/privkey.pem ./certs/
-```
-
-Certs are valid 90 days. Renew before each event (can be done from home while online).
-
-### Caddy Configuration
-
-`Caddyfile` in the repo root (gitignored — contains cert paths):
+Single Caddyfile works for both dev and VPS via `CADDY_HOST` env var:
 
 ```
-camporeeconductor.com {
-  tls ./certs/fullchain.pem ./certs/privkey.pem
-  reverse_proxy localhost:3000
+{$CADDY_HOST:localhost} {
+    tls internal
+    reverse_proxy landing:3002
+}
+composer.{$CADDY_HOST:localhost} {
+    tls internal
+    reverse_proxy composer:3001
+}
+collator.{$CADDY_HOST:localhost} {
+    tls internal
+    reverse_proxy collator:3000
 }
 ```
 
-Start Caddy: `sudo caddy run --config Caddyfile`
+- **Dev:** `CADDY_HOST` unset → defaults to `localhost` → `tls internal` (Caddy self-signed CA)
+- **VPS:** `CADDY_HOST=camporeeconductor.com` → three public subdomains. Note: `tls internal` at a public domain uses Caddy's CA — if traffic goes through Cloudflare proxy, the origin cert doesn't need to be browser-trusted. Verify this is the intended TLS model before go-live.
 
-### GL.iNet Opal (OpenWrt) Local DNS
+### Offline Event Deployment (GL.iNet Opal)
 
-The GL.iNet Opal travel router creates the event WiFi. Configure dnsmasq so `camporeeconductor.com` resolves to the laptop's LAN IP (not the internet).
+At a physical camporee with no internet, the Collator must still be served over HTTPS for Android service workers.
 
-In GL.iNet admin → More Settings → Custom DNS: add:
-```
-address=/camporeeconductor.com/192.168.8.XXX
-```
-(Replace `XXX` with the laptop's actual IP on the Opal network — check `ip addr` on the Opal interface.)
+Strategy: use Caddy's `tls internal` CA, pre-install the Caddy root cert on judge phones before the event, or use a pre-obtained wildcard cert via certbot DNS-01 challenge (Cloudflare). The `./certs/` directory (gitignored) is the holding location for pre-obtained certs if that path is taken.
 
-Judge phones connect to the Opal WiFi, navigate to `https://camporeeconductor.com`, get the valid cert, and the PWA installs. No internet required at the venue.
+GL.iNet Opal custom DNS: add `address=/camporeeconductor.com/192.168.8.XXX` so judge phones resolve the domain to the laptop's LAN IP without internet.
 
 ---
 
-## Known Backlog (as of 2026-06-02)
+## Known Backlog (as of 2026-06-04)
 
 ### Completed Since 2026-03-30
 
@@ -313,6 +298,9 @@ Judge phones connect to the Opal WiFi, navigate to `https://camporeeconductor.co
 - **AAA (Auth/Authz/Audit)** — Clerk for Composer + cloud Collator; email honor system for offline Collator; `event_permissions`, `audit_log`, `feature_flags`, `judge_tokens` tables; sysadmin panel; migration runner
 - **Landing page** — `public/camporee-conductor-landing.html`; CSS in `public/css/landing.css`; early-access form (12 fields) POSTs to `POST /composer/api/early-access`; `GET /` serves landing for single-composer deployments
 - **Brand palette** — green/gold palette (`--green-dark`, `--green-mid`, `--green-light`, `--gold`, `--gold-light`, `--cream`, `--slate`) added to `conductor.css` `:root`; app brand vars (`--brand-main`, `--brand-header`, `--brand-accent`) remapped to green/gold; `landing.css` references these vars — `conductor.css` is the single source of truth
+- **Subdomain routing + dedicated landing service** — Caddyfile 3-block subdomain config with `{$CADDY_HOST:localhost}` template; nginx replaced by dedicated `landing` Express service (`Dockerfile.landing`, port 3002); `caddy_data` named volume; `CADDY_HOST` env var controls domain in both dev and prod
+- **Landing page brand logo** — `CamporeeConductor.png` badge in nav (40px) and hero (120px); `.logo-img` + `.hero-badge` in `landing.css`
+- **Schema v3.0 design** — `game.type` removed, replaced by `game.league` (FK to `camporee.leagues[]`); `terminology`, `sessions[]`, `rosters` added to `camporee.json`; full spec in `CAMPOREESCHEMA.md`; implementation work tracked in BACKLOG.md under "Schema v3.0 Work"
 
 ### Still Open
 

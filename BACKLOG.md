@@ -29,6 +29,8 @@
 - ✅ Landing page CSS extraction — `public/css/landing.css` extracted from inline `<style>`; `conductor.css` now defines shared green/gold brand palette as `:root` vars; both stylesheets linked from landing.html
 - ✅ Landing page early-access form — expanded from email-only to 12-field form (name, email, council, district, role, years, units, patrols, scouts, unit_adults, adult_staff, youth_staff); POSTs JSON to `POST /composer/api/early-access`; submissions appended to `data/early-access/submissions.json`
 - ✅ GET / landing page routing — `server.js` serves `landing.html` at root for single-composer deployments; Collator-only still redirects to `/collator/`; multi-service dev still shows dashboard; app remains at `/composer/`
+- ✅ Subdomain routing + dedicated landing service — Caddyfile rewritten with 3-block subdomain config (`{$CADDY_HOST:localhost}` template handles dev/prod from same file); nginx replaced by dedicated `landing` Express service (`Dockerfile.landing`, port 3002); `caddy_data` named volume for cert persistence; `CADDY_HOST` in `.env` sets domain
+- ✅ Landing page brand logo — `CamporeeConductor.png` badge used in nav (40px) and hero (120px); `landing.css` has `.logo-img` and `.hero-badge` rules; `/images/` served by landing container
 
 ---
 

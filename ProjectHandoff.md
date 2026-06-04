@@ -168,26 +168,25 @@ Requires `GEMINI_API_KEY` in `.env` for AI features. Do not commit this file.
 
 ---
 
-## 11. Current State (June 2, 2026)
+## 11. Current State (June 4, 2026)
 
-### Completed (post-event, as of Jun 2)
+**Active branch:** `schema-v3` — breaking schema redesign in progress. Do not merge to main until all 5 implementation prompts in BACKLOG.md are complete.
+
+### Completed (post-event, as of Jun 4)
 - Coyote Creek District Camporee "The Circus" — ran live May 15–17, 2026 ✅
-- Full AAA: Clerk auth for Composer + cloud Collator; offline email-honor mode; `event_permissions` (owner/editor/viewer); sysadmin panel; migration runner
+- Full AAA: Clerk auth for Composer + cloud Collator; offline email-honor mode; `event_permissions`; sysadmin panel; migration runner
 - `judge_tokens` DB table (migration 009) — ready for token API + UI
-- Secrets audit — git history confirmed clean; `.env.example` and `.nvmrc` committed
-- Security fix — sysadmin.html now gated before `express.static`
-- Landing page — `public/camporee-conductor-landing.html` with full early-access form (12 fields); `POST /composer/api/early-access` writes to `data/early-access/submissions.json`; served at `GET /` for single-composer deployments
-- Brand palette — green/gold theme unified across `conductor.css` (app) and `landing.css` (marketing)
+- Landing page — `public/camporee-conductor-landing.html` with full early-access form (12 fields); brand logo badge in nav + hero
+- Brand palette — green/gold theme unified in `conductor.css`; `landing.css` references it
+- **Subdomain routing** — 4-container Docker stack: `caddy`, `landing` (Express, port 3002, `Dockerfile.landing`), `composer` (port 3001), `collator` (port 3000). Caddyfile uses `{$CADDY_HOST:localhost}` template — set `CADDY_HOST=camporeeconductor.com` in `.env` for production.
+- **Schema v3.0 design complete** — `game.type` removed, replaced by `game.league`; `leagues[]`, `sessions[]`, `rosters`, `terminology` added to camporee.json; spec in `CAMPOREESCHEMA.md`
 
 ### Open Backlog
-- **VPS deployment** — Hetzner or DigitalOcean; pre-VPS checklist nearly complete; remaining: browser smoke test, Clerk Production instance config, `SESSION_SECRET` in `.env`
+- **Schema v3.0 implementation** — 5-prompt plan in BACKLOG.md; none started yet; branch `schema-v3` is ready
+- **VPS deployment** — `CADDY_HOST`, `SESSION_SECRET`, and Clerk Production instance still need to be configured; TLS model with Cloudflare needs verification
 - **Judge token API + UI** — `judge_tokens` table ready; need `POST /api/events/:eventId/judge-tokens` and director panel
 - **Challenge Match ("True 2nd Place")** — bracket tournament logic; DB tables exist, trigger logic TODO
 - **WebSocket leaderboard** — `official.js` currently polls every 15s
-- **Server consolidation** — legacy root files still present
-- **Practice Mode** — judges cannot test forms without affecting live scores
-- **Composer "Common Fields" panel** — no UI for editing `type_defaults` or previewing injected fields per game type
-- **Exhibition award print template** — not yet created
 - **E2E test suite** — 4 tests fail when Docker containers running (real Clerk vs TEST_MODE mismatch)
 
 ---
