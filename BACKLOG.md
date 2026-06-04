@@ -32,6 +32,45 @@
 
 ---
 
+## Schema v3.0 Work (branch: schema-v3)
+
+This is a breaking schema change. No backwards compatibility. One existing cartridge to migrate.
+Full design spec: `CAMPOREESCHEMA.md`. Full UML: see session history 2026-06-04.
+
+### Prompt 1 — Schema + Migration (no app code changes)
+
+- [ ] Update `schemas/` — rewrite camporee and game AJV schemas. Remove `type`. Add `league`, `session?`, `terminology`, `leagues[]`, `sessions[]`, `rosters{}`, `divisions[]` (placeholder on each league).
+- [ ] Write `scripts/migrate-schema-v3.js` — reads all game/camporee JSON in `data/curator/`, `data/composer/workspaces/`, `data/collator/active-event/`. Converts `type → league`, adds `terminology`, `leagues`, `sessions: []`, `rosters`. Writes in place. Logs every file touched.
+- [ ] Update `presets.json` files — add `tier: "subunit"|"unit"|"all"` to each preset. Rename `type_defaults` keys from `patrol/troop` to `patrol-games/troop-challenges`.
+- [ ] Run migration script and verify output before any app code changes.
+- [ ] Add migration 010 as a no-op placeholder (schema changes are in JSON files, not DB).
+
+### Prompt 2 — Core schema.js + Collator
+
+- [ ] Update `normalizeGameDefinition()` in `public/js/core/schema.js` — remove all `type` references. Add `getGameTier(game, camporee)` helper that returns `unit|subunit|null` by looking up `game.league` in `camporee.leagues[]`.
+- [ ] Update `injectCommonFields()` in `src/servers/collator.js` — replace `game.type` branch with `getGameTier()`. Read `type_defaults[game.league]` instead of `type_defaults[game.type]`.
+- [ ] Update preset injection logic to use `preset.tier` field instead of hardcoded patrol/troop checks.
+
+### Prompt 3 — Composer server + SPA
+
+- [ ] Update `src/servers/composer.js` — replace any `type` field references in save/export/validation logic with `league`.
+- [ ] Update `public/js/apps/composer.js` — replace `type` field reads/writes with `league`. Game editor league picker populated from `camporee.leagues[]`. UI labels remain hardcoded BSA strings (no terminology lookup yet). Do NOT add session or division UI.
+
+### Prompt 4 — Collator views + utilities
+
+- [ ] Update `public/js/admin.js`, `official.js`, `judge.js`, `utils.js` — replace `game.type` comparisons with `getGameTier()` or `game.league` checks. No UI label changes.
+- [ ] Update print scoresheet grouping (currently groups by `type`) to group by `league`.
+- [ ] Update awards sticker renderer (currently uses `type` toggle) to use league.
+
+### Prompt 5 — Tests + verification
+
+- [ ] Update all test fixtures in `tests/` that reference `game.type`.
+- [ ] Update test assertions that check for `type: "patrol"` etc.
+- [ ] Run full test suite: `npm test`. All tests must pass.
+- [ ] Manual smoke test: load migrated cartridge in Collator, verify judge view, verify leaderboard.
+
+---
+
 ## Active Backlog
 
 ### Infrastructure / Analytics

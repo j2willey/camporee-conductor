@@ -129,6 +129,10 @@ npm test                  # all three
 
 ## Critical Guardrails
 
+- **`game.type` is removed in schema v3.0** — Never reference `game.type` in new code. Use `game.league` to determine scoring tier. If you see `type` in existing code, it is legacy and must be replaced.
+- **League must be defined before games reference it** — `game.league` is a FK to `camporee.leagues[].id`. The Composer must prevent assigning a game to a non-existent league. Always define leagues first.
+- **Session and Division are schema-only in Phase 1** — Do not expose Session or Division configuration in any UI. The fields exist in the schema and travel in the cartridge, but no UI for editing them should be built until explicitly instructed.
+- **Roster `id` is immutable** — Never reassign or reuse a roster entry's `id`. If a patrol renames mid-event, update `name` only. Score records are keyed to `id`, not `name`.
 - **Zero-Inference Data Integrity** — Never strip `id`, `weight`, `kind`, `audience`, or `config` fields during save/load operations. They control scoring math.
 - **Variable-First CSS** — Never hardcode hex colors. Always use CSS variables (`--theme-primary`, `--brand-main`, etc.) defined in `public/css/conductor.css`.
 - **Middleware Sanitization** — The Collator strips `source_snapshot` and `variants` before serving `/games.json` to keep judge payloads light. Do not serve these to clients.
@@ -145,23 +149,31 @@ npm test                  # all three
 
 ## Schema & Data Model
 
-- **Schema version:** 2.9 — `schemas/` directory is the source of truth (AJV validation)
+- **Schema version:** 3.0 (branch: `schema-v3`) — `schemas/` directory is the source of truth (AJV validation)
 - **Cartridge format** (`CamporeeConfig.zip`): `camporee.json` + `presets.json` + `games/*.json`
-- `camporee.json` includes `type_defaults` — maps game type to preset IDs for runtime injection
+- Full schema documentation: `CAMPOREESCHEMA.md`
+- **`game.type` is REMOVED in v3.0** — replaced by `game.league` (FK → `camporee.leagues[].id`). Never reference `game.type` in new code.
 - **Game files contain only game-specific scoring inputs.** Common fields are NOT baked in.
-- `game.variables` — optional `{ key: value }` pairs for template substitution in common field labels (e.g., `ten_essentials: "matches"` → label becomes "10 Essentials: matches")
-- Game types: `patrol` | `troop` | `exhibition`. Exhibition has no common fields and no in-app scoring.
+- `game.variables` — optional `{ key: value }` pairs for template substitution in preset labels
+- `game.league` — required FK referencing a league defined in `camporee.leagues[]`
+- `game.session` — optional FK referencing a session in `camporee.sessions[]` (Phase 2, null = always visible)
 
----
+### Key new camporee.json fields (v3.0)
 
-## Common Field Injection (implemented 2026-03-30)
+- `terminology` — configurable labels: `unit` (default: "Troop"), `subunit` (default: "Patrol"), `member`, `event`. UI still uses hardcoded BSA labels in Phase 1.
+- `leagues[]` — director-defined scoring pools. Each has `id`, `label`, `tier` (`unit|subunit|individual`), `registration` (`registered|open`), `divisions[]` (placeholder)
+- `sessions[]` — optional time-slot groupings for judge display. Empty array = flat game list (Phase 2)
+- `rosters` — `{ units: UnitRoster[], subunits: SubUnitRoster[], individuals: [] }`. Replaces ad-hoc troop/patrol fields. `id` is immutable integer; `name` is mutable display string. Id ranges: 1–99 units, 100–999 subunits, 1000–9999 individuals (convention only).
+- `type_defaults` — now keyed by league `id` (e.g., `"patrol-games"`) instead of `"patrol"` / `"troop"`
 
-Common patrol scoring fields (Patrol Flag, Patrol Yell, Scout Spirit, 10 Essentials, Unscoutlike Behavior, Judges Notes, Official Score, Final Ranking, Overall Points) are defined **once** in `presets.json` with `position: "prefix" | "suffix"` and `sortOrder`.
+### Common Field Injection (updated for v3.0)
 
-- `injectCommonFields()` in `src/servers/collator.js` merges them at `/games.json` serve time: `[prefix presets] → [game-specific fields] → [suffix presets]`
-- Template syntax `{{variable_name}}` in preset labels/placeholders is substituted from `game.variables`
-- `COMMON_FIELD_IDS` constant in `public/js/apps/composer.js` prevents these IDs from being baked into game files on export
-- Troop events get only the suffix admin fields (Official Score, Final Ranking, Overall Points)
+Common scoring fields defined once in `presets.json`. Each preset now has a `tier` field (`subunit | unit | all`) replacing hardcoded patrol/troop logic.
+
+- `injectCommonFields()` in `src/servers/collator.js` reads `type_defaults[game.league]` to select presets
+- Injection order: `[prefix presets] → [game-specific fields] → [suffix presets]`
+- Template syntax `{{variable_name}}` substituted from `game.variables`
+- `COMMON_FIELD_IDS` constant in `public/js/apps/composer.js` prevents preset IDs from being baked into game files on export
 
 ---
 
