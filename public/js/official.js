@@ -5,8 +5,15 @@ import { setSubtitle } from './core/ui.js';
 
 let currentView = 'overview';
 let currentViewType = 'list'; // 'card' or 'list'
-let currentViewMode = 'patrol'; // 'patrol', 'troop', or 'exhibition'
+let currentViewMode = 'patrol'; // 'patrol', 'troop', or 'exhibition' — from HTML <select>, unchanged
 let matrixTranspose = false;
+
+// Maps the view-mode selector value (legacy strings from EJS) to schema v3 league IDs.
+function getLeagueForViewMode(viewMode) {
+    if (viewMode === 'troop') return 'troop-challenges';
+    if (viewMode === 'exhibition') return 'exhibition';
+    return 'patrol-games';
+}
 let detailSort = { col: '_finalRank', dir: 'asc' };
 let activeGameId = null;
 let finalMode = false;
@@ -257,10 +264,8 @@ function renderOverviewList() {
 }
 
 function getFilteredGames() {
-    return appData.games.filter(g => {
-        const gType = g.type || 'patrol';
-        return gType === currentViewMode;
-    });
+    const leagueId = getLeagueForViewMode(currentViewMode);
+    return appData.games.filter(g => (g.league || 'patrol-games') === leagueId);
 }
 
 async function toggleGameStatus(gameId, isFinal) {
@@ -823,10 +828,8 @@ function renderMatrix() {
         return a.name.localeCompare(b.name);
     });
 
-    const games = appData.games.filter(g => {
-        const gType = g.type || 'patrol';
-        return gType === currentViewMode;
-    });
+    const leagueId = getLeagueForViewMode(currentViewMode);
+    const games = appData.games.filter(g => (g.league || 'patrol-games') === leagueId);
 
     if (matrixTranspose) {
         renderMatrixTransposed(table, games, entities);
@@ -1189,7 +1192,7 @@ function escapeAttr(s) {
 
 function renderExhibitionOverview(grid) {
     const exhibitionGames = (appData.games || [])
-        .filter(g => g.type === 'exhibition')
+        .filter(g => g.league === 'exhibition')
         .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
 
     if (!exhibitionGames.length) {
@@ -1247,7 +1250,7 @@ async function openExhibitionDetail(gameId) {
     activeGameId = gameId;
 
     const exGames = (appData.games || [])
-        .filter(g => g.type === 'exhibition')
+        .filter(g => g.league === 'exhibition')
         .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
     const idx = exGames.findIndex(g => g.id === gameId);
     const title = `E${idx + 1} ${game.content?.title || game.id}`;

@@ -4,13 +4,19 @@ import { formatGameTitle, getEventStatus, generateUUID, getOrdinalSuffix } from 
 
 const syncManager = new SyncManager();
 
+// Maps game.league to the DB entity type used for roster filtering.
+// Entity types in the DB are still 'patrol' / 'troop' (legacy schema).
+function getEntityTypeForLeague(league) {
+    return league === 'troop-challenges' ? 'troop' : 'patrol';
+}
+
 const state = {
     config: null,
     entities: [],
     currentStation: null,
     currentEntity: null,
     isOnline: navigator.onLine,
-    viewMode: 'patrol',
+    viewMode: 'patrol', // 'patrol' or 'troop' — from hardcoded mode tabs in injectModeTabs()
     drafts: {},
     // Bracket State
     bracketMode: 'main', // 'main' or 'consolation'
@@ -282,7 +288,11 @@ function renderStationList() {
         els.stationList.innerHTML = `<div class="p-4 text-center text-muted">Loading games...</div>`;
         return;
     }
-    const filteredStations = state.config.stations.filter(s => !s.type || s.type === state.viewMode);
+    const filteredStations = state.config.stations.filter(s => {
+        if (!s.league) return true;
+        if (state.viewMode === 'troop') return s.league === 'troop-challenges';
+        return s.league === 'patrol-games'; // patrol mode: exclude troop and exhibition
+    });
     if (filteredStations.length === 0) {
         els.stationList.innerHTML = `<div class="alert alert-info text-center">No ${state.viewMode} games found.</div>`;
         return;
@@ -315,7 +325,9 @@ function renderStationList() {
 
 function renderEntityList(filter = '') {
     if (!state.currentStation) return;
-    const requiredType = state.currentStation.type || state.viewMode;
+    const requiredType = state.currentStation.league
+        ? getEntityTypeForLeague(state.currentStation.league)
+        : (state.viewMode === 'troop' ? 'troop' : 'patrol');
     const term = filter.toLowerCase();
     const drafts = JSON.parse(localStorage.getItem('camporee_drafts') || '{}');
     const queue = syncManager.getQueue();
@@ -694,7 +706,9 @@ function renderBracketLobby() {
     }
 
     // 2. Render Team List
-    const requiredType = s.type || state.viewMode;
+    const requiredType = s.league
+        ? getEntityTypeForLeague(s.league)
+        : (state.viewMode === 'troop' ? 'troop' : 'patrol');
     const entities = state.entities.filter(e => e.type === requiredType).sort((a, b) => (parseInt(String(a.troop_number).replace(/^T/i,''))||0) - (parseInt(String(b.troop_number).replace(/^T/i,''))||0));
 
     els.lobbyList.innerHTML = entities.map(e => {
@@ -1826,7 +1840,7 @@ function bracketCreateChallengeMatch() {
         if (troopNum) {
             const match = state.entities.find(e =>
                 (e.troop_number === troopNum || e.name.toLowerCase().includes(troopNum.toLowerCase()))
-                && (e.type === (state.currentStation.type || 'patrol'))
+                && (e.type === getEntityTypeForLeague(state.currentStation.league))
             );
             if (match) {
                 consWinner = match.id;

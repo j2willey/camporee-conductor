@@ -5,8 +5,15 @@ import { setSubtitle } from './core/ui.js';
 
 let currentView = 'overview';
 let currentViewType = 'list'; // 'card' or 'list'
-let currentViewMode = 'patrol'; // 'patrol', 'troop', or 'exhibition'
+let currentViewMode = 'patrol'; // 'patrol', 'troop', or 'exhibition' — from HTML <select>, unchanged
 let matrixTranspose = false;
+
+// Maps the view-mode selector value (legacy strings from EJS) to schema v3 league IDs.
+function getLeagueForViewMode(viewMode) {
+    if (viewMode === 'troop') return 'troop-challenges';
+    if (viewMode === 'exhibition') return 'exhibition';
+    return 'patrol-games';
+}
 let detailSort = { col: '_finalRank', dir: 'asc' };
 let activeGameId = null;
 let finalMode = false;
@@ -382,7 +389,8 @@ function getWinnersRegistry() {
     const pointsMap = calculateScoreContext(appData);
 
     // 1. Individual Games
-    const games = appData.games.filter(g => (g.type || 'patrol') === currentViewMode);
+    const leagueId = getLeagueForViewMode(currentViewMode);
+    const games = appData.games.filter(g => (g.league || 'patrol-games') === leagueId);
 
     games.forEach(game => {
         // Calculate scores for this game
@@ -541,7 +549,8 @@ function exportAwardsCSV() {
     rows.push(["Category", "Rank", "Entity Name", "Troop #"]);
 
     // 1. All Individual Games
-    const games = appData.games.filter(g => (g.type || 'patrol') === currentViewMode);
+    const leagueId = getLeagueForViewMode(currentViewMode);
+    const games = appData.games.filter(g => (g.league || 'patrol-games') === leagueId);
 
     // Identify any "entryname" fields across these games to include in the export
     const entryNameFieldConfigs = [];
@@ -721,7 +730,8 @@ function renderStickers(autoPrint = true) {
 }
 
 function renderAnnouncerSheet() {
-    const games = appData.games.filter(g => (g.type || 'patrol') === currentViewMode);
+    const announcerLeagueId = getLeagueForViewMode(currentViewMode);
+    const games = appData.games.filter(g => (g.league || 'patrol-games') === announcerLeagueId);
     const blocks = [];
 
     // Per-game rankings
@@ -872,10 +882,8 @@ function toggleFinalMode(checked) {
 // --- Score & Ranking Utils ---
 
 function getFilteredGames() {
-    return appData.games.filter(g => {
-        const gType = g.type || 'patrol';
-        return gType === currentViewMode;
-    });
+    const leagueId = getLeagueForViewMode(currentViewMode);
+    return appData.games.filter(g => (g.league || 'patrol-games') === leagueId);
 }
 
 
@@ -1221,8 +1229,11 @@ window.initStickerControls = initStickerControls;
 function populateScoresheetGroups() {
     const groups = { patrol: [], troop: [], exhibition: [] };
     (appData.games || []).forEach(game => {
-        const t = game.type || 'patrol';
-        if (groups[t]) groups[t].push(game);
+        const league = game.league || 'patrol-games';
+        const group = league === 'troop-challenges' ? 'troop'
+                    : league === 'exhibition' ? 'exhibition'
+                    : 'patrol';
+        groups[group].push(game);
     });
 
     Object.entries(groups).forEach(([type, games]) => {
@@ -1270,8 +1281,8 @@ function buildScoresheetHTML(games, rowCount, meta) {
 
     const sheets = games.map(game => {
         const judgeFields = (game.fields || []).filter(f => f.audience !== 'admin');
-        const isPatrol = game.type === 'patrol';
-        const isExhibition = game.type === 'exhibition';
+        const isPatrol = game.league === 'patrol-games';
+        const isExhibition = game.league === 'exhibition';
 
         const colDefs = isExhibition ? [
             { label: '#',                    hint: '', width: '24px',  cls: 'col-num' },
