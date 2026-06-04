@@ -27,7 +27,7 @@ test('normalizeGameDefinition preserves kind from scoring_model.inputs', () => {
     const game = {
         library_uuid: '',
         library_title: 'Test',
-        type: 'patrol',
+        league: 'patrol-games',
         content: { title: 'Test' },
         scoring_model: {
             inputs: [
@@ -50,7 +50,7 @@ test('normalizeGameDefinition preserves audience from scoring_model.inputs', () 
     const game = {
         library_uuid: '',
         library_title: 'Test',
-        type: 'patrol',
+        league: 'patrol-games',
         content: { title: 'Test' },
         scoring_model: {
             inputs: [
@@ -71,7 +71,7 @@ test('normalizeGameDefinition reads config from nested config object', () => {
     const game = {
         library_uuid: '',
         library_title: 'Test',
-        type: 'patrol',
+        league: 'patrol-games',
         content: { title: 'Test' },
         scoring_model: {
             inputs: [
@@ -100,7 +100,7 @@ test('normalizeGameDefinition preserves options array for select fields', () => 
     const game = {
         library_uuid: '',
         library_title: 'Test',
-        type: 'patrol',
+        league: 'patrol-games',
         content: { title: 'Test' },
         scoring_model: {
             inputs: [
@@ -129,7 +129,7 @@ test('normalizeGameDefinition defaults audience to judge when absent', () => {
     const game = {
         library_uuid: '',
         library_title: 'Test',
-        type: 'patrol',
+        league: 'patrol-games',
         content: { title: 'Test' },
         scoring_model: {
             inputs: [
@@ -146,7 +146,7 @@ test('normalizeGameDefinition defaults kind to points when absent', () => {
     const game = {
         library_uuid: '',
         library_title: 'Test',
-        type: 'patrol',
+        league: 'patrol-games',
         content: { title: 'Test' },
         scoring_model: {
             inputs: [

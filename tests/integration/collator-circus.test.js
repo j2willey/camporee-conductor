@@ -20,13 +20,17 @@ import AdmZip from 'adm-zip';
 const WORKSPACE_DIR = '/home/jwilley/ws/camporee-conductor/data/composer/workspaces/5d5a6a80-c9e1-4551-8e15-8ef1ca93b9ca';
 
 // The default type_defaults that Composer would inject into the exported zip
-// (matches DEFAULT_TYPE_DEFAULTS in public/js/apps/composer.js)
+// (matches DEFAULT_TYPE_DEFAULTS in public/js/apps/composer.js — v3.0 league id keys)
 const TYPE_DEFAULTS = {
-    patrol: {
+    'patrol-games': {
         prefix: ['p_flag', 'p_yell', 'p_spirit', 'ten_ess'],
         suffix: ['unscout', 'off_notes', 'off_score', 'final_rank', 'overall_points']
     },
-    troop: {
+    'exhibition': {
+        prefix: [],
+        suffix: ['off_score', 'final_rank', 'overall_points']
+    },
+    'troop-challenges': {
         prefix: [],
         suffix: ['off_score', 'final_rank', 'overall_points']
     }
@@ -43,8 +47,13 @@ function buildCircusZip() {
         fs.readFileSync(path.join(WORKSPACE_DIR, 'camporee.json'), 'utf8')
     );
     const camporeeConfig = {
-        schemaVersion: '2.9',
+        schemaVersion: '3.0',
         meta: camporeeRaw.meta,
+        terminology: camporeeRaw.terminology,
+        leagues: camporeeRaw.leagues,
+        sessions: camporeeRaw.sessions,
+        rosters: camporeeRaw.rosters,
+        officials: camporeeRaw.officials || [],
         playlist: camporeeRaw.playlist,
         type_defaults: TYPE_DEFAULTS
     };
@@ -174,27 +183,27 @@ test('GET /games.json — the-high-wire-fire-act has fields array with common pr
 });
 
 // ---------------------------------------------------------------------------
-// Test 5: Exhibition game 'slack-lining' has type === 'exhibition'
+// Test 5: Exhibition game 'slack-lining' has league === 'exhibition'
 // ---------------------------------------------------------------------------
-test('GET /games.json — slack-lining has type exhibition', async () => {
+test('GET /games.json — slack-lining has league exhibition', async () => {
     const response = await request(app).get('/games.json');
 
     expect(response.status).toBe(200);
 
     const game = response.body.games.find(g => g.id === 'slack-lining');
     expect(game).toBeDefined();
-    expect(game.type).toBe('exhibition');
+    expect(game.league).toBe('exhibition');
 });
 
 // ---------------------------------------------------------------------------
-// Test 6: All patrol games have at least one prefix preset field (p_flag)
+// Test 6: All patrol-games league games have at least one prefix preset field (p_flag)
 // ---------------------------------------------------------------------------
-test('GET /games.json — all patrol games have p_flag injected as first field', async () => {
+test('GET /games.json — all patrol-games have p_flag injected as first field', async () => {
     const response = await request(app).get('/games.json');
 
     expect(response.status).toBe(200);
 
-    const patrolGames = response.body.games.filter(g => g.type === 'patrol');
+    const patrolGames = response.body.games.filter(g => g.league === 'patrol-games');
     expect(patrolGames.length).toBeGreaterThan(0);
 
     for (const game of patrolGames) {

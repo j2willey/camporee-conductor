@@ -15,10 +15,16 @@ function setupTempEvent() {
     fs.mkdirSync(gamesDir);
 
     fs.writeFileSync(path.join(tempDir, 'camporee.json'), JSON.stringify({
+        schemaVersion: '3.0',
         meta: { title: 'Test Camporee', theme: 'Test Theme', camporeeId: 'test-uuid' },
+        leagues: [
+            { id: 'patrol-games', label: 'Patrol Games', tier: 'subunit', registration: 'registered', divisions: [] }
+        ],
+        sessions: [],
+        rosters: { units: [], subunits: [], individuals: [] },
         playlist: [{ gameId: 'p1', enabled: true, order: 1 }],
         type_defaults: {
-            patrol: { prefix: ['p_flag'], suffix: ['off_score'] }
+            'patrol-games': { prefix: ['p_flag'], suffix: ['off_score'] }
         }
     }));
 
@@ -32,7 +38,9 @@ function setupTempEvent() {
         library_title: 'Knot Tying',
         game_title: 'Knot Tying',
         id: 'p1',
-        type: 'patrol',
+        league: 'patrol-games',
+        session: null,
+        schemaVersion: '3.0',
         content: { title: 'Knot Tying', description: 'Tie the knots.' },
         scoring_model: {
             inputs: [
