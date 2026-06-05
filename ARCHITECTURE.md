@@ -122,27 +122,59 @@ Game creation UI should guide contributors toward using tokens for these fields.
 
 ---
 
-## 7. Curator Architecture: Model A (Vault) vs Model B (Index)
+## 7. Curator Architecture
 
-**Decision:** Ship Model B as a stepping stone; Model A is the long-term target.
+### Storage Format
+
+**Decision:** Curator stores templates as **cartridge zip files**. A zip is atomic — either it exists complete or it doesn't. Unpacked directories risk silent partial corruption (a game goes missing, a file is half-written).
+
+```
+data/curator/templates/{templateId}.zip   ← canonical, permanent, backed up
+data/curator/cache/{templateId}/          ← unpacked on demand, evictable, not backed up
+```
+
+**Read cache:** Curator maintains a bounded LRU cache of unpacked templates. On preview or "use this template" request: check cache → miss → unzip into cache → serve. Cache is safe to `rm -rf` at any time (cold start only costs one unzip per template). Lives inside `DATA_DIR` so it survives container restarts but is excluded from backups.
+
+### Curator vs. Composer Responsibilities
+
+**Curator is read-only from the user's perspective.** It stores templates and serves the browse/preview catalog. It has no concept of user workspaces.
+
+**Composer acts on Curator content.** "Use this template" is a Composer action — Composer fetches the zip from Curator, unpacks it into a new user workspace (new UUID, new `event_permissions` row), then optionally triggers Wizard 2 for localization.
+
+**`CuratorService` interface:**
+```javascript
+CuratorService.listTemplates()        // catalog browse — reads camporee.json from each zip
+CuratorService.getTemplateMeta(id)    // title, theme, game count, token list, etc.
+CuratorService.getTemplateZip(id)     // returns zip buffer — Composer unpacks into workspace
+CuratorService.submit(zip, meta)      // accept a tokenized cartridge from AI Templatize flow
+```
+
+No `fork()` on Curator. Curator never writes to user workspaces and is stateless with respect to who's logged in (beyond gating `submit()`).
+
+### Model A (Vault) vs. Model B (Index)
+
+**Decision:** Ship Model B as a stepping stone; Model A (zip vault) is the long-term target.
 
 | | Model B (Index) | Model A (Vault) |
 |---|---|---|
-| How it works | Curator queries user workspaces where `is_public = true` | Submission copies content into dedicated Curator store |
-| Templatization | Every consumer pays the cost | Paid once at submission; all forks get clean token-ready template |
-| Versioning | Hard — "template" is someone's live workspace | Natural — template has v1, v2, v3 independent of creator's workspace |
+| How it works | Curator queries user workspaces where `is_public = true` | Curator stores tokenized cartridge zips |
+| Templatization | Every consumer pays the cost | Paid once at submission; all downstream copies get clean token-ready template |
+| Versioning | Hard — "template" is someone's live workspace | Natural — zip is immutable; new submission = new version |
 | Implementation effort | Low | Higher |
 
-**Why A wins long-term:** At 1000 users, Model B is a pile of council-specific raw content. Model A is a polished community resource.
+The `CuratorService` abstraction keeps the backend swappable — Composer never knows which model is active.
 
-**Implementation:** `CuratorService` abstraction with stable interface — backend is swappable:
-```javascript
-CuratorService.getPublicCamporees()
-CuratorService.getPublicGames()
-CuratorService.submit(camporeeId)   // Model B: set is_public; Model A: copy to vault
-CuratorService.fork(camporeeId, userId)
-```
-Composer, wizards, and UI never know which model is active.
+### Template Edit Mode (Obscured)
+
+Curator templates are normally immutable once submitted. To update a canonical template (fix a game story, improve a rubric), an authorized user can enter **Template Edit Mode** in Composer:
+
+- Composer loads the template zip into a temporary workspace, preserving the original `templateId`
+- User edits content normally
+- On save: writes back to `curator/templates/{templateId}.zip`, invalidates cache entry
+- This mode is **restricted to sysadmins** and not exposed in the default Composer UI — it requires a deliberate navigation path to reduce accidental overwrites
+- Audit log entry written on every template update
+
+This is analogous to editing a Wikipedia article vs. reading it — the action exists, but the default path is consumption, not editing.
 
 ---
 
@@ -156,7 +188,9 @@ Composer, wizards, and UI never know which model is active.
 - Strips council-specific scoring adjustments
 - Suggests canonical theme name and Curator description
 - Flags ambiguous items for director review
-- Director approves → submitted to Curator vault
+- Director approves → AI Templatize produces a tokenized cartridge zip → saved to `curator/templates/{newId}.zip`
+
+The zip IS the submission artifact. No further processing at submission time.
 
 **Side effect:** Teaches directors what localization tokens are, improving future contribution quality.
 
@@ -170,7 +204,7 @@ System suggests matching games from library based on theme.
 Output: scaffolded camporee in Composer, ready to populate.
 
 ### Wizard 2 — Localize a Template
-Triggered when director forks a full camporee template from Curator.
+Triggered when director selects a Curator template and Composer pulls it into a new workspace.
 Interview: localization fields only (dates, venue, council, director info).
 System does single-pass `{{token}}` replacement across all game stories and camporee manifest.
 Output: personalized camporee, ~90% done.
