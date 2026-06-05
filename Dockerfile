@@ -3,30 +3,28 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# 1. Install build tools and ALL dependencies (including 'terser')
+# Install build tools and ALL dependencies (including 'terser').
+# Keeping package*.json copy separate so this layer caches on source-only changes.
 COPY package*.json ./
 RUN apk add --no-cache python3 make g++ && npm install
 
-# 2. Copy source code
+# Copy source code
 COPY . .
 
-# 3. Run the minification script for frontend apps
-RUN npm run minify
+# Minify frontend apps, then prune dev deps in one layer
+RUN npm run minify && npm prune --production
 
 # --- STAGE 2: PRODUCTION ---
 FROM node:22-alpine
 
 WORKDIR /app
 
-# 1. Install build tools and ONLY production dependencies (saves space)
-COPY package*.json ./
-RUN apk add --no-cache python3 make g++ && npm install --production
-
-# 2. Copy the code (including the minified JS) from the builder stage
+# Copy the built app (minified JS + pruned node_modules) from builder.
+# No npm install needed - node_modules is already production-only.
 COPY --from=builder /app .
 
-# 3. Expose the Default Application Port
+# Expose the default application port
 EXPOSE 3000
 
-# 4. Start the Unified Server Script
+# Start the unified server script
 CMD ["npm", "start"]
