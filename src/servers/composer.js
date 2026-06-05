@@ -4,6 +4,7 @@ import { GoogleGenAI } from '@google/genai';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import { randomUUID } from 'crypto';
 import dotenv from 'dotenv';
 import multer from 'multer';
 import { clerkMiddleware, getAuth, createClerkClient } from '@clerk/express';
@@ -964,6 +965,85 @@ app.get('/curator/api/templates/:id/zip', requireAuth, (req, res) => {
         res.send(buf);
     } catch (err) {
         res.status(err.status || 500).json({ error: err.message });
+    }
+});
+
+app.post('/api/from-template/:templateId', requireAuth, async (req, res) => {
+    const { templateId } = req.params;
+    const { userId } = TEST_MODE ? { userId: 'user_test' } : getAuth(req);
+    const newId = randomUUID();
+    const workspaceDir = path.join(WORKSPACE_PATH, newId);
+
+    try {
+        // 1. Fetch zip — throws 404-style error if not found
+        let zipBuffer;
+        try {
+            zipBuffer = CuratorService.getTemplateZip(templateId);
+        } catch (err) {
+            return res.status(err.status || 500).json({ error: err.message });
+        }
+
+        // 2. Unpack into new workspace
+        const AdmZip = (await import('adm-zip')).default;
+        const zip = new AdmZip(zipBuffer);
+        const entries = zip.getEntries();
+
+        const camporeeEntry = entries.find(e => e.entryName === 'camporee.json');
+        if (!camporeeEntry) {
+            return res.status(400).json({ error: 'Invalid template: missing camporee.json' });
+        }
+
+        fs.mkdirSync(workspaceDir, { recursive: true });
+        const gamesDir = path.join(workspaceDir, 'games');
+        fs.mkdirSync(gamesDir, { recursive: true });
+
+        // camporee.json
+        const camporeeData = JSON.parse(camporeeEntry.getData().toString('utf8'));
+        camporeeData.source_template_id = templateId;
+        camporeeData.created_from_template = true;
+        fs.writeFileSync(
+            path.join(workspaceDir, 'camporee.json'),
+            JSON.stringify(camporeeData, null, 2)
+        );
+
+        // presets.json (optional)
+        const presetsEntry = entries.find(e => e.entryName === 'presets.json');
+        if (presetsEntry) {
+            fs.writeFileSync(
+                path.join(workspaceDir, 'presets.json'),
+                presetsEntry.getData()
+            );
+        }
+
+        // games/*.json
+        for (const entry of entries) {
+            if (entry.entryName.startsWith('games/') && entry.entryName.endsWith('.json')) {
+                const filename = path.basename(entry.entryName);
+                fs.writeFileSync(path.join(gamesDir, filename), entry.getData());
+            }
+        }
+
+        // 3. Insert ownership
+        const now = Math.floor(Date.now() / 1000);
+        conductorDb.prepare(`
+            INSERT INTO event_permissions (event_id, user_id, role, granted_by, granted_at)
+            VALUES (?, ?, 'owner', ?, ?)
+        `).run(newId, userId, userId, now);
+
+        // 4. Audit
+        const title = camporeeData.meta?.title || 'Untitled';
+        logAudit(userId, 'event.created_from_template', 'event', newId, {
+            sourceTemplateId: templateId,
+            title
+        });
+
+        res.status(201).json({ id: newId, title, sourceTemplateId: templateId });
+
+    } catch (err) {
+        // Clean up partial workspace on any write failure
+        try { fs.rmSync(workspaceDir, { recursive: true, force: true }); } catch { /* ignore */ }
+        console.error('[from-template] error:', err);
+        res.status(500).json({ error: 'Failed to create workspace from template' });
     }
 });
 
