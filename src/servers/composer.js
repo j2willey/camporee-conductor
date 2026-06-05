@@ -5,8 +5,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 import dotenv from 'dotenv';
+import multer from 'multer';
 import { clerkMiddleware, getAuth, createClerkClient } from '@clerk/express';
 import { openConductorDb, runMigrations } from '../db/migrate.js';
+import * as CuratorService from '../lib/curator-service.js';
 
 dotenv.config();
 
@@ -934,6 +936,51 @@ app.get('/api/events/:eventId/officials', requireAuth, requireEventRole('viewer'
 
     res.json(officials);
 });
+
+// ── CURATOR TEMPLATE API ─────────────────────────────────────────────────────
+
+const cartridgeUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 },
+});
+
+app.get('/curator/api/templates', (req, res) => {
+    res.json(CuratorService.listTemplates());
+});
+
+app.get('/curator/api/templates/:id/meta', (req, res) => {
+    try {
+        res.json(CuratorService.getTemplateMeta(req.params.id));
+    } catch (err) {
+        res.status(err.status || 500).json({ error: err.message });
+    }
+});
+
+app.get('/curator/api/templates/:id/zip', requireAuth, (req, res) => {
+    try {
+        const buf = CuratorService.getTemplateZip(req.params.id);
+        res.setHeader('Content-Type', 'application/zip');
+        res.setHeader('Content-Disposition', `attachment; filename="CamporeeTemplate-${req.params.id}.zip"`);
+        res.send(buf);
+    } catch (err) {
+        res.status(err.status || 500).json({ error: err.message });
+    }
+});
+
+app.post('/curator/api/templates', requireAuth, requireSysadmin,
+    cartridgeUpload.single('cartridge'), (req, res) => {
+        if (!req.file) return res.status(400).json({ error: 'cartridge file required' });
+        const { userId } = TEST_MODE ? { userId: 'user_test' } : getAuth(req);
+        try {
+            const { id } = CuratorService.submit(req.file.buffer, userId);
+            const catalog = CuratorService.listTemplates();
+            const entry = catalog.find(e => e.id === id);
+            res.status(201).json({ id, title: entry?.title, theme: entry?.theme });
+        } catch (err) {
+            res.status(err.status || 500).json({ error: err.message });
+        }
+    }
+);
 
 // --- START SERVER ---
 // We no longer call app.listen directly. Instead, we export the configured app

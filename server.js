@@ -86,12 +86,15 @@ const renderDashboard = (activeServices) => `
 async function startServer() {
     console.log(`Starting Camporee Conductor with services: ${ACTIVE_SERVICES.join(', ')}`);
 
-    // 1. Mount Composer
-    if (ACTIVE_SERVICES.includes('composer')) {
+    // 1. Mount Composer (and load module for shared use by Curator API)
+    let composerApp = null;
+    if (ACTIVE_SERVICES.includes('composer') || ACTIVE_SERVICES.includes('curator')) {
         const composerModule = await import('./src/servers/composer.js');
-        // Composer handles its own static routing for its UI layout
-        app.use('/composer', composerModule.default);
-        console.log("-> Mounted Composer at /composer");
+        composerApp = composerModule.default;
+        if (ACTIVE_SERVICES.includes('composer')) {
+            app.use('/composer', composerApp);
+            console.log("-> Mounted Composer at /composer");
+        }
     }
 
     // 2. Mount Collator
@@ -101,15 +104,22 @@ async function startServer() {
         console.log("-> Mounted Collator at /collator");
     }
 
-    // 3. (Optional) Mount Curator if we create a backend for it later.
-    // Right now, Curator is purely a frontend app served from /public
-    // To maintain isolation, we will map a route to explicitly serve the curator HTML
+    // 3. Mount Curator — static UI + API routes forwarded to composer sub-app
     if (ACTIVE_SERVICES.includes('curator')) {
+        // Forward /curator/api/* to composer sub-app (which owns CuratorService routes).
+        // Express strips /curator/api before calling our middleware, so we re-prefix
+        // the URL so the composer app can match its /curator/api/... routes.
+        if (composerApp) {
+            app.use('/curator/api', (req, res, next) => {
+                req.url = '/curator/api' + req.url;
+                composerApp(req, res, next);
+            });
+        }
         app.get('/curator', (req, res) => res.redirect('/curator/'));
         app.use('/curator/', express.static(path.join(__dirname, 'public')));
         // Also map library for curator UI access
         app.use('/curator/library/games', express.static(process.env.LIBRARY_PATH || path.join(__dirname, 'data', 'library')));
-        console.log("-> Mounted Curator UI at /curator/");
+        console.log("-> Mounted Curator UI at /curator/ (API via composer sub-app)");
     }
 
     // 4. Global fallback for static assets that all shared views might need
