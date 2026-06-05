@@ -30,7 +30,7 @@ services:
       - PORT=3002
       - SUBMISSIONS_PATH=/app/data/submissions
     volumes:
-      - ./data/landing:/app/data/submissions
+      - ${DATA_DIR:-./data}/landing:/app/data/submissions
     restart: unless-stopped
 
   # 2. THE COLLATOR (Scorer) - Port 3000
@@ -47,9 +47,9 @@ services:
       - LIBRARY_PATH=/app/data/library
       - CONDUCTOR_DB_PATH=/app/data/shared/conductor.db
     volumes:
-      - ./data/collator:/app/data
-      - ./data/curator:/app/data/library
-      - ./data/shared:/app/data/shared
+      - ${DATA_DIR:-./data}/collator:/app/data
+      - ${DATA_DIR:-./data}/curator:/app/data/library
+      - ${DATA_DIR:-./data}/shared:/app/data/shared
       - ./migrations:/app/migrations
       - ./src:/app/src
       - ./views:/app/views
@@ -71,9 +71,9 @@ services:
       - LIBRARY_PATH=/app/data/library
       - CONDUCTOR_DB_PATH=/app/data/shared/conductor.db
     volumes:
-      - ./data/composer/workspaces:/app/data/workspaces
-      - ./data/curator:/app/data/library
-      - ./data/shared:/app/data/shared
+      - ${DATA_DIR:-./data}/composer/workspaces:/app/data/workspaces
+      - ${DATA_DIR:-./data}/curator:/app/data/library
+      - ${DATA_DIR:-./data}/shared:/app/data/shared
       - ./migrations:/app/migrations
       - ./scripts:/app/scripts
       - ./src:/app/src

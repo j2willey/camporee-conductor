@@ -129,6 +129,7 @@ npm test                  # all three
 
 ## Critical Guardrails
 
+- **`DATA_DIR` controls all runtime data mounts** — `docker-compose.yml` uses `${DATA_DIR:-./data}` for all `./data/` volume mounts. Never hardcode `./data/` in new volume entries. Dev leaves `DATA_DIR` unset (defaults to `./data`); VPS sets `DATA_DIR=/opt/camporee-conductor-data`.
 - **`game.type` is removed in schema v3.0** — Never reference `game.type` in new code. Use `game.league` to determine scoring tier. If you see `type` in existing code, it is legacy and must be replaced.
 - **League must be defined before games reference it** — `game.league` is a FK to `camporee.leagues[].id`. The Composer must prevent assigning a game to a non-existent league. Always define leagues first.
 - **Session and Division are schema-only in Phase 1** — Do not expose Session or Division configuration in any UI. The fields exist in the schema and travel in the cartridge, but no UI for editing them should be built until explicitly instructed.
