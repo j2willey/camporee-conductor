@@ -144,6 +144,7 @@ npm test                  # all three
 - **`landing.css` depends on `conductor.css` for all color variables** — `landing.html` loads `conductor.css` first, then `landing.css`. The `landing.css` file contains no `:root` color definitions; it references `--green-dark`, `--gold`, etc. from `conductor.css`. If you remove the `conductor.css` link from `landing.html`, all colors will break. This is intentional: `conductor.css` is the single source of truth for the brand palette.
 - **`POST /composer/api/early-access` is public (no auth)** — the early-access endpoint in `composer.js` has no `requireAuth` middleware. `clerkMiddleware()` runs but does not reject unauthenticated requests — only `requireAuth` does that. Submissions go to `data/early-access/submissions.json` (gitignored under `data/`).
 - **`SESSION_SECRET` has an insecure hardcoded default** — `collator.js` falls back to `'collator-offline-secret'` if `SESSION_SECRET` is unset. Always set a real secret via env var in any internet-facing deployment.
+- **Docker-owned data files require `chown` before local dev writes** — When Docker containers write to `data/` volume mounts, files become `root`-owned. Before running `npm run dev:all` or the migration script, run: `sudo chown -R jwilley:jwilley data/` and `sudo chown jwilley:jwilley data/shared/conductor.db*`. Symptom: `SQLITE_READONLY` error on startup or `EACCES` on file write.
 
 ---
 
@@ -230,6 +231,8 @@ In `COLLATOR_MODE=cloud`, also contains `event_permissions (camporee_id, user_id
   - Composer stores: `game.scoring_model.inputs[]` (nested `config` object)
   - Collator serves: `game.fields[]` (config properties spread to root: `min`, `max`, `placeholder` at top level)
 - The Composer's `SYSTEM_PRESETS` array and the `data/*/presets.json` files must stay in sync when adding or changing presets.
+- **`getGameTier(game, camporee)`** in `public/js/core/schema.js` is the canonical way to resolve a game's roster tier from its league. Browser + Node safe. Returns `"unit" | "subunit" | "individual" | null`. Never derive tier from `game.type`.
+- **view-mode → league mapping**: `official.js` and `utils.js` have a local `getLeagueForViewMode(viewMode)` that maps HTML `<select>` option values (`'patrol'`, `'troop'`, `'exhibition'`) to schema v3 league IDs. `judge.js` has `getEntityTypeForLeague(league)` that maps a game league back to the DB entity type (`'patrol'` | `'troop'`) for roster filtering.
 
 ---
 
@@ -300,7 +303,8 @@ GL.iNet Opal custom DNS: add `address=/camporeeconductor.com/192.168.8.XXX` so j
 - **Brand palette** — green/gold palette (`--green-dark`, `--green-mid`, `--green-light`, `--gold`, `--gold-light`, `--cream`, `--slate`) added to `conductor.css` `:root`; app brand vars (`--brand-main`, `--brand-header`, `--brand-accent`) remapped to green/gold; `landing.css` references these vars — `conductor.css` is the single source of truth
 - **Subdomain routing + dedicated landing service** — Caddyfile 3-block subdomain config with `{$CADDY_HOST:localhost}` template; nginx replaced by dedicated `landing` Express service (`Dockerfile.landing`, port 3002); `caddy_data` named volume; `CADDY_HOST` env var controls domain in both dev and prod
 - **Landing page brand logo** — `CamporeeConductor.png` badge in nav (40px) and hero (120px); `.logo-img` + `.hero-badge` in `landing.css`
-- **Schema v3.0 design** — `game.type` removed, replaced by `game.league` (FK to `camporee.leagues[]`); `terminology`, `sessions[]`, `rosters` added to `camporee.json`; full spec in `CAMPOREESCHEMA.md`; implementation work tracked in BACKLOG.md under "Schema v3.0 Work"
+- **Schema v3.0 design** — `game.type` removed, replaced by `game.league` (FK to `camporee.leagues[]`); `terminology`, `sessions[]`, `rosters` added to `camporee.json`; full spec in `CAMPOREESCHEMA.md`
+- **Schema v3.0 implementation** — all 5 prompts complete, merged to `main` (2026-06-04). AJV schemas updated; `scripts/migrate-schema-v3.js` ran against all workspaces (3 camporee.json, 119 games, 3 presets.json migrated); `getGameTier()` added to `schema.js`; `injectCommonFields()` uses `game.league`; Composer SPA league selector live; all client JS (`official.js`, `utils.js`, `judge.js`, `admin.js`) updated; 22/22 tests passing.
 
 ### Still Open
 
