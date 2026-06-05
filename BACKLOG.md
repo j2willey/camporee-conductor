@@ -83,6 +83,15 @@ Flagged for post-schema-v3 cleanup:
 
 ## Active Backlog
 
+### Pre-VPS Blockers
+
+- [ ] **DATA_DIR — data outside the repo** — `docker-compose.yml` currently mounts `./data/...` (relative paths inside the repo). Add `DATA_DIR` to `.env` (default `./data`, prod `/opt/camporee-conductor-data`); update all volume mounts to `${DATA_DIR}/X:/app/data/X`. See `ARCHITECTURE.md §1`.
+- [ ] **Full browser smoke test** — Google sign-in → profile → create event → invite collaborator → verify event_permissions row in DB
+- [ ] **Clean `docker compose up --build`** — confirm explicit named test on fresh build
+- [ ] **Clerk Production instance** — configure real domain, Google OAuth callback for camporeeconductor.com
+- [ ] **Set SESSION_SECRET in .env** — collator.js falls back to hardcoded insecure default; must be set via env var for any internet-facing deploy
+- [ ] **E2E test fix** — 4 tests fail when Docker containers are running; root cause unrelated to schema-v3
+
 ### Infrastructure / Analytics
 
 - ✅ **Analytics — Cloudflare** — basic traffic stats (page views, requests, bots vs humans, countries) available free via Cloudflare dashboard; no setup required since domain already runs through Cloudflare
@@ -126,6 +135,22 @@ Flagged for post-schema-v3 cleanup:
 ### Infrastructure
 
 - [ ] **Server consolidation** — root-level legacy files (composer_server.js) still exist alongside src/servers/; clean up after confirming nothing depends on them
+
+### Curator / Community Library (Post-Deploy)
+
+Full design in `ARCHITECTURE.md`. Summary of work to build out:
+
+- [ ] **Games as first-class citizens** — refactor nested `workspaces/{id}/games/` into flat `data/games/{gameId}/` pool; camporee.json becomes a manifest of gameIds; add `source_game_id` for fork lineage. See `ARCHITECTURE.md §3`.
+- [ ] **`is_public` flag on camporees and games** — foundation for Curator Model B (index); Curator queries `WHERE is_public = true`
+- [ ] **`is_library_game` flag** — sysadmin-curated canonical game library; toggle in sysadmin panel
+- [ ] **CuratorService abstraction** — stable interface (`getPublicCamporees`, `getPublicGames`, `submit`, `fork`); Model B implementation first, swappable to Model A vault later
+- [ ] **Localization tokens** — `{{venue_name}}`, `{{event_date}}`, `{{council_name}}`, etc. in game stories; apply to Coyote Creek seed content; guide contributors in game editor UI. See `ARCHITECTURE.md §5`.
+- [ ] **AI Templatize tool** — converts a run camporee into a Curator-ready template (strips PII, injects tokens, suggests theme name); director review/approve flow before Curator submission. See `ARCHITECTURE.md §8`.
+- [ ] **Wizard 1 — Build from scratch** — interview director for theme/dates/venue; scaffold camporee; suggest matching library games. See `ARCHITECTURE.md §9`.
+- [ ] **Wizard 2 — Localize a template** — interview for localization fields only; single-pass `{{token}}` replacement across all game stories and camporee manifest. See `ARCHITECTURE.md §9`.
+- [ ] **New user onboarding** — detect zero `event_permissions` rows on first login; redirect to Curator with Wizard 1/2 entry point rather than empty Composer workspace. See `ARCHITECTURE.md §10`.
+- [ ] **Post-event share prompt** — after event date passes, prompt director: "Want to share this camporee with the community?" This is the key mechanism for library growth.
+- [ ] **Curator Model A vault** — dedicated Curator content store; submission copies content with templatization applied once; enables independent template versioning (v1, v2, v3)
 
 ### Documentation
 
