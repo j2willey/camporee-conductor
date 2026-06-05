@@ -77,6 +77,8 @@ const curator = {
     originalData: null,
     presets: JSON.parse(JSON.stringify(SYSTEM_PRESETS)),
     api: new ApiClient('/composer/api'),
+    mode: 'games',
+    templatesLoaded: false,
 
     generateUUID: function () {
         return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
@@ -1068,6 +1070,120 @@ const curator = {
         } catch (err) {
             console.error("Preview render failed:", err);
             alert("Failed to render preview. Check console for details.");
+        }
+    },
+
+    // ── CAMPOREE TEMPLATES MODE ───────────────────────────────────────────────
+
+    setMode: function (mode) {
+        this.mode = mode;
+        const isGames = mode === 'games';
+
+        document.getElementById('library-sidebar').style.display = isGames ? '' : 'none';
+        document.getElementById('composer-main-pane').style.display = isGames ? '' : 'none';
+        document.getElementById('template-sidebar').style.display = isGames ? 'none' : '';
+        document.getElementById('template-main').style.display = isGames ? 'none' : '';
+        document.getElementById('newTemplateBtn').style.display = isGames ? '' : 'none';
+
+        document.getElementById('modeGames').classList.toggle('active', isGames);
+        document.getElementById('modeCamporees').classList.toggle('active', !isGames);
+
+        if (!isGames && !this.templatesLoaded) {
+            this.loadTemplates();
+        }
+    },
+
+    loadTemplates: async function () {
+        const listEl = document.getElementById('template-list');
+        listEl.innerHTML = '<div class="text-center text-muted p-4"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+        try {
+            const res = await fetch('/curator/api/templates');
+            if (!res.ok) throw new Error(`Server error ${res.status}`);
+            const templates = await res.json();
+            this.templatesLoaded = true;
+
+            if (templates.length === 0) {
+                listEl.innerHTML = '<div class="text-muted small p-3">No camporee templates in the library yet.</div>';
+                return;
+            }
+
+            listEl.innerHTML = templates.map(t => `
+                <div class="card mb-2 template-card" style="cursor:pointer" onclick="curator.previewTemplate('${t.id}')">
+                    <div class="card-body p-2">
+                        <div class="fw-bold">${t.title}</div>
+                        <div class="text-muted small">${t.theme} · ${t.year} · ${t.gameCount} games</div>
+                    </div>
+                </div>
+            `).join('');
+        } catch (e) {
+            listEl.innerHTML = `<div class="text-danger small p-3">Error loading templates: ${e.message}</div>`;
+        }
+    },
+
+    previewTemplate: async function (id) {
+        document.querySelectorAll('.template-card').forEach(c => c.classList.remove('border', 'border-primary'));
+        const card = document.querySelector(`.template-card[onclick="curator.previewTemplate('${id}')"]`);
+        if (card) card.classList.add('border', 'border-primary');
+
+        const previewEl = document.getElementById('template-preview');
+        previewEl.innerHTML = '<div class="text-center text-muted p-4"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+
+        try {
+            const res = await fetch(`/curator/api/templates/${id}/meta`);
+            if (!res.ok) throw new Error(`Server error ${res.status}`);
+            const { camporee, games, tokens } = await res.json();
+            const m = camporee.meta || {};
+
+            const gameListHtml = games.length > 0
+                ? `<ul class="list-unstyled mb-0">${games.map(g =>
+                    `<li><i class="fas fa-check-circle text-success me-1"></i>${g.content?.title || g.id}</li>`
+                  ).join('')}</ul>`
+                : '<span class="text-muted">No games</span>';
+
+            const tokensHtml = tokens.length > 0
+                ? `<div class="mt-3">
+                       <div class="fw-bold mb-1">Localization tokens</div>
+                       ${tokens.map(t => `<span class="badge bg-secondary me-1 mb-1">{{${t}}}</span>`).join('')}
+                   </div>`
+                : '<div class="mt-3 text-muted small fst-italic">This template has no localization tokens — all location/date details are hardcoded.</div>';
+
+            previewEl.innerHTML = `
+                <h4>${m.title || 'Untitled'}</h4>
+                <div class="text-muted mb-3">${[m.theme, m.year, `${games.length} games`].filter(Boolean).join(' · ')}</div>
+                <div class="mb-3">
+                    <div class="fw-bold mb-1">Games</div>
+                    ${gameListHtml}
+                </div>
+                ${tokensHtml}
+                <button class="btn btn-success btn-lg mt-3" id="useTemplateBtn" onclick="curator.useTemplate('${id}')">
+                    <i class="fas fa-arrow-right"></i> Use This Template
+                </button>
+            `;
+        } catch (e) {
+            previewEl.innerHTML = `<div class="text-danger p-3">Error: ${e.message}</div>`;
+        }
+    },
+
+    useTemplate: async function (id) {
+        const btn = document.getElementById('useTemplateBtn');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating workspace...';
+        }
+        try {
+            const res = await this.api._fetch(`${this.api.baseUrl}/from-template/${id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const result = await res.json();
+            if (!res.ok) throw new Error(result.error || 'Failed to create workspace');
+            window.location.href = `/composer/?event=${result.id}`;
+        } catch (e) {
+            alert('Failed to use template: ' + e.message);
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-arrow-right"></i> Use This Template';
+            }
         }
     },
 

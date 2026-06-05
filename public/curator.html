@@ -56,11 +56,16 @@
             </a>
 
             <div class="d-flex align-items-center">
-                <button class="btn btn-outline-light btn-sm me-2" onclick="curator.newTemplate()">
+                <button class="btn btn-outline-light btn-sm me-2" id="newTemplateBtn" onclick="curator.newTemplate()">
                     <i class="fas fa-plus"></i> New Template
                 </button>
-                <div class="text-white-50 small ms-3">
-                    Managing Library Catalog
+                <div class="btn-group ms-3" role="group">
+                    <button class="btn btn-outline-light btn-sm active" id="modeGames" onclick="curator.setMode('games')">
+                        <i class="fas fa-puzzle-piece"></i> Games
+                    </button>
+                    <button class="btn btn-outline-light btn-sm" id="modeCamporees" onclick="curator.setMode('camporees')">
+                        <i class="fas fa-campground"></i> Camporee Templates
+                    </button>
                 </div>
             </div>
         </div>
@@ -104,6 +109,29 @@
 
             </div>
         </main>
+
+        <!-- CAMPOREE TEMPLATES MODE — sidebar + main, hidden until setMode('camporees') -->
+        <div id="template-sidebar" style="display:none; width:350px; flex-shrink:0; overflow-y:auto; border-right:1px solid #ddd; background:#f8f9fa;">
+            <div class="sidebar-header p-3 border-bottom d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-campground"></i> Camporee Templates</h5>
+                <button class="btn btn-sm btn-link text-muted" onclick="curator.loadTemplates()">
+                    <i class="fas fa-sync"></i>
+                </button>
+            </div>
+            <div id="template-list" class="p-2">
+                <div class="text-center text-muted p-4">Loading...</div>
+            </div>
+        </div>
+
+        <div id="template-main" style="display:none; overflow-y:auto;" class="flex-grow-1 p-4">
+            <div id="template-preview">
+                <div class="text-center text-muted p-5">
+                    <i class="fas fa-campground fa-3x mb-3 d-block"></i>
+                    Select a camporee template from the list to preview it.
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <!-- Modals -->

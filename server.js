@@ -115,7 +115,7 @@ async function startServer() {
                 composerApp(req, res, next);
             });
         }
-        app.get('/curator', (req, res) => res.redirect('/curator/'));
+        app.get(['/curator', '/curator/'], (req, res) => res.sendFile(path.join(__dirname, 'public', 'curator.html')));
         app.use('/curator/', express.static(path.join(__dirname, 'public')));
         // Also map library for curator UI access
         app.use('/curator/library/games', express.static(process.env.LIBRARY_PATH || path.join(__dirname, 'data', 'library')));
