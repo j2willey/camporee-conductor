@@ -36,7 +36,7 @@ const renderDashboard = (activeServices) => `
 <body>
     <div class="hero text-center">
         <h1 class="display-4 fw-bold"><i class="fas fa-campground"></i> Camporee Conductor</h1>
-        <p class="lead text-white-50">Local Development Launchpad</p>
+        <p class="lead text-white-50">Event Design &amp; Management</p>
     </div>
     
     <div class="container">
@@ -132,14 +132,15 @@ async function startServer() {
 
     // --- ROOT ROUTING (The Gateway) ---
     app.get('/', (req, res) => {
-        if (ACTIVE_SERVICES.length === 1 && ACTIVE_SERVICES[0] === 'composer') {
-            // Production: marketing site is served by nginx at camporeeconductor.com
+        if (ACTIVE_SERVICES.includes('composer')) {
+            // Composer is the user-facing entry point — go there directly.
+            // Curator is an internal admin tool, not a landing destination.
             res.redirect('/composer/');
         } else if (ACTIVE_SERVICES.length === 1) {
-            // Single-service non-composer (e.g. collator-only): redirect into the service
+            // Single non-composer service (e.g. collator-only)
             res.redirect(`/${ACTIVE_SERVICES[0]}/`);
         } else {
-            // Multi-service (dev): developer dashboard
+            // Dev multi-service without composer — show dashboard
             res.send(renderDashboard(ACTIVE_SERVICES));
         }
     });
