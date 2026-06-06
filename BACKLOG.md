@@ -42,6 +42,7 @@
 - ✅ Legacy root-level server files deleted — `collator-server.js` and `composer_server.js` removed; no live references (2026-06-06)
 - ✅ E2E tests pass regardless of Docker state — E2E webServers moved to ports 4000/4001 (Docker never binds there); `reuseExistingServer: false`; `TEST_MODE` bypass added to collator `requireOfficial`, page-redirect middleware, and `whoami`; `beforeAll` uploads minimal cartridge for tests needing a loaded event; 8/8 passing (2026-06-06)
 - ✅ UUID workspace IDs — workspace folder names are now always auto-generated UUIDs; user provides a human-friendly Camporee Name stored as `meta.title`; server enforces UUID format on all workspace routes; first-time welcome pane shown when user has no camporees; per-user title uniqueness checked client-side (2026-06-06)
+- ✅ **camporeeconductor.com LIVE** — VPS deployed; Clerk Production + Google OAuth configured; SESSION_SECRET set; 2GB swap added; Dockerfile npm install path fixed (2026-06-06)
 
 ---
 
@@ -57,9 +58,9 @@ All 5 prompts done. Flagged for future cleanup:
 
 ### Pre-VPS Blockers
 
-- [ ] **Clerk Production instance** — configure production Clerk app for camporeeconductor.com; update `CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` in VPS `.env`; set Google OAuth callback URL; test full sign-in flow
-- [ ] **Set SESSION_SECRET in .env** — collator.js falls back to hardcoded insecure default; generate with `openssl rand -hex 32` and set in `.env` before any internet-facing deploy
-- [ ] **Full browser smoke test** — Google sign-in → profile → create event → invite collaborator → verify `event_permissions` row in DB; requires Production Clerk instance
+- ✅ **Clerk Production instance** — configured; Google OAuth working (2026-06-06)
+- ✅ **Set SESSION_SECRET** — real value set on VPS (2026-06-06)
+- [ ] **Full browser smoke test** — Google sign-in → create camporee (UUID/name flow) → invite collaborator → verify `event_permissions` row in DB
 - ✅ **E2E test fix** — 8/8 Playwright tests pass regardless of Docker state (ports 4000/4001; 2026-06-06)
 
 ### Infrastructure / Analytics

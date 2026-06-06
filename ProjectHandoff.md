@@ -186,8 +186,10 @@ Requires `GEMINI_API_KEY` in `.env` for AI features. Do not commit this file.
 - Legacy server files (`collator-server.js`, `composer_server.js`) deleted
 - First-time welcome pane in Composer for new users with no camporees
 
+- **camporeeconductor.com LIVE** — VPS deployed 2026-06-06; Clerk Production + Google OAuth; SESSION_SECRET; 2GB swap; npm prune fix
+
 ### Open Backlog (as of June 6)
-- **VPS deployment** — Clerk Production instance, `SESSION_SECRET`, TLS model verification
+- **Browser smoke test** — Google sign-in → create camporee → invite collaborator → verify DB (last pre-launch check)
 - **Judge token API + UI** — `judge_tokens` table (migration 009) ready; endpoint + director panel not built
 - **Challenge Match ("True 2nd Place")** — DB tables exist, trigger logic TODO
 - **WebSocket leaderboard** — `official.js` currently polls every 15s

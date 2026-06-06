@@ -241,7 +241,7 @@ In `COLLATOR_MODE=cloud`, also contains `event_permissions (camporee_id, user_id
 
 ---
 
-## Deployment Architecture (as of 2026-06-06)
+## Deployment Architecture (as of 2026-06-06 — camporeeconductor.com is LIVE)
 
 ### Docker services (4 containers)
 
@@ -288,10 +288,10 @@ GL.iNet Opal custom DNS: add `address=/camporeeconductor.com/192.168.8.XXX` so j
 
 See `BACKLOG.md` for the full living backlog. Key open items:
 
-### Pre-VPS Blockers
-- **Clerk Production instance** — configure for camporeeconductor.com; update keys in VPS `.env`
-- **Set `SESSION_SECRET`** in VPS `.env` (collator has insecure hardcoded fallback)
-- **Full browser smoke test** — Google sign-in → create event → invite collaborator (requires Clerk Production)
+### Pre-VPS Blockers — All resolved except smoke test
+- ✅ Clerk Production — configured, Google OAuth working
+- ✅ SESSION_SECRET — real value set on VPS
+- **Full browser smoke test** — Google sign-in → create camporee → invite collaborator → verify DB row (last remaining pre-VPS check)
 
 ### Curator / Community Library
 - **Director self-submission** — `POST /curator/api/templates` is sysadmin-only; open to directors
