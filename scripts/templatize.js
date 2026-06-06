@@ -434,6 +434,92 @@ async function runAnalyze(sourcePath, isZip) {
     console.log(`  node scripts/templatize.js --apply ${stagingId}\n`);
 }
 
+// ── Phase 1b: Analyze only (re-run AI on existing staging workspace) ─────────
+
+async function runAnalyzeOnly(stagingId) {
+    const stagingPath = path.join(STAGING_DIR, stagingId);
+    if (!fs.existsSync(stagingPath)) {
+        console.error(`Staging workspace not found: ${stagingPath}`);
+        console.error('Run --list to see available staging workspaces.');
+        process.exit(1);
+    }
+
+    const camporeeFile = path.join(stagingPath, 'camporee.json');
+    if (!fs.existsSync(camporeeFile)) {
+        console.error('ERROR: camporee.json not found in staging workspace.');
+        process.exit(1);
+    }
+    const camporee = readJson(camporeeFile);
+
+    const knownValues = extractKnownValues(camporee);
+    console.log(`\nKnown values seeded from metadata (${Object.keys(knownValues).length}):`);
+    for (const [k, v] of Object.entries(knownValues)) {
+        console.log(`  "${k}" → ${v}`);
+    }
+
+    const corpus = collectGameCorpus(stagingPath);
+    console.log(`\nGame text corpus: ${Object.keys(corpus).length} file(s)`);
+
+    console.log(`\nCalling AI (${PROVIDER}) for deep scan...`);
+    const prompt = buildPrompt(camporee, knownValues, corpus);
+    let aiResponse;
+    try {
+        const raw = await generateText(prompt);
+        aiResponse = parseJsonResponse(raw);
+    } catch (err) {
+        console.error('AI call failed:', err.message);
+        process.exit(1);
+    }
+
+    const { token_map = {}, flagged = [], template_meta = {} } = aiResponse;
+
+    console.log(`\nApplying ${Object.keys(token_map).length} token replacements...`);
+    const changes = applyTokensToWorkspace(stagingPath, token_map);
+    console.log(`  ${changes.length} field(s) modified across ${new Set(changes.map(c => c.file)).size} file(s)`);
+
+    const manifest = {
+        stagingId,
+        createdAt: new Date().toISOString(),
+        aiProvider: PROVIDER,
+        source: 'resumed',
+        token_map,
+        changes,
+        flagged,
+        template_meta,
+        instructions: [
+            '1. Review the changes[] to confirm token replacements look correct.',
+            '2. Review the flagged[] items and manually update staging files if needed.',
+            '3. Update template_meta with your preferred title/description/tags.',
+            `4. When satisfied, run: node scripts/templatize.js --apply ${stagingId}`,
+        ],
+    };
+    writeJson(path.join(stagingPath, 'templatize-manifest.json'), manifest);
+
+    console.log('\n' + '='.repeat(60));
+    console.log('ANALYSIS COMPLETE — HUMAN REVIEW REQUIRED');
+    console.log('='.repeat(60));
+    console.log(`\nStaging ID : ${stagingId}`);
+
+    console.log(`\nToken map (${Object.keys(token_map).length} replacements):`);
+    for (const [k, v] of Object.entries(token_map)) {
+        console.log(`  "${k}" → ${v}`);
+    }
+    if (flagged.length > 0) {
+        console.log(`\n⚠️  FLAGGED ITEMS (${flagged.length}):`);
+        for (const item of flagged) {
+            console.log(`  [${item.file}] ${item.field}: "${item.excerpt}"`);
+            console.log(`    → ${item.reason}`);
+        }
+    }
+    if (template_meta.title) {
+        console.log(`\nSuggested Curator entry:`);
+        console.log(`  Title: ${template_meta.title}`);
+        console.log(`  Desc : ${template_meta.description}`);
+        console.log(`  Tags : ${(template_meta.tags || []).join(', ')}`);
+    }
+    console.log(`\nNext: node scripts/templatize.js --apply ${stagingId}\n`);
+}
+
 // ── Phase 2: Apply ───────────────────────────────────────────────────────────
 
 async function runApply(stagingId) {
@@ -562,11 +648,12 @@ const args = process.argv.slice(2);
 function usage() {
     console.log(`
 Usage:
-  node scripts/templatize.js --workspace <uuid>    Analyze a Composer workspace
-  node scripts/templatize.js --zip <path>          Analyze a cartridge zip
-  node scripts/templatize.js --apply <staging-id>  Submit staged template to Curator
-  node scripts/templatize.js --list                List staging workspaces
-  node scripts/templatize.js --clean <staging-id>  Delete a staging workspace
+  node scripts/templatize.js --workspace <uuid>     Unpack workspace + run AI + write manifest
+  node scripts/templatize.js --zip <path>           Unpack zip      + run AI + write manifest
+  node scripts/templatize.js --analyze <staging-id> Re-run AI on existing staging (retry after failure)
+  node scripts/templatize.js --apply <staging-id>   Submit staged template to Curator
+  node scripts/templatize.js --list                 List staging workspaces
+  node scripts/templatize.js --clean <staging-id>   Delete a staging workspace
 `.trim());
 }
 
@@ -588,6 +675,9 @@ if (args[0] === '--workspace' && args[1]) {
         process.exit(1);
     }
     runAnalyze(zipPath, true).catch(err => { console.error(err); process.exit(1); });
+
+} else if (args[0] === '--analyze' && args[1]) {
+    runAnalyzeOnly(args[1]).catch(err => { console.error(err); process.exit(1); });
 
 } else if (args[0] === '--apply' && args[1]) {
     runApply(args[1]).catch(err => { console.error(err); process.exit(1); });
