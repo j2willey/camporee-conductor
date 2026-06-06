@@ -53,17 +53,18 @@ dotenvConfig({ path: path.join(ROOT, '.env') });
 // ── Path resolution ──────────────────────────────────────────────────────────
 
 const DATA_DIR = process.env.DATA_DIR || path.join(ROOT, 'data');
-console.error('DEBUG ROOT:', ROOT);
-console.error('DEBUG DATA_DIR:', DATA_DIR);
-console.error('DEBUG WORKSPACE_PATH raw:', process.env.WORKSPACE_PATH);
 
-const WORKSPACE_PATH = process.env.WORKSPACE_PATH
-    || path.join(DATA_DIR, 'composer', 'workspaces');
+// .env may contain Docker-relative paths (e.g. ./data/composer/workspaces).
+// If an env var resolves to a relative path, ignore it and derive from DATA_DIR.
+function resolveDataPath(envVar, dataSubpath) {
+    const val = process.env[envVar];
+    if (val && path.isAbsolute(val)) return val;
+    return path.join(DATA_DIR, dataSubpath);
+}
 
-// Docker maps DATA_DIR/curator → /app/data/library (LIBRARY_PATH).
-// Outside Docker, derive from DATA_DIR/curator directly.
-const LIBRARY_PATH = process.env.LIBRARY_PATH
-    || path.join(DATA_DIR, 'curator');
+const WORKSPACE_PATH = resolveDataPath('WORKSPACE_PATH', 'composer/workspaces');
+// Docker maps DATA_DIR/library → /app/data/library (LIBRARY_PATH).
+const LIBRARY_PATH   = resolveDataPath('LIBRARY_PATH', 'library');
 
 const TEMPLATES_DIR  = path.join(LIBRARY_PATH, 'templates');
 const CATALOG_PATH   = path.join(TEMPLATES_DIR, 'template-catalog.json');
