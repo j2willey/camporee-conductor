@@ -49,11 +49,15 @@ const ROOT = path.join(__dirname, '..');
 
 // ── Path resolution ──────────────────────────────────────────────────────────
 
-const WORKSPACE_PATH = process.env.WORKSPACE_PATH
-    || path.join(ROOT, 'data', 'composer', 'workspaces');
+const DATA_DIR = process.env.DATA_DIR || path.join(ROOT, 'data');
 
+const WORKSPACE_PATH = process.env.WORKSPACE_PATH
+    || path.join(DATA_DIR, 'composer', 'workspaces');
+
+// Docker maps DATA_DIR/curator → /app/data/library (LIBRARY_PATH).
+// Outside Docker, derive from DATA_DIR/curator directly.
 const LIBRARY_PATH = process.env.LIBRARY_PATH
-    || path.join(ROOT, 'data', 'library');
+    || path.join(DATA_DIR, 'curator');
 
 const TEMPLATES_DIR  = path.join(LIBRARY_PATH, 'templates');
 const CATALOG_PATH   = path.join(TEMPLATES_DIR, 'template-catalog.json');
