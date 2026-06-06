@@ -67,6 +67,7 @@ const composer = {
     dragSrcGameId: null,
     libraryCatalog: null,
     aiUpdateSnapshot: null,
+    camporeeList: [],   // cached list of user's camporees for name-uniqueness checks
 
     init: async function () {
         console.log("Composer App Initialized");
@@ -83,16 +84,27 @@ const composer = {
         }
 
         this.serverMode = await this.api.getStatus();
-        this.showPane('meta-pane', document.getElementById('btn-meta'));
         this.injectModals();
         this.bindGlobalEvents();
 
-        if (!this.data.meta.camporeeId) {
-            this.data.meta.camporeeId = this.generateUUID();
+        // Load the user's camporee list once at startup for name-uniqueness checks.
+        // Show a first-time welcome when the list is empty.
+        try {
+            this.camporeeList = await this.api.getCamporees();
+        } catch (e) {
+            this.camporeeList = [];
         }
 
-        this.renderServerControls();
-        this.renderGameLists();
+        if (this.camporeeList.length === 0) {
+            this._showFirstTimeWelcome();
+        } else {
+            if (!this.data.meta.camporeeId) {
+                this.data.meta.camporeeId = this.generateUUID();
+            }
+            this.showPane('meta-pane', document.getElementById('btn-meta'));
+            this.renderServerControls();
+            this.renderGameLists();
+        }
     },
 
     bindGlobalEvents: function () {
@@ -120,6 +132,21 @@ const composer = {
                 });
             }
         });
+
+        // Warn (but don't block) if the title matches another of the user's camporees.
+        const metaTitleEl = document.getElementById("metaTitle");
+        if (metaTitleEl) {
+            metaTitleEl.addEventListener("blur", (e) => {
+                const warnEl = document.getElementById("metaTitleDuplicateWarning");
+                if (!warnEl) return;
+                const val = e.target.value.trim().toLowerCase();
+                const currentId = this.data.meta.camporeeId;
+                const isDupe = val && this.camporeeList.some(
+                    c => c.id !== currentId && (c.title || '').trim().toLowerCase() === val
+                );
+                warnEl.classList.toggle('d-none', !isDupe);
+            });
+        }
 
         // Location binding
         ["metaLocName", "metaLocAddress"].forEach(id => {
@@ -218,10 +245,11 @@ const composer = {
         const nameText = document.getElementById('workspace-name-text');
         const dirtyIndicator = document.getElementById('workspace-dirty-indicator');
 
+        const title = this.data.meta.title;
         const id = this.data.meta.camporeeId;
         if (nameDisplay && nameText) {
             if (id) {
-                nameText.textContent = id;
+                nameText.textContent = title || id;
                 nameDisplay.classList.remove('d-none');
             } else {
                 nameDisplay.classList.add('d-none');
@@ -253,46 +281,35 @@ const composer = {
         await this.initiateServerSave();
     },
 
-    validateNewWorkspaceName: async function (val) {
+    validateNewWorkspaceName: function (val) {
         const statusEl = document.getElementById('newWorkspaceStatus');
         const confirmBtn = document.getElementById('newWorkspaceConfirmBtn');
+        const trimmed = (val || '').trim();
 
-        if (!val) {
+        if (!trimmed) {
             statusEl.innerHTML = '';
             confirmBtn.disabled = true;
             return;
         }
 
-        if (!/^[a-zA-Z0-9_-]+$/.test(val)) {
-            statusEl.innerHTML = '<span class="text-danger"><i class="fas fa-times-circle me-1"></i>Invalid characters. Use letters, numbers, hyphens, and underscores only.</span>';
+        const dupe = this.camporeeList.some(
+            c => (c.title || '').trim().toLowerCase() === trimmed.toLowerCase()
+        );
+        if (dupe) {
+            statusEl.innerHTML = '<span class="text-danger"><i class="fas fa-times-circle me-1"></i>You already have a camporee with this name.</span>';
             confirmBtn.disabled = true;
             return;
         }
 
-        statusEl.innerHTML = '<span class="text-muted"><i class="fas fa-spinner fa-spin me-1"></i>Checking availability...</span>';
-        confirmBtn.disabled = true;
-
-        try {
-            const check = await this.api.getCamporeeMeta(val);
-            if (check.exists) {
-                statusEl.innerHTML = `<span class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Workspace "<strong>${val}</strong>" already exists — creating will overwrite it.</span>`;
-                confirmBtn.innerHTML = '<i class="fas fa-check"></i> Create (Overwrite)';
-            } else {
-                statusEl.innerHTML = '<span class="text-success"><i class="fas fa-check-circle me-1"></i>Workspace ID is available.</span>';
-                confirmBtn.innerHTML = '<i class="fas fa-check"></i> Create';
-            }
-            confirmBtn.disabled = false;
-        } catch (e) {
-            statusEl.innerHTML = '<span class="text-muted small"><i class="fas fa-info-circle me-1"></i>Could not verify availability — server may be offline.</span>';
-            confirmBtn.innerHTML = '<i class="fas fa-check"></i> Create';
-            confirmBtn.disabled = false;
-        }
+        statusEl.innerHTML = '<span class="text-success"><i class="fas fa-check-circle me-1"></i>Name is available.</span>';
+        confirmBtn.innerHTML = '<i class="fas fa-check"></i> Create';
+        confirmBtn.disabled = false;
     },
 
     confirmNewWorkspace: function () {
-        const idInput = document.getElementById('newWorkspaceId');
-        const newId = idInput ? idInput.value.trim() : '';
-        if (!newId) return;
+        const nameInput = document.getElementById('newWorkspaceName');
+        const name = nameInput ? nameInput.value.trim() : '';
+        if (!name) return;
 
         const modalEl = document.getElementById('newWorkspaceModal');
         if (modalEl) {
@@ -300,33 +317,13 @@ const composer = {
             if (modal) modal.hide();
         }
 
-        this.data.games = [];
-        this.data.meta = {
-            camporeeId: newId,
-            title: "New Camporee",
-            theme: "",
-            year: new Date().getFullYear(),
-            theme_colors: { main: '#0d6efd', header: '#34495e', accent: '#3498db' }
-        };
-        this.data.leagues = JSON.parse(JSON.stringify(DEFAULT_LEAGUES));
-        this.data.sessions = [];
-        this.data.rosters = { units: [], subunits: [], individuals: [] };
-        this.data.terminology = null;
-        this.data.type_defaults = JSON.parse(JSON.stringify(DEFAULT_TYPE_DEFAULTS));
-        this.presets = JSON.parse(JSON.stringify(SYSTEM_PRESETS));
-        this.activeGameId = null;
-        this._markDirty();
-        this._updateNavbar();
-        this.updateMetaUI();
-        this.renderGameLists();
-        const editorContainer = document.getElementById("editor-container");
-        if (editorContainer) editorContainer.innerHTML = '<p class="text-muted">Select a game to edit.</p>';
-        this.showPane('meta-pane', document.getElementById('btn-meta'));
+        this._initFreshWorkspace(name);
     },
 
     openServerLoadModal: async function () {
         try {
             const list = await this.api.getCamporees();
+            this.camporeeList = list;
             const listEl = document.getElementById("serverLoadList");
 
             if (list.length > 0) {
@@ -360,7 +357,7 @@ const composer = {
     },
 
     loadFromServer: async function (id) {
-        const dirtyWarning = this.isDirty ? ` (you have unsaved changes in "${this.data.meta.camporeeId || 'current workspace'}")` : '';
+        const dirtyWarning = this.isDirty ? ` (you have unsaved changes in "${this.data.meta.title || 'current workspace'}")` : '';
         if (!confirm(`Load workspace '${id}'?${dirtyWarning} Unsaved changes will be lost.`)) return;
 
         try {
@@ -726,14 +723,74 @@ const composer = {
         this.renderGameLists();
     },
 
+    // Shared workspace-initialization logic used by both modal and first-time welcome.
+    _initFreshWorkspace: function (name) {
+        const newId = this.generateUUID();
+        this.data.games = [];
+        this.data.meta = {
+            camporeeId: newId,
+            title: name,
+            theme: "",
+            year: new Date().getFullYear(),
+            theme_colors: { main: '#0d6efd', header: '#34495e', accent: '#3498db' }
+        };
+        this.data.leagues = JSON.parse(JSON.stringify(DEFAULT_LEAGUES));
+        this.data.sessions = [];
+        this.data.rosters = { units: [], subunits: [], individuals: [] };
+        this.data.terminology = null;
+        this.data.type_defaults = JSON.parse(JSON.stringify(DEFAULT_TYPE_DEFAULTS));
+        this.presets = JSON.parse(JSON.stringify(SYSTEM_PRESETS));
+        this.activeGameId = null;
+        this._markDirty();
+        this._updateNavbar();
+        this.updateMetaUI();
+        this.renderGameLists();
+        const editorContainer = document.getElementById("editor-container");
+        if (editorContainer) editorContainer.innerHTML = '<p class="text-muted">Select a game to edit.</p>';
+        // Hide first-time welcome if it was showing; reveal normal editor
+        const welcomePane = document.getElementById('first-time-welcome-pane');
+        if (welcomePane) welcomePane.classList.add('d-none');
+        this.showPane('meta-pane', document.getElementById('btn-meta'));
+    },
+
+    // Show the first-time welcome pane (hides meta-pane and sidebar content).
+    _showFirstTimeWelcome: function () {
+        const metaPane = document.getElementById('meta-pane');
+        if (metaPane) metaPane.classList.add('d-none');
+        const welcomePane = document.getElementById('first-time-welcome-pane');
+        if (welcomePane) welcomePane.classList.remove('d-none');
+        this.renderServerControls();
+        this.renderGameLists();
+    },
+
+    validateFirstTimeName: function (val) {
+        const statusEl = document.getElementById('firstTimeStatus');
+        const btn = document.getElementById('firstTimeCreateBtn');
+        const trimmed = (val || '').trim();
+        if (!trimmed) {
+            if (statusEl) statusEl.textContent = '';
+            if (btn) btn.disabled = true;
+            return;
+        }
+        if (statusEl) statusEl.textContent = '';
+        if (btn) btn.disabled = false;
+    },
+
+    confirmFirstTimeCamporee: function () {
+        const nameInput = document.getElementById('firstTimeName');
+        const name = nameInput ? nameInput.value.trim() : '';
+        if (!name) return;
+        this._initFreshWorkspace(name);
+    },
+
     newCamporee: function () {
         const modalEl = document.getElementById('newWorkspaceModal');
         if (modalEl) {
-            const idInput = document.getElementById('newWorkspaceId');
+            const nameInput = document.getElementById('newWorkspaceName');
             const statusEl = document.getElementById('newWorkspaceStatus');
             const confirmBtn = document.getElementById('newWorkspaceConfirmBtn');
             const dirtyAlert = document.getElementById('newWorkspaceDirtyAlert');
-            if (idInput) idInput.value = '';
+            if (nameInput) nameInput.value = '';
             if (statusEl) statusEl.innerHTML = '';
             if (confirmBtn) { confirmBtn.disabled = true; confirmBtn.innerHTML = '<i class="fas fa-check"></i> Create'; }
             if (dirtyAlert) {

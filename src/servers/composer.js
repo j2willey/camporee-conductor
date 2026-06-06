@@ -293,8 +293,8 @@ app.get('/api/camporee/:id', requireAuth, requireEventRole('viewer'), (req, res)
     try {
         const id = req.params.id;
 
-        // Security: Prevent directory traversal
-        if (!/^[a-zA-Z0-9_-]+$/.test(id)) {
+        // Security: workspace IDs are always UUIDs — reject anything else
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id)) {
             return res.status(400).json({ error: "Invalid ID format" });
         }
 
@@ -356,7 +356,7 @@ app.get('/api/camporee/:id', requireAuth, requireEventRole('viewer'), (req, res)
 app.get('/api/camporee/:id/meta', requireAuth, requireEventRole('viewer'), (req, res) => {
     try {
         const id = req.params.id;
-        if (!/^[a-zA-Z0-9_-]+$/.test(id)) return res.status(400).json({ error: "Invalid ID" });
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id)) return res.status(400).json({ error: "Invalid ID" });
 
         const metaPath = path.join(WORKSPACE_PATH, id, 'camporee.json');
 
@@ -382,7 +382,7 @@ app.post('/api/camporee/:id', requireAuth, requireEventRole('editor'), (req, res
         const payload = req.body; // { meta, games, presets }
         const { userId } = getAuth(req);
 
-        if (!/^[a-zA-Z0-9_-]+$/.test(id)) return res.status(400).json({ error: "Invalid ID" });
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id)) return res.status(400).json({ error: "Invalid ID" });
 
         const dir = path.join(WORKSPACE_PATH, id);
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });

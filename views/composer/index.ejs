@@ -183,6 +183,28 @@
                 <h4>Select an item from the left</h4>
             </div>
 
+            <!-- First-time user welcome — shown when the user has no camporees yet -->
+            <div id="first-time-welcome-pane" class="text-center mt-5 d-none editor-pane">
+                <i class="fas fa-campground fa-3x text-primary mb-3 d-block"></i>
+                <h4 class="fw-bold mb-2">Welcome to Camporee Composer</h4>
+                <p class="text-muted mb-4">You don't have any camporees yet. Let's create your first one.</p>
+                <div class="mx-auto text-start" style="max-width: 400px;">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Camporee Name</label>
+                        <input type="text" class="form-control" id="firstTimeName"
+                            placeholder="e.g. Coyote Creek Camporee 2027"
+                            oninput="composer.validateFirstTimeName(this.value)">
+                        <div id="firstTimeStatus" class="form-text"></div>
+                    </div>
+                    <div class="d-grid">
+                        <button type="button" class="btn btn-primary btn-lg" id="firstTimeCreateBtn"
+                            onclick="composer.confirmFirstTimeCamporee()" disabled>
+                            <i class="fas fa-campground me-2"></i>Create My First Camporee
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Meta Pane -->
             <div id="meta-pane" class="editor-pane">
                 <h4>Event Details</h4>
@@ -193,6 +215,9 @@
                             <label class="form-label">Camporee Title</label>
                             <input type="text" class="form-control" id="metaTitle"
                                 placeholder="e.g. [District] Camporee 2026">
+                            <div id="metaTitleDuplicateWarning" class="form-text text-warning d-none">
+                                <i class="fas fa-exclamation-triangle me-1"></i>You already have a camporee with this name.
+                            </div>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Theme</label>
@@ -631,11 +656,10 @@
                         You have unsaved changes. Starting a new workspace will discard them.
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Workspace ID <span class="text-muted fw-normal small">(folder name on server)</span></label>
-                        <input type="text" class="form-control font-monospace" id="newWorkspaceId"
-                            placeholder="e.g. camp0003" maxlength="64"
+                        <label class="form-label fw-bold">Camporee Name</label>
+                        <input type="text" class="form-control" id="newWorkspaceName"
+                            placeholder="e.g. Coyote Creek Camporee 2027"
                             oninput="composer.validateNewWorkspaceName(this.value)">
-                        <div class="form-text">Letters, numbers, hyphens, and underscores only.</div>
                     </div>
                     <div id="newWorkspaceStatus" class="small"></div>
                 </div>
