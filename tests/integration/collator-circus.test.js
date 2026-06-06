@@ -13,11 +13,20 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import AdmZip from 'adm-zip';
+import dotenv from 'dotenv';
+
+// Load .env so DATA_DIR (and other path vars) are available before any constants are set.
+dotenv.config();
 
 // ---------------------------------------------------------------------------
 // Paths to the real Circus workspace
+// DATA_DIR may point outside the repo (e.g. ~/camporee-data in dev).
+// Fall back to ./data so the path works in a fresh clone if data is present there.
 // ---------------------------------------------------------------------------
-const WORKSPACE_DIR = '/home/jwilley/ws/camporee-conductor/data/composer/workspaces/5d5a6a80-c9e1-4551-8e15-8ef1ca93b9ca';
+const DATA_ROOT = process.env.DATA_DIR
+    ? path.resolve(process.env.DATA_DIR)
+    : path.join(process.cwd(), 'data');
+const WORKSPACE_DIR = path.join(DATA_ROOT, 'composer/workspaces/5d5a6a80-c9e1-4551-8e15-8ef1ca93b9ca');
 
 // The default type_defaults that Composer would inject into the exported zip
 // (matches DEFAULT_TYPE_DEFAULTS in public/js/apps/composer.js — v3.0 league id keys)
