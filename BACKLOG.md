@@ -27,57 +27,26 @@
 - ✅ Dashboard CTA button contrast — `btn-outline-primary` (2.96:1, fails AA) → `btn-primary` (4.51:1, passes AA) on dark `#2b3035` cards
 - ✅ `judge_tokens` migration (009) — SHA-256 hash, per-event scope, label, expiry, revocation, last_used tracking
 - ✅ Landing page CSS extraction — `public/css/landing.css` extracted from inline `<style>`; `conductor.css` now defines shared green/gold brand palette as `:root` vars; both stylesheets linked from landing.html
-- ✅ Landing page early-access form — expanded from email-only to 12-field form (name, email, council, district, role, years, units, patrols, scouts, unit_adults, adult_staff, youth_staff); POSTs JSON to `POST /composer/api/early-access`; submissions appended to `data/early-access/submissions.json`
-- ✅ GET / landing page routing — `server.js` serves `landing.html` at root for single-composer deployments; Collator-only still redirects to `/collator/`; multi-service dev still shows dashboard; app remains at `/composer/`
-- ✅ Subdomain routing + dedicated landing service — Caddyfile rewritten with 3-block subdomain config (`{$CADDY_HOST:localhost}` template handles dev/prod from same file); nginx replaced by dedicated `landing` Express service (`Dockerfile.landing`, port 3002); `caddy_data` named volume for cert persistence; `CADDY_HOST` in `.env` sets domain
-- ✅ Landing page brand logo — `CamporeeConductor.png` badge used in nav (40px) and hero (120px); `landing.css` has `.logo-img` and `.hero-badge` rules; `/images/` served by landing container
+- ✅ Landing page early-access form — expanded from email-only to 12-field form; POSTs JSON to `POST /composer/api/early-access`; submissions appended to `data/early-access/submissions.json`
+- ✅ GET / landing page routing — `server.js` serves `landing.html` at root for single-composer deployments
+- ✅ Subdomain routing + dedicated landing service — Caddyfile rewritten with 3-block subdomain config (`{$CADDY_HOST:localhost}` template); nginx replaced by dedicated `landing` Express service (`Dockerfile.landing`, port 3002)
+- ✅ Landing page brand logo — `CamporeeConductor.png` badge in nav (40px) and hero (120px)
+- ✅ Schema v3.0 — `game.type` removed → `game.league` (FK to `camporee.leagues[]`); AJV schemas, migration script, all client JS updated; 22/22 tests passing (2026-06-04)
+- ✅ DATA_DIR — `docker-compose.yml` uses `${DATA_DIR:-./data}` for all data volume mounts; `.env.example` documents dev/VPS values; dev data migrated to `~/camporee-data/`; stale `camp0001`/`camp0002` workspaces deleted (2026-06-05)
+- ✅ ARCHITECTURE.md — full design doc added (§1–11: data storage, workspace isolation, game lineage, library tiers, localization tokens, community model, Curator architecture, AI Templatize, three wizards, onboarding, adoption curve); Curator design section added (2026-06-05)
+- ✅ CuratorService (Model A zip vault) — `src/lib/curator-service.js`; template storage as immutable zip files; LRU unpack cache (max 20); startup cache clear; `listTemplates`, `getTemplateMeta` (with token inventory), `getTemplateZip`, `submit`, `invalidateCache`, `clearCache` (2026-06-05)
+- ✅ Curator template API — `GET /curator/api/templates` (public), `GET /curator/api/templates/:id/meta` (public), `GET /curator/api/templates/:id/zip` (requireAuth), `POST /curator/api/templates` (requireAuth + requireSysadmin); `/curator/api` forwarding via server.js (2026-06-05)
+- ✅ "Use this template" endpoint — `POST /composer/api/from-template/:templateId`; unpacks zip into new UUID workspace, inserts owner permission row, writes audit log entry `event.created_from_template` (2026-06-05)
+- ✅ Curator UI — Camporee Templates tab — mode toggle (Games / Camporee Templates) in Curator navbar; template sidebar + preview panel (title, theme, game list, token inventory); "Use This Template" button → POSTs to from-template, redirects to `/composer/?event={id}` (2026-06-05)
+- ✅ `/curator/` redirect loop fix — `app.get('/curator', redirect)` with Express `strict: false` matched `/curator/` too, looping; replaced with `app.get(['/curator', '/curator/'], sendFile)` (2026-06-05)
 
 ---
 
-## Schema v3.0 Work (branch: schema-v3)
+## Schema v3.0 Work — COMPLETE (merged to main 2026-06-04)
 
-This is a breaking schema change. No backwards compatibility. One existing cartridge to migrate.
-Full design spec: `CAMPOREESCHEMA.md`. Full UML: see session history 2026-06-04.
-
-### Prompt 1 — Schema + Migration ✅ 2026-06-04
-
-- [x] `schemas/camporee-instance.schema.json` — leagues (required), rosters (required), terminology, sessions (optional) added; type removed; type_defaults updated to accept league ids
-- [x] `schemas/game.schema.json` — type removed, league (required) + session (optional) added
-- [x] `schemas/preset.schema.json` — new file with tier: unit|subunit|all required field
-- [x] `scripts/migrate-schema-v3.js` — idempotent; 3 camporee.json, 119 games, 3 presets.json migrated; bracket_result preset tier: "all" (warned, expected)
-- [x] `migrations/010_schema_v3_note.sql` — no-op placeholder documenting JSON-only migration
-
-### Prompt 2 — Core schema.js + Collator ✅ 2026-06-04
-
-- [x] `getGameTier(game, camporee)` added to `public/js/core/schema.js` — exported, browser+Node safe
-- [x] `formatGameTitle()` — game.type checks replaced with game.league checks
-- [x] `injectCommonFields()` in `src/servers/collator.js` — uses `typeDefaults[game.league]`; tier safety check skips presets whose tier doesn't match the game's league tier
-- [x] `loadCamporeeData()` — typeCounters → leagueCounters; leagues passed to injectCommonFields
-
-Flagged for post-schema-v3 cleanup:
-- [ ] `collator.js` ~line 50: `entities.type IN ('patrol','troop')` — DB entity tier column, needs DB migration
-- [ ] `collator.js` ~line 818: `entity_type: 'patrol'` hardcoded in POST /api/score audit log — should use actual entity tier
-
-### Prompt 3 — Composer server + SPA ✅ 2026-06-04
-
-- [x] `src/servers/composer.js` — GET returns leagues/sessions/rosters/terminology; POST writes league+session; library catalog uses league; manifest includes all v3 fields
-- [x] `public/js/apps/composer.js` — DEFAULT_LEAGUES + updated DEFAULT_TYPE_DEFAULTS; leagues/sessions/rosters/terminology in this.data; game editor league selector dynamic; all game.type reads/writes replaced; export writes schemaVersion 3.0
-
-### Prompt 4 — Collator views + utilities ✅ 2026-06-04
-
-- [x] `public/js/official.js` — getLeagueForViewMode() helper; getFilteredGames(), renderMatrix(), renderExhibitionOverview(), openExhibitionDetail() updated
-- [x] `public/js/utils.js` — getLeagueForViewMode() helper; getWinnersRegistry(), exportAwardsCSV(), renderAnnouncerSheet(), getFilteredGames(), populateScoresheetGroups(), buildScoresheetHTML() updated
-- [x] `public/js/judge.js` — getEntityTypeForLeague() helper; renderStationList(), renderEntityList(), renderBracketLobby(), bracketCreateChallengeMatch() updated
-- [x] `public/js/admin.js` — no changes (e.type references are DB entity columns, not game types)
-
-### Prompt 5 — Tests + verification ✅ 2026-06-04
-
-- [x] `tests/unit/schema.test.js` — 6 game fixtures updated: type → league
-- [x] `tests/integration/collator.test.js` — fixture camporee.json + p1.json migrated to v3.0; type_defaults key fixed
-- [x] `tests/integration/collator-circus.test.js` — TYPE_DEFAULTS keys updated; buildCircusZip() includes v3 fields; test 5+6 assertions updated
-- [x] 22/22 unit + integration tests passing
-- [x] Smoke test: Composer API, /games.json (34 games, 18 patrol-games / 12 troop-challenges / 4 exhibition), field injection, score submission — all green
-- [x] 4 pre-existing E2E failures (Docker/Clerk) confirmed unrelated to schema-v3
+All 5 prompts done. Flagged for future cleanup:
+- [ ] `collator.js` ~line 50: `entities.type IN ('patrol','troop')` — DB entity tier column still uses pre-v3 strings; needs a future DB migration when roster model is upgraded
+- [ ] `collator.js` ~line 818: `entity_type: 'patrol'` hardcoded in POST /api/score audit log — should resolve from actual entity tier
 
 ---
 
@@ -85,75 +54,69 @@ Flagged for post-schema-v3 cleanup:
 
 ### Pre-VPS Blockers
 
-- [ ] **DATA_DIR — data outside the repo** — `docker-compose.yml` currently mounts `./data/...` (relative paths inside the repo). Add `DATA_DIR` to `.env` (default `./data`, prod `/opt/camporee-conductor-data`); update all volume mounts to `${DATA_DIR}/X:/app/data/X`. See `ARCHITECTURE.md §1`.
-- [ ] **Full browser smoke test** — Google sign-in → profile → create event → invite collaborator → verify event_permissions row in DB
-- [ ] **Clean `docker compose up --build`** — confirm explicit named test on fresh build
-- [ ] **Clerk Production instance** — configure real domain, Google OAuth callback for camporeeconductor.com
-- [ ] **Set SESSION_SECRET in .env** — collator.js falls back to hardcoded insecure default; must be set via env var for any internet-facing deploy
-- [ ] **E2E test fix** — 4 tests fail when Docker containers are running; root cause unrelated to schema-v3
+- [ ] **Clerk Production instance** — configure production Clerk app for camporeeconductor.com; update `CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` in VPS `.env`; set Google OAuth callback URL; test full sign-in flow
+- [ ] **Set SESSION_SECRET in .env** — collator.js falls back to hardcoded insecure default; generate with `openssl rand -hex 32` and set in `.env` before any internet-facing deploy
+- [ ] **Full browser smoke test** — Google sign-in → profile → create event → invite collaborator → verify `event_permissions` row in DB; requires Production Clerk instance
+- [ ] **E2E test fix** — 4 Playwright tests fail when Docker containers are running (real Clerk vs TEST_MODE); acceptable as-is for now but blocks clean CI on the VPS
 
 ### Infrastructure / Analytics
 
-- ✅ **Analytics — Cloudflare** — basic traffic stats (page views, requests, bots vs humans, countries) available free via Cloudflare dashboard; no setup required since domain already runs through Cloudflare
-- [ ] **Analytics — expand if needed** — Plausible ($9/mo, privacy-first, no cookie banner, adds referrer/journey data) or Google Analytics 4 (free, requires cookie consent) as next step when Cloudflare's basic stats aren't enough
+- ✅ **Analytics — Cloudflare** — basic traffic stats available free via Cloudflare dashboard; no setup required
+- [ ] **Analytics — expand if needed** — Plausible ($9/mo, privacy-first) or GA4 (free, cookie consent required) when Cloudflare basic stats aren't enough
 
 ### Scoring
 
-- [ ] **Challenge Match ("True 2nd Place")** — bracket tournament logic; Matches/Match_Participants DB tables exist, trigger logic not yet implemented
-- [ ] **Score reassignment operation** — `PATCH /api/scores/reassign` to move all scores from one entrant id to another; needed when a patrol is added on the fly by a judge (e.g. "Firehawks") and must be merged into the pre-registered entrant after the fact. Currently requires manual DB edit.
+- [ ] **Challenge Match ("True 2nd Place")** — bracket tournament logic; `Matches`/`Match_Participants` DB tables exist, trigger logic not yet implemented
+- [ ] **Score reassignment operation** — `PATCH /api/scores/reassign` to move all scores from one entrant id to another; needed when a patrol is added on the fly and must be merged into a pre-registered entrant
 
 ### Judge UI / Entrant Lookup
 
-- [ ] **Entrant search with progressive disambiguation** — judge searches by patrol name; 1 result = confirm with unit name shown; multiple results = show unit name alongside each to disambiguate (e.g. "Troop2-MB" vs "Troop2-SJ"); 0 results = fall back to id lookup or browse by unit; still nothing = add new entrant flagged for official review
-- [ ] **Display unit name alongside subunit name in judge entrant picker** — unit names are not required to be unique but must be shown with subunit name so judges can disambiguate duplicate patrol names across units (e.g. two "Sharks" patrols from different troops)
+- [ ] **Entrant search with progressive disambiguation** — 1 result = confirm with unit name; multiple = show unit name alongside each; 0 = fall back to id lookup or add new (flagged for official review)
+- [ ] **Display unit name alongside subunit name in judge entrant picker** — prevents ambiguity when two "Sharks" patrols exist from different troops
 
 ### Collator / Runtime
 
-- [ ] **WebSocket leaderboard** — official.js currently polls every 15s; replace with WebSocket push
-- [ ] **Practice Mode for judges** — flag to allow judges to test forms without persisting to the score queue
-- [ ] **Exhibition results print/PDF** — results are stored but no ribbon label or print output built yet
-- [ ] **Exhibition scoresheet custom columns in UI** — currently hardcoded in buildScoresheetHTML (Troop #, Patrol #, Patrol Name, # Members, # Participating); expose as configurable fields upstream in Composer/game definition
+- [ ] **WebSocket leaderboard** — `official.js` currently polls every 15s; replace with WebSocket push
+- [ ] **Practice Mode for judges** — flag to allow judges to test scoring forms without persisting to the score queue
+- [ ] **Exhibition results print/PDF** — results stored but no ribbon label or print output built yet
+- [ ] **Exhibition scoresheet custom columns in UI** — Troop #, Patrol #, etc. currently hardcoded in `buildScoresheetHTML`; expose as configurable upstream in Composer
 - [ ] **Close Game handshake end-to-end test** — manual testing done; automated test coverage pending
 
 ### Composer
 
-- [ ] **Common Fields panel** — UI for editing type_defaults and previewing injected fields per game type
-- [ ] **"Print All" scoresheet button** — currently only accessible in Collator tools (utils.html); should be available in Composer export flow
-
-### Composer / UI
-
+- [ ] **Common Fields panel** — UI for editing `type_defaults` and previewing injected fields per game type
+- [ ] **"Print All" scoresheet button** — currently only in Collator tools (utils.html); should be in Composer export flow
 
 ### AAA / Infrastructure
 
-- [ ] **Judge token management UI** — director dashboard to generate, view, and revoke per-event judge access tokens; `judge_tokens` table (migration 009) is ready; need token generation API + UI
-- [ ] **Post-cartridge-deploy official sync** — adding an official after the cartridge is deployed currently requires a full cartridge re-deploy; should support incremental sync
-- [ ] **Email notification to invited collaborators/officials** — no notification is sent when a user is invited to an event in the Composer
-- [ ] **Spectator leaderboard** — scores revealed only after the director declares a game final; prevents mid-event result peeking
-- [ ] **Collator as a Service provisioning** — decide architecture: shared multi-tenant instance vs per-event containers; `collator_events` table not yet created
-- [ ] **Public-facing documentation** — policy, behavior, and onboarding guide for cloud-hosted Camporee Conductor (`cloud.camporeeconductor.com`)
+- [ ] **Judge token management UI** — director dashboard to generate, view, and revoke per-event judge access tokens; `judge_tokens` table (migration 009) ready; need `POST /api/events/:eventId/judge-tokens` + UI
+- [ ] **Post-cartridge-deploy official sync** — adding an official after cartridge deploy requires full re-deploy; needs incremental sync
+- [ ] **Email notification to invited collaborators/officials** — no notification sent when a user is invited via the Composer Share modal
+- [ ] **Spectator leaderboard** — scores revealed only after director declares a game final
+- [ ] **Collator as a Service provisioning** — architecture decision: shared multi-tenant instance vs per-event containers; `collator_events` table not yet created
+- [ ] **Public-facing documentation** — policy, behavior, and onboarding guide for cloud-hosted Camporee Conductor
 
 ### Infrastructure
 
-- [ ] **Server consolidation** — root-level legacy files (composer_server.js) still exist alongside src/servers/; clean up after confirming nothing depends on them
+- [ ] **Server consolidation** — root-level legacy `composer_server.js` still exists alongside `src/servers/`; safe to delete after confirming nothing depends on it
 
-### Curator / Community Library (Post-Deploy)
+### Curator / Community Library
 
-Full design in `ARCHITECTURE.md`. Summary of work to build out:
+Model A zip vault is live. Remaining work builds on top of it:
 
-- [ ] **Games as first-class citizens** — refactor nested `workspaces/{id}/games/` into flat `data/games/{gameId}/` pool; camporee.json becomes a manifest of gameIds; add `source_game_id` for fork lineage. See `ARCHITECTURE.md §3`.
-- [ ] **`is_public` flag on camporees and games** — foundation for Curator Model B (index); Curator queries `WHERE is_public = true`
-- [ ] **`is_library_game` flag** — sysadmin-curated canonical game library; toggle in sysadmin panel
-- [ ] **CuratorService abstraction** — stable interface (`getPublicCamporees`, `getPublicGames`, `submit`, `fork`); Model B implementation first, swappable to Model A vault later
-- [ ] **Localization tokens** — `{{venue_name}}`, `{{event_date}}`, `{{council_name}}`, etc. in game stories; apply to Coyote Creek seed content; guide contributors in game editor UI. See `ARCHITECTURE.md §5`.
-- [ ] **AI Templatize tool** — converts a run camporee into a Curator-ready template (strips PII, injects tokens, suggests theme name); director review/approve flow before Curator submission. See `ARCHITECTURE.md §8`.
-- [ ] **Wizard 1 — Build from scratch** — interview director for theme/dates/venue; scaffold camporee; suggest matching library games. See `ARCHITECTURE.md §9`.
-- [ ] **Wizard 2 — Localize a template** — interview for localization fields only; single-pass `{{token}}` replacement across all game stories and camporee manifest. See `ARCHITECTURE.md §9`.
-- [ ] **New user onboarding** — detect zero `event_permissions` rows on first login; redirect to Curator with Wizard 1/2 entry point rather than empty Composer workspace. See `ARCHITECTURE.md §10`.
-- [ ] **Post-event share prompt** — after event date passes, prompt director: "Want to share this camporee with the community?" This is the key mechanism for library growth.
-- [ ] **Curator Model A vault** — dedicated Curator content store; submission copies content with templatization applied once; enables independent template versioning (v1, v2, v3)
+- [ ] **Director self-submission** — POST /curator/api/templates currently requires sysadmin; open it to authenticated directors (with optional review gate before going public)
+- [ ] **Localization tokens — apply to seed content** — tokenize Coyote Creek Circus camporee (`{{venue_name}}`, `{{event_date}}`, `{{council_name}}`, etc.) to make it a clean community template; guide contributors toward tokens in the game editor
+- [ ] **AI Templatize tool** — converts a run camporee into a Curator-ready template: strips PII, injects localization tokens, suggests theme name; director review/approve flow before submission. See `ARCHITECTURE.md §8`
+- [ ] **Wizard 2 — Localize a template** — triggered after "Use this template" creates a workspace; interview for localization fields; single-pass `{{token}}` replacement across all game stories and camporee manifest. See `ARCHITECTURE.md §9`
+- [ ] **Wizard 1 — Build from scratch** — interview director for theme/dates/venue; scaffold camporee; suggest matching library games. See `ARCHITECTURE.md §9`
+- [ ] **New user onboarding** — detect zero `event_permissions` rows on first login; redirect to Curator with Wizard 1/2 entry points rather than empty Composer workspace. See `ARCHITECTURE.md §10`
+- [ ] **Post-event share prompt** — after event date passes, prompt director to share camporee with community; key mechanism for library growth
+- [ ] **Template versioning** — new submission = new version; "updated version available" notification for workspaces forked from older template versions
+- [ ] **Games as first-class citizens** — refactor nested `workspaces/{id}/games/` into flat `data/games/{gameId}/` pool with `source_game_id` for fork lineage; `is_library_game` flag; "promote to library" workflow. See `ARCHITECTURE.md §3–4`
+- [ ] **`is_public` flag on camporees** — foundation for community browsing; Curator can surface `WHERE is_public = true` events
 
 ### Documentation
 
-- [ ] **Event Director's Guide** — operational runbook covering cert renewal, router setup, cartridge load, and event-day checklist
-- [ ] **Service worker lockup investigation** — page occasionally freezes completely (F12 unresponsive); suspected SW retry loop; review sync-manager.js and SW fetch handler for infinite retry paths
-- [ ] **Post-event retrospective** — gather judge feedback, document what worked/broke at Circus 2026, inform v2 priorities
+- [ ] **Event Director's Guide** — operational runbook: cert renewal, router setup, cartridge load, event-day checklist
+- [ ] **Service worker lockup investigation** — page occasionally freezes completely (F12 unresponsive); suspected SW retry loop; review `sync-manager.js` and SW fetch handler for infinite retry paths
+- [ ] **Post-event retrospective** — gather judge feedback from Circus 2026, document what worked/broke, inform v2 priorities
