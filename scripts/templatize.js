@@ -36,16 +36,19 @@
  *   ANTHROPIC_API_KEY required when AI_PROVIDER=claude
  */
 
-import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
 import { randomUUID } from 'crypto';
 import { fileURLToPath } from 'url';
+import { config as dotenvConfig } from 'dotenv';
 import AdmZip from 'adm-zip';
 import { generateText, parseJsonResponse, PROVIDER } from '../src/lib/ai-provider.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
+
+// Load .env from repo root regardless of cwd
+dotenvConfig({ path: path.join(ROOT, '.env') });
 
 // ── Path resolution ──────────────────────────────────────────────────────────
 
