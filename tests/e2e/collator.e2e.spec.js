@@ -1,4 +1,47 @@
 import { test, expect } from '@playwright/test';
+import AdmZip from 'adm-zip';
+
+// ---------------------------------------------------------------------------
+// Minimal camporee cartridge — uploaded once before tests that need a loaded
+// event (admin dashboard, station list). Checked in inline so it works in CI
+// with no external workspace data.
+// ---------------------------------------------------------------------------
+function buildMinimalCartridge() {
+    const camporee = {
+        schemaVersion: '3.0',
+        meta: { title: 'E2E Test Camporee', theme: 'Testing', year: 2026, camporeeId: 'e2e-test-id' },
+        terminology: null,
+        leagues: [{ id: 'patrol-games', label: 'Patrol Games', tier: 'subunit', registration: 'open', divisions: [] }],
+        sessions: [],
+        rosters: { units: [{ id: 1, name: 'Troop 1' }], subunits: [{ id: 100, name: 'Eagles', parentId: 1 }], individuals: [] },
+        officials: [],
+        playlist: [{ gameId: 'e2e-game-1', enabled: true, order: 1 }],
+        type_defaults: {}
+    };
+    const game = {
+        id: 'e2e-game-1', league: 'patrol-games', session: null, sortOrder: 10,
+        schemaVersion: '3.0',
+        content: { title: 'E2E Test Game', story: '', challenge: '', description: '' },
+        scoring_model: { method: 'points_desc', inputs: [
+            { id: 'score', label: 'Points', type: 'number', kind: 'points', weight: 1, audience: 'judge', config: { min: 0, max: 10 } }
+        ]}
+    };
+    const zip = new AdmZip();
+    zip.addFile('camporee.json', Buffer.from(JSON.stringify(camporee, null, 2)));
+    zip.addFile('presets.json', Buffer.from('[]'));
+    zip.addFile('games/e2e-game-1.json', Buffer.from(JSON.stringify(game, null, 2)));
+    return zip.toBuffer();
+}
+
+// Upload the minimal cartridge once before all tests that need an event.
+// Uses Node 18+ native FormData + fetch. The test collator (NODE_ENV=test)
+// bypasses requireOfficial so API calls succeed without an identified official.
+test.beforeAll(async () => {
+    const buf = buildMinimalCartridge();
+    const formData = new FormData();
+    formData.append('configZip', new Blob([buf], { type: 'application/zip' }), 'CamporeeConfig.zip');
+    await fetch('http://localhost:4000/collator/api/setup/upload', { method: 'POST', body: formData });
+});
 
 test.describe('Collator (Judge) E2E Workflow', () => {
     test('should load the judge interface', async ({ page }) => {
@@ -14,7 +57,7 @@ test.describe('Collator (Judge) E2E Workflow', () => {
     });
 
     test('should load the admin dashboard', async ({ page }) => {
-        await page.goto('/admin.html');
+        await page.goto('/collator/admin.html');
 
         await expect(page).toHaveTitle(/Camporee/);
         await expect(page.locator('header')).toBeVisible();

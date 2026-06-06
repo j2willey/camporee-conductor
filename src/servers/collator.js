@@ -13,6 +13,7 @@ import { normalizeGameDefinition, getGameTier } from '../../public/js/core/schem
 dotenv.config();
 
 const COLLATOR_MODE = (process.env.COLLATOR_MODE || 'offline').toLowerCase();
+const TEST_MODE = process.env.NODE_ENV === 'test';
 console.log(`[Collator] Running in ${COLLATOR_MODE} mode`);
 
 // --- CONFIGURATION & PATHS ---
@@ -417,6 +418,7 @@ function getNextEntityId(type) {
 // --- AUTH HELPERS ---
 
 function requireOfficial(req, res, next) {
+    if (TEST_MODE) return next();
     if (COLLATOR_MODE === 'cloud') {
         const { userId } = getAuth(req);
         if (!userId) return res.status(401).json({ error: 'Authentication required' });
@@ -461,6 +463,7 @@ if (COLLATOR_MODE === 'cloud') {
     // Redirect unauthenticated requests for protected pages to identify.html
     // (runs before express.static so it intercepts /admin.html, /utils.html)
     app.use((req, res, next) => {
+        if (TEST_MODE) return next();
         const protectedPages = ['/admin.html', '/utils.html'];
         if (protectedPages.includes(req.path) && !req.session?.role && getActiveMeta()) {
             return res.redirect((req.baseUrl || '/collator') + '/identify.html');
@@ -631,6 +634,7 @@ app.post('/api/setup/confirm', express.urlencoded({ extended: true }), (req, res
 // --- AUTH ROUTES ---
 
 app.get('/api/auth/whoami', (req, res) => {
+    if (TEST_MODE) return res.json({ mode: COLLATOR_MODE, authenticated: true, role: 'director', display_name: 'Test User' });
     if (COLLATOR_MODE === 'cloud') {
         const { userId } = getAuth(req);
         if (!userId) return res.json({ mode: 'cloud', authenticated: false });

@@ -6,7 +6,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Composer (Director) E2E Workflow', () => {
     test('should load the Composer UI with correct title and controls', async ({ page }) => {
-        await page.goto('http://localhost:3001/composer/');
+        await page.goto('http://localhost:4001/composer/');
 
         await expect(page).toHaveTitle(/Camporee Composer/);
 
@@ -24,7 +24,7 @@ test.describe('Composer (Director) E2E Workflow', () => {
     });
 
     test('should allow adding a patrol game', async ({ page }) => {
-        await page.goto('http://localhost:3001/composer/');
+        await page.goto('http://localhost:4001/composer/');
 
         // Click the + button for Patrol Games
         const addPatrolBtn = page.locator('#collapsePatrol button[onclick*="addGame"]').first();
