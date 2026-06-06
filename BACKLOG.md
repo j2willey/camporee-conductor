@@ -39,6 +39,9 @@
 - ✅ "Use this template" endpoint — `POST /composer/api/from-template/:templateId`; unpacks zip into new UUID workspace, inserts owner permission row, writes audit log entry `event.created_from_template` (2026-06-05)
 - ✅ Curator UI — Camporee Templates tab — mode toggle (Games / Camporee Templates) in Curator navbar; template sidebar + preview panel (title, theme, game list, token inventory); "Use This Template" button → POSTs to from-template, redirects to `/composer/?event={id}` (2026-06-05)
 - ✅ `/curator/` redirect loop fix — `app.get('/curator', redirect)` with Express `strict: false` matched `/curator/` too, looping; replaced with `app.get(['/curator', '/curator/'], sendFile)` (2026-06-05)
+- ✅ Legacy root-level server files deleted — `collator-server.js` and `composer_server.js` removed; no live references (2026-06-06)
+- ✅ E2E tests pass regardless of Docker state — E2E webServers moved to ports 4000/4001 (Docker never binds there); `reuseExistingServer: false`; `TEST_MODE` bypass added to collator `requireOfficial`, page-redirect middleware, and `whoami`; `beforeAll` uploads minimal cartridge for tests needing a loaded event; 8/8 passing (2026-06-06)
+- ✅ UUID workspace IDs — workspace folder names are now always auto-generated UUIDs; user provides a human-friendly Camporee Name stored as `meta.title`; server enforces UUID format on all workspace routes; first-time welcome pane shown when user has no camporees; per-user title uniqueness checked client-side (2026-06-06)
 
 ---
 
@@ -57,7 +60,7 @@ All 5 prompts done. Flagged for future cleanup:
 - [ ] **Clerk Production instance** — configure production Clerk app for camporeeconductor.com; update `CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` in VPS `.env`; set Google OAuth callback URL; test full sign-in flow
 - [ ] **Set SESSION_SECRET in .env** — collator.js falls back to hardcoded insecure default; generate with `openssl rand -hex 32` and set in `.env` before any internet-facing deploy
 - [ ] **Full browser smoke test** — Google sign-in → profile → create event → invite collaborator → verify `event_permissions` row in DB; requires Production Clerk instance
-- [ ] **E2E test fix** — 4 Playwright tests fail when Docker containers are running (real Clerk vs TEST_MODE); acceptable as-is for now but blocks clean CI on the VPS
+- ✅ **E2E test fix** — 8/8 Playwright tests pass regardless of Docker state (ports 4000/4001; 2026-06-06)
 
 ### Infrastructure / Analytics
 
@@ -98,7 +101,7 @@ All 5 prompts done. Flagged for future cleanup:
 
 ### Infrastructure
 
-- [ ] **Server consolidation** — root-level legacy `composer_server.js` still exists alongside `src/servers/`; safe to delete after confirming nothing depends on it
+- ✅ **Server consolidation** — `collator-server.js` and `composer_server.js` deleted (2026-06-06)
 
 ### Curator / Community Library
 

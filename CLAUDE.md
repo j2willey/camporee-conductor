@@ -21,7 +21,7 @@ Three pillars, two Docker services:
 | **Composer** | Visual event design + export | 3001 | `src/servers/composer.js` |
 | **Collator** | Live-event runtime + judge PWA | 3000 | `src/servers/collator.js` |
 
-The `ACTIVE_SERVICES` env var tells each container which pillars to serve (`collator` vs `curator,composer`). The legacy root-level `collator-server.js` and `composer_server.js` are superseded by `src/servers/` — do not modify the root-level files.
+The `ACTIVE_SERVICES` env var tells each container which pillars to serve (`collator` vs `curator,composer`). The root-level entry point is `server.js`; the legacy files `collator-server.js` and `composer_server.js` have been deleted.
 
 ---
 
@@ -67,7 +67,7 @@ Officials are embedded in the cartridge's `camporee.json` as `officials[]`. Each
 
 ### Migration Runner
 
-`src/db/migrate.js` — opens `conductor.db` and applies pending `migrations/*.sql` files in filename order. Tracked in `schema_migrations` table. Called at Composer startup and by the sysadmin script. Current migrations: 001 (user_profiles), 002 (event_permissions), 003 (audit_log), 004 (feature_flags), 005 (curator_admin), 006 (event_metadata), 007 (is_collator_official), 008 (email on user_profiles), 009 (judge_tokens).
+`src/db/migrate.js` — opens `conductor.db` and applies pending `migrations/*.sql` files in filename order. Tracked in `schema_migrations` table. Called at Composer startup and by the sysadmin script. Current migrations: 001 (user_profiles), 002 (event_permissions), 003 (audit_log), 004 (feature_flags), 005 (curator_admin), 006 (event_metadata), 007 (is_collator_official), 008 (email on user_profiles), 009 (judge_tokens), 010 (schema_v3_note — no-op placeholder documenting JSON-only migration).
 
 ---
 
@@ -129,7 +129,7 @@ npm test                  # all three
 
 ## Critical Guardrails
 
-- **`DATA_DIR` controls all runtime data mounts** — `docker-compose.yml` uses `${DATA_DIR:-./data}` for all `./data/` volume mounts. Never hardcode `./data/` in new volume entries. Dev leaves `DATA_DIR` unset (defaults to `./data`); VPS sets `DATA_DIR=/opt/camporee-conductor-data`.
+- **`DATA_DIR` controls all runtime data mounts** — `docker-compose.yml` uses `${DATA_DIR:-./data}` for all `./data/` volume mounts. Never hardcode `./data/` in new volume entries. Dev sets `DATA_DIR=/home/jwilley/camporee-data` in `.env` (runtime data lives outside the repo); VPS sets `DATA_DIR=/opt/camporee-conductor-data`. The `data/` directory inside the repo is empty stub dirs only.
 - **`game.type` is removed in schema v3.0** — Never reference `game.type` in new code. Use `game.league` to determine scoring tier. If you see `type` in existing code, it is legacy and must be replaced.
 - **League must be defined before games reference it** — `game.league` is a FK to `camporee.leagues[].id`. The Composer must prevent assigning a game to a non-existent league. Always define leagues first.
 - **Session and Division are schema-only in Phase 1** — Do not expose Session or Division configuration in any UI. The fields exist in the schema and travel in the cartridge, but no UI for editing them should be built until explicitly instructed.
@@ -145,13 +145,16 @@ npm test                  # all three
 - **`landing.css` depends on `conductor.css` for all color variables** — `landing.html` loads `conductor.css` first, then `landing.css`. The `landing.css` file contains no `:root` color definitions; it references `--green-dark`, `--gold`, etc. from `conductor.css`. If you remove the `conductor.css` link from `landing.html`, all colors will break. This is intentional: `conductor.css` is the single source of truth for the brand palette.
 - **`POST /composer/api/early-access` is public (no auth)** — the early-access endpoint in `composer.js` has no `requireAuth` middleware. `clerkMiddleware()` runs but does not reject unauthenticated requests — only `requireAuth` does that. Submissions go to `data/early-access/submissions.json` (gitignored under `data/`).
 - **`SESSION_SECRET` has an insecure hardcoded default** — `collator.js` falls back to `'collator-offline-secret'` if `SESSION_SECRET` is unset. Always set a real secret via env var in any internet-facing deployment.
-- **Docker-owned data files require `chown` before local dev writes** — When Docker containers write to `data/` volume mounts, files become `root`-owned. Before running `npm run dev:all` or the migration script, run: `sudo chown -R jwilley:jwilley data/` and `sudo chown jwilley:jwilley data/shared/conductor.db*`. Symptom: `SQLITE_READONLY` error on startup or `EACCES` on file write.
+- **Docker-owned data files require `chown` before local dev writes** — When Docker containers write to `~/camporee-data/` volume mounts, files become `root`-owned. Before running `npm run dev:all` or the migration script, run: `sudo chown -R jwilley:jwilley ~/camporee-data/`. Symptom: `SQLITE_READONLY` error on startup or `EACCES` on file write.
+- **Workspace IDs are always UUIDs** — `POST /api/camporee/:id`, `GET /api/camporee/:id`, and `GET /api/camporee/:id/meta` all validate `:id` against the UUID regex `^[0-9a-f]{8}-...-[0-9a-f]{12}$`. Non-UUID IDs (old `camp0001` style) return 400. The Composer generates the UUID client-side with `generateUUID()`; the user provides a human-friendly `meta.title`, not the workspace ID.
+- **`TEST_MODE` in the Collator bypasses all official auth** — `NODE_ENV=test` sets `TEST_MODE=true` in `collator.js`, which bypasses `requireOfficial`, the page-redirect middleware for `/admin.html`/`/utils.html`, and returns `authenticated: true` from `GET /api/auth/whoami`. Never rely on this bypass in production; it exists solely for E2E tests on ports 4000/4001.
+- **E2E tests run on ports 4000/4001, never 3000/3001** — `playwright.config.js` uses `reuseExistingServer: false` and dedicated ports so Docker containers don't pollute the test environment. Do not change these ports.
 
 ---
 
 ## Schema & Data Model
 
-- **Schema version:** 3.0 (branch: `schema-v3`) — `schemas/` directory is the source of truth (AJV validation)
+- **Schema version:** 3.0 (merged to `main` 2026-06-04) — `schemas/` directory is the source of truth (AJV validation)
 - **Cartridge format** (`CamporeeConfig.zip`): `camporee.json` + `presets.json` + `games/*.json`
 - Full schema documentation: `CAMPOREESCHEMA.md`
 - **`game.type` is REMOVED in v3.0** — replaced by `game.league` (FK → `camporee.leagues[].id`). Never reference `game.type` in new code.
@@ -184,9 +187,10 @@ Common scoring fields defined once in `presets.json`. Each preset now has a `tie
 | File | Purpose |
 |---|---|
 | `src/servers/collator.js` | Live-event runtime API (port 3000) |
-| `src/servers/composer.js` | Event design + library API (port 3001) |
-| `public/js/apps/composer.js` | Composer SPA — all game editing logic, SYSTEM_PRESETS, export |
-| `public/js/apps/curator.js` | Curator SPA — library browser |
+| `src/servers/composer.js` | Event design + library API (port 3001); also owns Curator template routes |
+| `src/lib/curator-service.js` | CuratorService — zip vault, LRU unpack cache, template catalog |
+| `public/js/apps/composer.js` | Composer SPA — game editing, UUID workspace creation, SYSTEM_PRESETS, export |
+| `public/js/apps/curator.js` | Curator SPA — game library browser + Camporee Templates tab |
 | `public/js/judge.js` | Judge PWA (~2000 lines) — offline scoring, sync |
 | `public/js/admin.js` | Admin/Collator dashboard |
 | `public/js/official.js` | Official leaderboard view |
@@ -237,7 +241,7 @@ In `COLLATOR_MODE=cloud`, also contains `event_permissions (camporee_id, user_id
 
 ---
 
-## Deployment Architecture (as of 2026-06-04)
+## Deployment Architecture (as of 2026-06-06)
 
 ### Docker services (4 containers)
 
@@ -280,38 +284,25 @@ GL.iNet Opal custom DNS: add `address=/camporeeconductor.com/192.168.8.XXX` so j
 
 ---
 
-## Known Backlog (as of 2026-06-04)
+## Known Backlog (as of 2026-06-06)
 
-### Completed Since 2026-03-30
+See `BACKLOG.md` for the full living backlog. Key open items:
 
-- **CSS Variable Theme Color Picker** — implemented; `meta.theme_colors {main, header, accent}` in camporee.json, color picker UI in Composer Metadata tab, CSS vars injected at runtime by judge.js and data-store.js
-- **Exhibition Events** — fully implemented; `type: "exhibition"` games have no common fields and no in-app scoring; shown separately in Collator admin and Official leaderboard
-- **Print Scoresheets (grouped UI)** — `utils.html` now has three collapsible sections (Patrol / Troop / Exhibition) with per-game checkboxes and Select All/None
-- **Collator redirect paths** — all `res.redirect()` calls use `(req.baseUrl || '/collator')` fallback; `req.baseUrl` is `''` inside ESM sub-app mount
-- **The Big Top Goes Down** — full first-aid scenario with 3-victim scene, complete scoring rubric (8 inputs, 0-100 points); game renamed from `accident-at-the-circus`
-- **Ten Essentials field** — corrected from `checkbox` to `number` type (0–5 scale) in both active-event and workspace presets.json
-- **Troop number T-prefix normalization** — `admin.js`, `judge.js`, `utils.js`, `official.js` all strip leading T before display/sort so double-T never appears regardless of how troop_number was entered
-- **Inline rank/score editing** — `updateScoreField()` was called but never defined; implemented in `official.js`; now persists `manual_rank` and `manual_points` via `PUT /api/scores/:uuid`
-- **Time column sort** — `official.js` detail table correctly converts `MM:SS` / `H:MM:SS` strings to seconds before comparison
-- **Navigation back bug** — `official.html` popstate fallback was calling `switchView('dashboard')` (no-op) instead of `switchView('overview')`; fixed + added "← Games" in-page back button
-- **Awards printing** — `utils.html` sticker layout: per-row `<tbody>` with `break-inside: avoid`, adjustable spacing, Patrol/Troop toggle
-- **Awards overall name customizable** — hardcoded `'OVERALL LEADERBOARD'` in sticker renderer replaced with `w.gameName` from registry
-- **Troop overall flat award** — "Top Dog / Best in Show" mode: awards top N% of troops the same text, no rank differentiation; configurable name, text, and percentage
-- **Announcer Sheet** — `utils.html` new print mode: readable per-game ranked list (title + numbered entries + scores), `break-inside: avoid` per block, isolated from sticker print path
-- **Judge "Reset Local Data" button** — removed from production judge.html (function preserved in judge.js; see DEV-NOTES.md to restore)
-- **AAA (Auth/Authz/Audit)** — Clerk for Composer + cloud Collator; email honor system for offline Collator; `event_permissions`, `audit_log`, `feature_flags`, `judge_tokens` tables; sysadmin panel; migration runner
-- **Landing page** — `public/camporee-conductor-landing.html`; CSS in `public/css/landing.css`; early-access form (12 fields) POSTs to `POST /composer/api/early-access`; `GET /` serves landing for single-composer deployments
-- **Brand palette** — green/gold palette (`--green-dark`, `--green-mid`, `--green-light`, `--gold`, `--gold-light`, `--cream`, `--slate`) added to `conductor.css` `:root`; app brand vars (`--brand-main`, `--brand-header`, `--brand-accent`) remapped to green/gold; `landing.css` references these vars — `conductor.css` is the single source of truth
-- **Subdomain routing + dedicated landing service** — Caddyfile 3-block subdomain config with `{$CADDY_HOST:localhost}` template; nginx replaced by dedicated `landing` Express service (`Dockerfile.landing`, port 3002); `caddy_data` named volume; `CADDY_HOST` env var controls domain in both dev and prod
-- **Landing page brand logo** — `CamporeeConductor.png` badge in nav (40px) and hero (120px); `.logo-img` + `.hero-badge` in `landing.css`
-- **Schema v3.0 design** — `game.type` removed, replaced by `game.league` (FK to `camporee.leagues[]`); `terminology`, `sessions[]`, `rosters` added to `camporee.json`; full spec in `CAMPOREESCHEMA.md`
-- **Schema v3.0 implementation** — all 5 prompts complete, merged to `main` (2026-06-04). AJV schemas updated; `scripts/migrate-schema-v3.js` ran against all workspaces (3 camporee.json, 119 games, 3 presets.json migrated); `getGameTier()` added to `schema.js`; `injectCommonFields()` uses `game.league`; Composer SPA league selector live; all client JS (`official.js`, `utils.js`, `judge.js`, `admin.js`) updated; 22/22 tests passing.
+### Pre-VPS Blockers
+- **Clerk Production instance** — configure for camporeeconductor.com; update keys in VPS `.env`
+- **Set `SESSION_SECRET`** in VPS `.env` (collator has insecure hardcoded fallback)
+- **Full browser smoke test** — Google sign-in → create event → invite collaborator (requires Clerk Production)
 
-### Still Open
+### Curator / Community Library
+- **Director self-submission** — `POST /curator/api/templates` is sysadmin-only; open to directors
+- **Wizard 2 — Localize a template** — `{{token}}` replacement after "Use this template"
+- **AI Templatize tool** — strips PII, injects localization tokens, submits to Curator
 
-- **Challenge Match ("True 2nd Place")** — bracket tournament logic; `Matches`/`Match_Participants` DB tables exist, trigger logic TODO
-- **WebSocket leaderboard** — `official.js` currently polls every 15s; upgrade to WebSocket for live push
-- **Server consolidation** — merge legacy root `server.js` + `composer_server.js` into `src/`
-- **Practice Mode** — flag to let judges test forms without persisting to score queue
-- **Composer "Common Fields" panel** — UI for editing `type_defaults` and previewing injected fields per game type
-- **Exhibition award print** — no print template for exhibition results (e.g., Slack Line individual ribbons)
+### Collator / Runtime
+- **Challenge Match ("True 2nd Place")** — DB tables exist, trigger logic TODO
+- **WebSocket leaderboard** — `official.js` polls every 15s
+- **Judge token management UI** — `judge_tokens` table (migration 009) ready; API + UI not built
+
+### Coding Debt
+- `collator.js` ~line 50: `entities.type IN ('patrol','troop')` — pre-v3 DB column values, needs future migration
+- `collator.js` ~line 818: `entity_type: 'patrol'` hardcoded in POST /api/score audit log

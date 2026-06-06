@@ -27,7 +27,7 @@ Camporee Conductor is an offline-first digital event operating system for BSA (B
 **Key points:**
 
 - The `ACTIVE_SERVICES` env var tells each container which pillars to serve: `"collator"` vs `"curator,composer"`
-- Legacy root-level files (`collator-server.js`, `composer_server.js`) are superseded by `src/servers/` — **do not modify them**
+- Legacy root-level files (`collator-server.js`, `composer_server.js`) have been deleted — use `src/servers/` only
 - In local dev, `server.js` mounts Collator at `/collator` and Composer/Curator at `/composer`
 - Two Docker services share the codebase; environment variables control behavior
 
@@ -168,26 +168,31 @@ Requires `GEMINI_API_KEY` in `.env` for AI features. Do not commit this file.
 
 ---
 
-## 11. Current State (June 4, 2026)
+## 11. Current State (June 6, 2026)
 
-**Active branch:** `schema-v3` — breaking schema redesign in progress. Do not merge to main until all 5 implementation prompts in BACKLOG.md are complete.
+> Note: This section reflects the state as of June 6, 2026. This file was originally a pre-event snapshot (May 14, 2026). For the authoritative living state, see `BACKLOG.md` and `CLAUDE.md`.
 
-### Completed (post-event, as of Jun 4)
+**Active branch:** `main` — all work since the event has been merged.
+
+### Completed since the handoff snapshot (May 14)
 - Coyote Creek District Camporee "The Circus" — ran live May 15–17, 2026 ✅
 - Full AAA: Clerk auth for Composer + cloud Collator; offline email-honor mode; `event_permissions`; sysadmin panel; migration runner
-- `judge_tokens` DB table (migration 009) — ready for token API + UI
-- Landing page — `public/camporee-conductor-landing.html` with full early-access form (12 fields); brand logo badge in nav + hero
-- Brand palette — green/gold theme unified in `conductor.css`; `landing.css` references it
-- **Subdomain routing** — 4-container Docker stack: `caddy`, `landing` (Express, port 3002, `Dockerfile.landing`), `composer` (port 3001), `collator` (port 3000). Caddyfile uses `{$CADDY_HOST:localhost}` template — set `CADDY_HOST=camporeeconductor.com` in `.env` for production.
-- **Schema v3.0 design complete** — `game.type` removed, replaced by `game.league`; `leagues[]`, `sessions[]`, `rosters`, `terminology` added to camporee.json; spec in `CAMPOREESCHEMA.md`
+- Schema v3.0 — `game.type` removed → `game.league`; `leagues[]`, `sessions[]`, `rosters`, `terminology` added; 22/22 tests passing
+- CuratorService (Model A zip vault) — `src/lib/curator-service.js`; LRU unpack cache; template API; "Use this template" endpoint
+- Curator UI — Camporee Templates tab; browse, preview, token inventory, fork to workspace
+- DATA_DIR — runtime data decoupled from repo; `docker-compose.yml` uses `${DATA_DIR:-./data}`; dev data at `~/camporee-data/`
+- UUID workspace IDs — folder names are auto-generated UUIDs; user provides human-friendly Camporee Name as `meta.title`
+- E2E test suite — 8/8 Playwright tests passing (Docker-independent, ports 4000/4001)
+- Legacy server files (`collator-server.js`, `composer_server.js`) deleted
+- First-time welcome pane in Composer for new users with no camporees
 
-### Open Backlog
-- **Schema v3.0 implementation** — 5-prompt plan in BACKLOG.md; none started yet; branch `schema-v3` is ready
-- **VPS deployment** — `CADDY_HOST`, `SESSION_SECRET`, and Clerk Production instance still need to be configured; TLS model with Cloudflare needs verification
-- **Judge token API + UI** — `judge_tokens` table ready; need `POST /api/events/:eventId/judge-tokens` and director panel
-- **Challenge Match ("True 2nd Place")** — bracket tournament logic; DB tables exist, trigger logic TODO
+### Open Backlog (as of June 6)
+- **VPS deployment** — Clerk Production instance, `SESSION_SECRET`, TLS model verification
+- **Judge token API + UI** — `judge_tokens` table (migration 009) ready; endpoint + director panel not built
+- **Challenge Match ("True 2nd Place")** — DB tables exist, trigger logic TODO
 - **WebSocket leaderboard** — `official.js` currently polls every 15s
-- **E2E test suite** — 4 tests fail when Docker containers running (real Clerk vs TEST_MODE mismatch)
+- **Wizard 2 — Localize a template** — `{{token}}` replacement after "Use this template"
+- **Director self-submission to Curator** — currently sysadmin-only
 
 ---
 

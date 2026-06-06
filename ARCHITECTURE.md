@@ -1,7 +1,7 @@
 # Camporee Conductor — Architecture Decisions
 
-> Captured 2026-06-04 from design session. These decisions inform all future development.
-> Add relevant guardrails to CLAUDE.md as work is implemented.
+> Captured 2026-06-04 from design session. Updated 2026-06-06.
+> Implementation status noted per section. Add guardrails to CLAUDE.md as work ships.
 
 ---
 
@@ -11,13 +11,9 @@
 
 **Why:** Data inside the repo (`./data/`) is destroyed on `rm -rf` + reclone. Production hazard.
 
-**Current state:** `docker-compose.yml` uses `./data/...` relative paths — data is inside the repo. **This must be fixed before VPS deploy.**
+**Status: ✅ COMPLETE (2026-06-05)**
 
-**Target implementation:**
-- Add `DATA_DIR` to `.env` (default `./data` for local dev, `/opt/camporee-conductor-data` on VPS)
-- `docker-compose.yml` replaces `./data/X:/app/data/X` with `${DATA_DIR}/X:/app/data/X` throughout
-- App code already references env-var-driven paths (`WORKSPACE_PATH`, `EVENT_PATH`, etc.) — no app code changes needed
-- VPS data survives `git pull`, repo replacement, and container rebuilds
+`docker-compose.yml` uses `${DATA_DIR:-./data}` for all volume mounts. Dev sets `DATA_DIR=/home/<user>/camporee-data` in `.env`; VPS will use `DATA_DIR=/opt/camporee-conductor-data`. Runtime data was migrated out of the repo. App code references env-var-driven paths (`WORKSPACE_PATH`, `EVENT_PATH`, etc.) with no hardcoded `./data/` paths.
 
 ---
 
@@ -27,7 +23,7 @@
 
 **Current state:** Already largely implemented. `GET /api/camporees` reads all workspace dirs but filters by `event_permissions`. All read/write routes are gated by `requireEventRole`. The DB-as-security-boundary pattern is in place.
 
-**Remaining gap:** No `event_permissions` row is inserted at camporee *creation* time if the event already has rows (legacy path). Verify the owner-insert path in `POST /api/camporee/:id` covers all creation scenarios cleanly.
+**Status: ✅ COMPLETE.** `POST /api/camporee/:id` inserts an `owner` row on first save (when no permissions exist for the event). Workspace IDs are now always auto-generated UUIDs, eliminating any legacy non-UUID path.
 
 **Design:**
 - Workspace dirs remain flat by camporee UUID — no per-user subdirectories
@@ -153,7 +149,7 @@ No `fork()` on Curator. Curator never writes to user workspaces and is stateless
 
 ### Model A (Vault) vs. Model B (Index)
 
-**Decision:** Ship Model B as a stepping stone; Model A (zip vault) is the long-term target.
+**Decision:** ✅ **Model A (zip vault) shipped directly (2026-06-05).** Model B was skipped.
 
 | | Model B (Index) | Model A (Vault) |
 |---|---|---|
@@ -162,7 +158,7 @@ No `fork()` on Curator. Curator never writes to user workspaces and is stateless
 | Versioning | Hard — "template" is someone's live workspace | Natural — zip is immutable; new submission = new version |
 | Implementation effort | Low | Higher |
 
-The `CuratorService` abstraction keeps the backend swappable — Composer never knows which model is active.
+`CuratorService` (`src/lib/curator-service.js`) implements the vault interface. `POST /curator/api/templates` accepts a cartridge zip; `GET /curator/api/templates/:id/zip` returns it; `POST /composer/api/from-template/:id` unpacks it into a new UUID workspace. An LRU unpack cache (max 20 entries) lives at `data/curator/cache/`.
 
 ### Template Edit Mode (Obscured)
 
@@ -216,9 +212,11 @@ See §8. Not a wizard. Review/approve flow for community contribution.
 
 ## 10. New User Onboarding
 
-**Decision:** Curator is the entry point for new users — not an empty Composer workspace.
+**Decision:** Curator is the intended entry point for new users — not an empty Composer workspace.
 
-**Flow:**
+**Partial implementation (2026-06-06):** Composer detects an empty camporee list on load and shows a "first-time welcome" pane with a Camporee Name field and "Create My First Camporee" button. The Curator redirect flow below is not yet implemented.
+
+**Full target flow:**
 ```
 New user logs in
   → Composer detects zero rows in event_permissions for this user
