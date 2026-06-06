@@ -53,6 +53,9 @@ dotenvConfig({ path: path.join(ROOT, '.env') });
 // ── Path resolution ──────────────────────────────────────────────────────────
 
 const DATA_DIR = process.env.DATA_DIR || path.join(ROOT, 'data');
+console.error('DEBUG ROOT:', ROOT);
+console.error('DEBUG DATA_DIR:', DATA_DIR);
+console.error('DEBUG WORKSPACE_PATH raw:', process.env.WORKSPACE_PATH);
 
 const WORKSPACE_PATH = process.env.WORKSPACE_PATH
     || path.join(DATA_DIR, 'composer', 'workspaces');
