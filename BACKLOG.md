@@ -68,10 +68,15 @@ All 5 prompts done. Flagged for future cleanup:
 
 See `SITE_DEMO_DESIGN.md` for full design. Two-phase rollout: Phase 1 (Clerk auth, preview accounts) → Phase 2 (no-auth playground, future).
 
-- [ ] **WebSocket Officials View** — replace 15s polling in `official.js` with WebSocket push; prerequisite for demo "wow" moment (score → instant standings update)
-- [ ] **Demo Collator container** — new Docker service at `demo.camporeeconductor.com`; shared fixed cartridge; no auth required
-- [ ] **Demo seeded state + nightly reset cron** — script that loads cartridge + seeds ~50% of patrol game scores; cron restores nightly
-- [ ] **Judge Phone Emulator page** — `/demo-phone` on Demo Collator; CSS phone bezel frame wrapping real judge PWA iframe; responsive (side-by-side on wide screens, new tab on small)
+- ✅ **SSE Officials View** — replaced 15s polling with Server-Sent Events push; `broadcastScoreUpdate()` fires after every score write (2026-06-12)
+- ✅ **Demo Collator container** — `demo-collator` Docker service at `demo.camporeeconductor.com`; `DEMO_MODE=true`; password "Camporee" + email access log (2026-06-12)
+- ✅ **Demo seeded state + nightly reset cron** — `scripts/seed-demo.js` wipes DB + seeds 288 patrol scores; cron at 3am nightly (2026-06-12)
+- ✅ **Judge Phone Emulator page** — `public/demo-phone.html`; CSS phone bezel wrapping judge PWA iframe side-by-side with Officials leaderboard; `?autorefresh=1` enables SSE auto-push (2026-06-12)
+- [ ] **VPS: complete demo collator deploy** — place cartridge zip, rebuild container, run initial seed, add cron; DNS record already created on Cloudflare
+- [ ] **Offline/Online toggle in Judge Emulator** — localStorage flag causes judge app to queue locally (OFFLINE) or flush+sync (ONLINE); reuses `sync-manager.js`; same infrastructure as per-judge DEMO mode
+- [ ] **Composer demo event for preview accounts** — link Phase 1 preview account holders to demo camporee on first login
+- [ ] **Landing page video/slide deck embed** — content Jim creates; embed is trivial when ready
+- [ ] **Phase 2: No-auth playground** — (future, after Phase 1 feedback incorporated)
 - [ ] **Offline/Online toggle in Judge Emulator** — localStorage flag causes judge app to queue locally (OFFLINE) or flush+sync (ONLINE); reuses `sync-manager.js`; same infrastructure as per-judge DEMO mode
 - [ ] **Composer demo event for preview accounts** — link Phase 1 preview account holders to demo camporee on first login
 - [ ] **Landing page video/slide deck embed** — content Jim creates; embed is trivial when ready
