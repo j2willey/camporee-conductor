@@ -17,7 +17,7 @@ function getLeagueForViewMode(viewMode) {
 let detailSort = { col: '_finalRank', dir: 'asc' };
 let activeGameId = null;
 let finalMode = false;
-let autoRefreshInterval = null;
+let sseSource = null;
 
 // Initialization
 document.addEventListener('DOMContentLoaded', async () => {
@@ -92,12 +92,12 @@ function setupNavigation() {
         autoRefreshSwitch.addEventListener('change', (e) => {
             const loadOpts = { silent: true, onUpdate: refreshCurrentView, onHeaderUpdate: updateDashboardHeader };
             if (e.target.checked) {
-                // Start Polling (15s)
                 loadData(loadOpts); // Immediate fetch
-                autoRefreshInterval = setInterval(() => loadData(loadOpts), 15000);
+                if (sseSource) sseSource.close();
+                sseSource = new EventSource(window.API_BASE + '/api/sse');
+                sseSource.onmessage = () => loadData(loadOpts);
             } else {
-                if (autoRefreshInterval) clearInterval(autoRefreshInterval);
-                autoRefreshInterval = null;
+                if (sseSource) { sseSource.close(); sseSource = null; }
             }
         });
     }

@@ -10,5 +10,7 @@ composer.{$CADDY_HOST:localhost} {
 
 collator.{$CADDY_HOST:localhost} {
     tls internal
-    reverse_proxy collator:3000
+    reverse_proxy collator:3000 {
+        flush_interval -1
+    }
 }

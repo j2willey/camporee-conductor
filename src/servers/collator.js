@@ -23,6 +23,14 @@ const __dirname = path.join(path.dirname(__filename), '..', '..');
 const app = express();
 const PORT = 3000;
 
+// SSE: tracks all connected Officials View clients
+const sseClients = new Set();
+function broadcastScoreUpdate() {
+    for (const res of sseClients) {
+        res.write('data: scores_updated\n\n');
+    }
+}
+
 // Directory Structure
 const DATA_DIR = path.join(__dirname, 'data', 'collator');
 const ACTIVE_DIR = process.env.EVENT_PATH || path.join(DATA_DIR, 'active-event');
@@ -485,7 +493,8 @@ const requireConfig = (req, res, next) => {
         '/setup/conflict',
         '/api/auth/whoami',
         '/api/auth/identify',
-        '/identify.html'
+        '/identify.html',
+        '/api/sse'
     ];
 
     // Allow static resources and bypass routes
@@ -502,6 +511,27 @@ const requireConfig = (req, res, next) => {
     next();
 };
 app.use(requireConfig);
+
+// --- SSE ENDPOINT ---
+
+app.get('/api/sse', (req, res) => {
+    res.set({
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no'
+    });
+    res.flushHeaders();
+
+    sseClients.add(res);
+
+    const keepalive = setInterval(() => res.write(': keepalive\n\n'), 25000);
+
+    req.on('close', () => {
+        clearInterval(keepalive);
+        sseClients.delete(res);
+    });
+});
 
 // --- ROUTES ---
 
@@ -820,6 +850,7 @@ app.post('/api/score', (req, res) => {
         const result = transaction();
         const isUpdate = result && result.changes === 0; // ON CONFLICT path = 0 changes on insert attempt
         logAudit(isUpdate ? 'score_update' : 'score_create', { entity_type: 'patrol', entity_id, game_id, notes: `judge: ${judge_name || judge_email || 'unknown'}` });
+        broadcastScoreUpdate();
         res.status(201).json({ status: 'success' });
 
     } catch (err) {
@@ -1187,6 +1218,7 @@ app.put('/api/scores/:uuid', requireOfficial, (req, res) => {
             }
         }
 
+        broadcastScoreUpdate();
         res.json({ status: 'updated' });
 
     } catch (err) {
@@ -1232,6 +1264,7 @@ app.post('/api/scores/close-game', (req, res) => {
             VALUES (?, ?, ?, ?)
         `).run(game_id, judge_id || null, score_count || 0, closed_at || new Date().toISOString());
 
+        broadcastScoreUpdate();
         res.json({ received: true, message: 'Scores confirmed. Thank you!' });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -1261,6 +1294,7 @@ app.put('/api/official/flags/:gameId/:entityId', requireOfficial, (req, res) => 
             new_value: dq ? 1 : 0,
             notes: reason || ''
         });
+        broadcastScoreUpdate();
         res.json({ status: 'success' });
     } catch (err) {
         res.status(500).json({ error: err.message });
