@@ -63,6 +63,19 @@ All 5 prompts done. Flagged for future cleanup:
 - [ ] **Full browser smoke test** — Google sign-in → create camporee (UUID/name flow) → invite collaborator → verify `event_permissions` row in DB
 - ✅ **E2E test fix** — 8/8 Playwright tests pass regardless of Docker state (ports 4000/4001; 2026-06-06)
 
+### Site Demo / Buy-In Experience
+
+See `SITE_DEMO_DESIGN.md` for full design. Two-phase rollout: Phase 1 (Clerk auth, preview accounts) → Phase 2 (no-auth playground, future).
+
+- [ ] **WebSocket Officials View** — replace 15s polling in `official.js` with WebSocket push; prerequisite for demo "wow" moment (score → instant standings update)
+- [ ] **Demo Collator container** — new Docker service at `demo.camporeeconductor.com`; shared fixed cartridge; no auth required
+- [ ] **Demo seeded state + nightly reset cron** — script that loads cartridge + seeds ~50% of patrol game scores; cron restores nightly
+- [ ] **Judge Phone Emulator page** — `/demo-phone` on Demo Collator; CSS phone bezel frame wrapping real judge PWA iframe; responsive (side-by-side on wide screens, new tab on small)
+- [ ] **Offline/Online toggle in Judge Emulator** — localStorage flag causes judge app to queue locally (OFFLINE) or flush+sync (ONLINE); reuses `sync-manager.js`; same infrastructure as per-judge DEMO mode
+- [ ] **Composer demo event for preview accounts** — link Phase 1 preview account holders to demo camporee on first login
+- [ ] **Landing page video/slide deck embed** — content Jim creates; embed is trivial when ready
+- [ ] **Phase 2: No-auth playground** — (future, after Phase 1 feedback incorporated)
+
 ### Infrastructure / Analytics
 
 - ✅ **Analytics — Cloudflare** — basic traffic stats available free via Cloudflare dashboard; no setup required
