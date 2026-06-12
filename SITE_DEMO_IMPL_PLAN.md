@@ -16,7 +16,7 @@ Full design: `SITE_DEMO_DESIGN.md`
 
 ## Build Order & Status
 
-### Step 1 — SSE Officials View ✅ IN PROGRESS
+### Step 1 — SSE Officials View ✅ DONE (commit 6e9657a)
 **Why first:** Officials view currently polls every 15s. Demo prospect submits a score
 and waits 15s = thinks it's broken. Must fix before demo infrastructure matters.
 
@@ -84,7 +84,7 @@ If demo, show password field + hint: "Password: Camporee — explore freely!"
 
 ---
 
-### Step 4 — Judge Phone Emulator ✅ DONE (commit TBD)
+### Step 4 — Judge Phone Emulator ✅ DONE (commit 5de8f23)
 
 **New file:** `public/demo-phone.html`
 
