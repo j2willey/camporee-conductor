@@ -14,3 +14,10 @@ collator.{$CADDY_HOST:localhost} {
         flush_interval -1
     }
 }
+
+demo.{$CADDY_HOST:localhost} {
+    tls internal
+    reverse_proxy demo-collator:3003 {
+        flush_interval -1
+    }
+}

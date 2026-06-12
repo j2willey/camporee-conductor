@@ -14,7 +14,8 @@ dotenv.config();
 
 const COLLATOR_MODE = (process.env.COLLATOR_MODE || 'offline').toLowerCase();
 const TEST_MODE = process.env.NODE_ENV === 'test';
-console.log(`[Collator] Running in ${COLLATOR_MODE} mode`);
+const DEMO_MODE = process.env.DEMO_MODE === 'true';
+console.log(`[Collator] Running in ${COLLATOR_MODE} mode${DEMO_MODE ? ' (DEMO)' : ''}`);
 
 // --- CONFIGURATION & PATHS ---
 const __filename = fileURLToPath(import.meta.url);
@@ -493,6 +494,7 @@ const requireConfig = (req, res, next) => {
         '/setup/conflict',
         '/api/auth/whoami',
         '/api/auth/identify',
+        '/api/demo-mode',
         '/identify.html',
         '/api/sse'
     ];
@@ -663,6 +665,10 @@ app.post('/api/setup/confirm', express.urlencoded({ extended: true }), (req, res
 
 // --- AUTH ROUTES ---
 
+app.get('/api/demo-mode', (req, res) => {
+    res.json({ demo: DEMO_MODE });
+});
+
 app.get('/api/auth/whoami', (req, res) => {
     if (TEST_MODE) return res.json({ mode: COLLATOR_MODE, authenticated: true, role: 'director', display_name: 'Test User' });
     if (COLLATOR_MODE === 'cloud') {
@@ -686,6 +692,19 @@ app.post('/api/auth/identify', express.json(), (req, res) => {
 
     const email = ((req.body && req.body.email) || '').toLowerCase().trim();
     if (!email) return res.status(400).json({ error: 'Email required' });
+
+    if (DEMO_MODE) {
+        const password = ((req.body && req.body.password) || '').toLowerCase().trim();
+        if (password !== 'camporee') {
+            return res.status(403).json({ error: 'Incorrect password' });
+        }
+        const logEntry = JSON.stringify({ email, ip: req.ip, timestamp: new Date().toISOString() }) + '\n';
+        fs.appendFileSync(path.join(DATA_DIR, 'demo-access.log'), logEntry);
+        req.session.role = 'official';
+        req.session.display_name = null;
+        req.session.email = email;
+        return res.json({ display_name: null, role: 'official' });
+    }
 
     const manifestPath = path.join(ACTIVE_DIR, 'camporee.json');
     if (!fs.existsSync(manifestPath)) {

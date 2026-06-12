@@ -16,6 +16,7 @@ services:
       - landing
       - composer
       - collator
+      - demo-collator
     restart: unless-stopped
 
   # 1. LANDING — standalone marketing site + early-access form (camporeeconductor.com)
@@ -76,6 +77,29 @@ services:
       - ${DATA_DIR:-./data}/shared:/app/data/shared
       - ./migrations:/app/migrations
       - ./scripts:/app/scripts
+      - ./src:/app/src
+      - ./views:/app/views
+      - ./public:/app/public
+      - ./server.js:/app/server.js
+    restart: unless-stopped
+
+  # 4. THE DEMO COLLATOR — shared open demo (demo.camporeeconductor.com)
+  demo-collator:
+    container_name: camporee-demo-collator
+    build: .
+    env_file: .env
+    ports:
+      - "3003:3003"   # Direct access for local dev
+    environment:
+      - PORT=3003
+      - ACTIVE_SERVICES=collator
+      - DEMO_MODE=true
+      - COLLATOR_MODE=offline
+      - EVENT_PATH=/app/data/active-event
+      - LIBRARY_PATH=/app/data/library
+    volumes:
+      - ${DATA_DIR:-./data}/demo-collator:/app/data
+      - ${DATA_DIR:-./data}/curator:/app/data/library
       - ./src:/app/src
       - ./views:/app/views
       - ./public:/app/public

@@ -33,11 +33,33 @@
 
     <script>
     const API = '/collator';
+    var isDemo = false;
 
-    // Load event title from games.json metadata
+    // Load event title and detect demo mode
     fetch(API + '/games.json').then(function(r){ return r.json(); }).then(function(d){
         var title = d && d.metadata && d.metadata.title;
         if (title) document.getElementById('event-title').textContent = title;
+    }).catch(function(){});
+
+    fetch(API + '/api/demo-mode').then(function(r){ return r.json(); }).then(function(d){
+        if (!d.demo) return;
+        isDemo = true;
+
+        // Inject password field + demo hint before the submit button
+        var form = document.getElementById('identify-form');
+        var btn = document.getElementById('submit-btn');
+
+        var hint = document.createElement('p');
+        hint.className = 'text-info mb-3';
+        hint.style.fontSize = '0.85rem';
+        hint.textContent = 'Demo access — enter any email. Password: Camporee';
+        form.insertBefore(hint, btn);
+
+        var pwWrap = document.createElement('div');
+        pwWrap.className = 'mb-3';
+        pwWrap.innerHTML = '<label for="password-input" class="form-label text-white">Password</label>' +
+            '<input type="password" id="password-input" class="form-control form-control-lg bg-dark text-white border-secondary" placeholder="Camporee" required autocomplete="current-password">';
+        form.insertBefore(pwWrap, btn);
     }).catch(function(){});
 
     document.getElementById('identify-form').addEventListener('submit', function(e) {
@@ -45,6 +67,12 @@
         var email = document.getElementById('email-input').value.trim();
         var btn = document.getElementById('submit-btn');
         var msg = document.getElementById('status-msg');
+
+        var body = { email: email };
+        if (isDemo) {
+            var pwEl = document.getElementById('password-input');
+            body.password = pwEl ? pwEl.value : '';
+        }
 
         btn.disabled = true;
         btn.textContent = 'Checking…';
@@ -54,7 +82,7 @@
         fetch(API + '/api/auth/identify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: email })
+            body: JSON.stringify(body)
         })
         .then(function(r) { return r.json().then(function(d){ return { ok: r.ok, data: d }; }); })
         .then(function(result) {
