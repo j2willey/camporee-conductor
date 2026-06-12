@@ -40,7 +40,7 @@ and waits 15s = thinks it's broken. Must fix before demo infrastructure matters.
 
 ---
 
-### Step 2 — Demo Collator Container ⬜ NOT STARTED
+### Step 2 — Demo Collator Container ✅ DONE (commit 0de7c3d)
 
 **New Docker service:** `demo-collator`, port 3003, `DEMO_MODE=true COLLATOR_MODE=offline`
 
@@ -67,7 +67,7 @@ If demo, show password field + hint: "Password: Camporee — explore freely!"
 
 ---
 
-### Step 3 — Seeded State Script + Nightly Cron ⬜ NOT STARTED
+### Step 3 — Seeded State Script + Nightly Cron ✅ DONE (commit TBD)
 
 **Script:** `scripts/seed-demo.js`
 - Reads env `DEMO_CARTRIDGE_PATH` (path to CamporeeConfig.zip)

@@ -97,6 +97,9 @@ services:
       - COLLATOR_MODE=offline
       - EVENT_PATH=/app/data/active-event
       - LIBRARY_PATH=/app/data/library
+      # Path to the Circus cartridge zip inside the container.
+      # Place the file at ${DATA_DIR}/demo-collator/cartridge.zip on the host.
+      - DEMO_CARTRIDGE_PATH=/app/data/cartridge.zip
     volumes:
       - ${DATA_DIR:-./data}/demo-collator:/app/data
       - ${DATA_DIR:-./data}/curator:/app/data/library
