@@ -37,6 +37,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         switchView(view, false);
     }
 
+    // Auto-enable live refresh when embedded in the demo phone emulator
+    if (params.get('autorefresh') === '1') {
+        const sw = document.getElementById('auto-refresh-switch');
+        if (sw && !sw.checked) {
+            sw.checked = true;
+            sw.dispatchEvent(new Event('change'));
+        }
+    }
+
     // Handle back/forward buttons
     window.addEventListener('popstate', (event) => {
         if (event.state && event.state.view) {

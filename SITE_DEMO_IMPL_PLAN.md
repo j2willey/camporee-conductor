@@ -84,7 +84,7 @@ If demo, show password field + hint: "Password: Camporee — explore freely!"
 
 ---
 
-### Step 4 — Judge Phone Emulator ⬜ NOT STARTED
+### Step 4 — Judge Phone Emulator ✅ DONE (commit TBD)
 
 **New file:** `public/demo-phone.html`
 
