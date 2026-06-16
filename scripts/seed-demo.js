@@ -198,19 +198,37 @@ db.exec(`
   INSERT INTO game_status SELECT * FROM snap.game_status;
 `);
 
+// Reset the bottom 8 games (fewest scores) to open with no scores.
+// This gives the judge phone emulator fresh games to demonstrate scoring
+// while the top 10 remain finalized and appear in the leaderboard.
+db.exec(`
+  DELETE FROM scores WHERE game_id IN (
+    SELECT game_id FROM game_status
+    ORDER BY (SELECT COUNT(*) FROM scores s WHERE s.game_id = game_status.game_id) ASC
+    LIMIT 8
+  );
+  DELETE FROM game_status WHERE game_id IN (
+    SELECT game_id FROM game_status
+    ORDER BY (SELECT COUNT(*) FROM scores s WHERE s.game_id = game_status.game_id) ASC
+    LIMIT 8
+  );
+`);
+
 db.exec('DETACH snap');
 
-const troops  = db.prepare("SELECT COUNT(*) as n FROM entities WHERE type='troop'").get().n;
-const patrols = db.prepare("SELECT COUNT(*) as n FROM entities WHERE type='patrol'").get().n;
-const judges  = db.prepare('SELECT COUNT(*) as n FROM judges').get().n;
-const scores  = db.prepare('SELECT COUNT(*) as n FROM scores').get().n;
-const games   = db.prepare('SELECT COUNT(*) as n FROM game_status').get().n;
+const troops    = db.prepare("SELECT COUNT(*) as n FROM entities WHERE type='troop'").get().n;
+const patrols   = db.prepare("SELECT COUNT(*) as n FROM entities WHERE type='patrol'").get().n;
+const judges    = db.prepare('SELECT COUNT(*) as n FROM judges').get().n;
+const scores    = db.prepare('SELECT COUNT(*) as n FROM scores').get().n;
+const finalized = db.prepare("SELECT COUNT(*) as n FROM game_status WHERE status='finalized'").get().n;
 
 db.close();
 
+// Open games have no game_status row; their count is implicit (total - finalized).
 console.log('\n[seed-demo] ✓ Done');
-console.log(`  Troops  : ${troops}`);
-console.log(`  Patrols : ${patrols}`);
-console.log(`  Judges  : ${judges}`);
-console.log(`  Scores  : ${scores}`);
-console.log(`  Games   : ${games} with status`);
+console.log(`  Troops    : ${troops}`);
+console.log(`  Patrols   : ${patrols}`);
+console.log(`  Judges    : ${judges}`);
+console.log(`  Scores    : ${scores}`);
+console.log(`  Finalized : ${finalized} games (leaderboard visible)`);
+console.log(`  Open      : 8 games (no scores — ready for demo scoring)`);
