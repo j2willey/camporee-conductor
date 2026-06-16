@@ -72,7 +72,7 @@ See `SITE_DEMO_DESIGN.md` for full design. Two-phase rollout: Phase 1 (Clerk aut
 - ✅ **Demo Collator container** — `demo-collator` Docker service at `demo.camporeeconductor.com`; `DEMO_MODE=true`; password "Camporee" + email access log (2026-06-12)
 - ✅ **Demo seeded state + nightly reset cron** — `scripts/seed-demo.js` wipes DB + seeds 288 patrol scores; cron at 3am nightly (2026-06-12)
 - ✅ **Judge Phone Emulator page** — `public/demo-phone.html`; CSS phone bezel wrapping judge PWA iframe side-by-side with Officials leaderboard; `?autorefresh=1` enables SSE auto-push (2026-06-12)
-- [ ] **VPS: complete demo collator deploy** — place cartridge zip, rebuild container, run initial seed, add cron; DNS record already created on Cloudflare
+- ✅ **VPS: complete demo collator deploy** — cartridge + real Circus 2026 snapshot (16 troops, 30 patrols, 214 scores, 18 finalized games) deployed; nightly reset cron active (2026-06-16)
 - [ ] **Offline/Online toggle in Judge Emulator** — localStorage flag causes judge app to queue locally (OFFLINE) or flush+sync (ONLINE); reuses `sync-manager.js`; same infrastructure as per-judge DEMO mode
 - [ ] **Composer demo event for preview accounts** — link Phase 1 preview account holders to demo camporee on first login
 - [ ] **Landing page video/slide deck embed** — content Jim creates; embed is trivial when ready
