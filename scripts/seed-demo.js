@@ -118,10 +118,13 @@ console.log(`[seed-demo] Cartridge extracted to ${EVENT_PATH}`);
 
 console.log('\n[seed-demo] Step 2: Resetting database...');
 fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
-if (fs.existsSync(DB_PATH)) fs.unlinkSync(DB_PATH);
 
+// Open (or create) the DB in-place — do NOT delete the file.
+// Deleting and recreating would orphan the running collator server's open
+// file descriptor, leaving it reading from the old (empty) inode.
 const db = new Database(DB_PATH);
 
+// Ensure all tables exist (idempotent — safe on a fresh or existing DB)
 db.exec(`
   CREATE TABLE IF NOT EXISTS entities (
     id TEXT PRIMARY KEY,
@@ -131,14 +134,12 @@ db.exec(`
     parent_id TEXT,
     manual_rank TEXT
   );
-
   CREATE TABLE IF NOT EXISTS judges (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
     unit TEXT
   );
-
   CREATE TABLE IF NOT EXISTS scores (
     uuid TEXT PRIMARY KEY,
     game_id TEXT NOT NULL,
@@ -149,12 +150,10 @@ db.exec(`
     FOREIGN KEY(entity_id) REFERENCES entities(id),
     FOREIGN KEY(judge_id) REFERENCES judges(id)
   );
-
   CREATE TABLE IF NOT EXISTS game_status (
     game_id TEXT PRIMARY KEY,
     status TEXT
   );
-
   CREATE TABLE IF NOT EXISTS Matches (
     id TEXT PRIMARY KEY,
     tournament_id TEXT NOT NULL,
@@ -165,7 +164,6 @@ db.exec(`
     status TEXT,
     FOREIGN KEY(tournament_id) REFERENCES game_status(game_id)
   );
-
   CREATE TABLE IF NOT EXISTS Match_Participants (
     match_id TEXT NOT NULL,
     entity_id TEXT NOT NULL,
@@ -176,7 +174,6 @@ db.exec(`
     FOREIGN KEY(match_id) REFERENCES Matches(id),
     FOREIGN KEY(entity_id) REFERENCES entities(id)
   );
-
   CREATE TABLE IF NOT EXISTS Event_Standings (
     tournament_id TEXT NOT NULL,
     entity_id TEXT NOT NULL,
@@ -188,7 +185,6 @@ db.exec(`
     FOREIGN KEY(tournament_id) REFERENCES game_status(game_id),
     FOREIGN KEY(entity_id) REFERENCES entities(id)
   );
-
   CREATE TABLE IF NOT EXISTS game_closures (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     game_id TEXT NOT NULL,
@@ -198,7 +194,6 @@ db.exec(`
     server_received_at TEXT DEFAULT (datetime('now')),
     FOREIGN KEY(judge_id) REFERENCES judges(id)
   );
-
   CREATE TABLE IF NOT EXISTS exhibition_results (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     game_id TEXT NOT NULL,
@@ -209,7 +204,6 @@ db.exec(`
     judges_notes TEXT NOT NULL DEFAULT '',
     sort_order INTEGER NOT NULL DEFAULT 0
   );
-
   CREATE TABLE IF NOT EXISTS official_game_flags (
     entity_id TEXT NOT NULL,
     game_id TEXT NOT NULL,
@@ -218,7 +212,6 @@ db.exec(`
     updated_at TEXT DEFAULT (datetime('now')),
     PRIMARY KEY (entity_id, game_id)
   );
-
   CREATE TABLE IF NOT EXISTS audit_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     timestamp TEXT DEFAULT (datetime('now')),
@@ -232,7 +225,22 @@ db.exec(`
     notes TEXT
   );
 `);
-console.log('[seed-demo] Database initialized');
+
+// Clear all data while keeping the file open (server sees updates immediately)
+db.exec(`
+  DELETE FROM audit_log;
+  DELETE FROM official_game_flags;
+  DELETE FROM game_closures;
+  DELETE FROM exhibition_results;
+  DELETE FROM Event_Standings;
+  DELETE FROM Match_Participants;
+  DELETE FROM Matches;
+  DELETE FROM game_status;
+  DELETE FROM scores;
+  DELETE FROM judges;
+  DELETE FROM entities;
+`);
+console.log('[seed-demo] Database reset complete');
 
 // --- STEP 3: INSERT ROSTER ---
 
