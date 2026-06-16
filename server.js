@@ -128,6 +128,9 @@ async function startServer() {
     // where requireAuth + requireSysadmin gate it. API calls in the page use relative paths
     // that only resolve correctly from the /composer/ mount point anyway.
     app.get('/sysadmin.html', (req, res) => res.redirect('/composer/sysadmin.html'));
+    if (!ACTIVE_SERVICES.includes('composer')) {
+        app.use('/composer', (req, res) => res.redirect('/'));
+    }
     app.use(express.static('public', { index: false }));
 
     // --- ROOT ROUTING (The Gateway) ---
