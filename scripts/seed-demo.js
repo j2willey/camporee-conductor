@@ -176,6 +176,7 @@ db.exec(`
   );
 `);
 
+db.pragma('foreign_keys = OFF');
 db.prepare('ATTACH DATABASE ? AS snap').run(SNAPSHOT_PATH);
 
 db.exec(`
@@ -192,6 +193,7 @@ db.exec(`
   DELETE FROM entities;
 
   INSERT INTO entities    SELECT * FROM snap.entities;
+  INSERT INTO judges      SELECT * FROM snap.judges;
   INSERT INTO scores      SELECT * FROM snap.scores;
   INSERT INTO game_status SELECT * FROM snap.game_status;
 `);
@@ -200,6 +202,7 @@ db.exec('DETACH snap');
 
 const troops  = db.prepare("SELECT COUNT(*) as n FROM entities WHERE type='troop'").get().n;
 const patrols = db.prepare("SELECT COUNT(*) as n FROM entities WHERE type='patrol'").get().n;
+const judges  = db.prepare('SELECT COUNT(*) as n FROM judges').get().n;
 const scores  = db.prepare('SELECT COUNT(*) as n FROM scores').get().n;
 const games   = db.prepare('SELECT COUNT(*) as n FROM game_status').get().n;
 
@@ -208,5 +211,6 @@ db.close();
 console.log('\n[seed-demo] ✓ Done');
 console.log(`  Troops  : ${troops}`);
 console.log(`  Patrols : ${patrols}`);
+console.log(`  Judges  : ${judges}`);
 console.log(`  Scores  : ${scores}`);
 console.log(`  Games   : ${games} with status`);
