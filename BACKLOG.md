@@ -51,7 +51,7 @@
 All 5 prompts done. Flagged for future cleanup:
 - [ ] `collator.js` ~line 50: `entities.type IN ('patrol','troop')` — DB entity tier column still uses pre-v3 strings; needs a future DB migration when roster model is upgraded
 - [ ] `collator.js` ~line 818: `entity_type: 'patrol'` hardcoded in POST /api/score audit log — should resolve from actual entity tier
-- [ ] **Upgrade Curator-stored Circus cartridge to v3.0** — `data/curator/camporees/Coyote_Creek_District_Camporee_2026.zip` is pre-v3 format: `game.type` instead of `game.league`, empty `leagues[]`. `scripts/seed-demo.js` has a `TYPE_TO_LEAGUE` fallback to handle it, but that fallback should be removed once the cartridge is replaced. Fix: re-export the Circus event from the Composer (which generates v3 format), submit to Curator via `POST /curator/api/templates` to replace the stored zip, then remove the `TYPE_TO_LEAGUE` fallback from `seed-demo.js`.
+- ✅ **Upgrade Curator-stored Circus cartridge to v3.0** — Circus workspace was already v3.0; added `event_permissions` owner row for Jim; removed `TYPE_TO_LEAGUE` fallback from `seed-demo.js`; orphaned pre-v3 Curator zip (`camporees/Coyote_Creek_District_Camporee_2026.zip`) and `camporee-catalog.json` deleted from data dir (2026-06-16)
 
 ---
 

@@ -263,17 +263,13 @@ if (!fs.existsSync(gamesDir)) {
     process.exit(1);
 }
 
-// Map pre-v3 type field to v3 league id (fallback for older cartridges)
-const TYPE_TO_LEAGUE = { patrol: 'patrol-games', troop: 'troop-challenges', exhibition: 'exhibition' };
-
 const allGameFiles = fs.readdirSync(gamesDir)
     .filter(f => f.endsWith('.json'))
     .map(f => {
         try {
             const raw = JSON.parse(fs.readFileSync(path.join(gamesDir, f), 'utf8'));
             const normalized = normalizeGameDefinition(raw);
-            const league = raw.league || TYPE_TO_LEAGUE[raw.type] || null;
-            return { id: raw.id || path.basename(f, '.json'), league, fields: normalized.fields };
+            return { id: raw.id || path.basename(f, '.json'), league: raw.league || null, fields: normalized.fields };
         } catch {
             return null;
         }
