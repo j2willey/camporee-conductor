@@ -1,11 +1,11 @@
 /**
  * scripts/seed-demo.js
  *
- * Resets the Demo Collator to a clean seeded state:
+ * Resets the Demo Collator to the real Circus 2026 event state:
  *   1. Extracts DEMO_CARTRIDGE_PATH zip into EVENT_PATH (overwrites existing event data)
- *   2. Wipes and reinitializes camporee.db
- *   3. Inserts Circus 2026 roster (15 troops, 32 patrols)
- *   4. Seeds the first ~50% of patrol games with plausible scores for all patrols
+ *   2. Restores entities, scores, and game_status from DEMO_SNAPSHOT_PATH
+ *      using SQLite ATTACH so the running server sees the update immediately
+ *      (no container restart required).
  *
  * Run inside the demo container:
  *   docker exec camporee-demo-collator node scripts/seed-demo.js
@@ -14,8 +14,9 @@
  *   0 3 * * * docker exec camporee-demo-collator node scripts/seed-demo.js >> /var/log/seed-demo.log 2>&1
  *
  * Required env (set in docker-compose):
- *   DEMO_CARTRIDGE_PATH  path to CamporeeConfig.zip inside the container
- *   EVENT_PATH           where to extract the cartridge (default: /app/data/active-event)
+ *   DEMO_CARTRIDGE_PATH   path to CamporeeConfig.zip inside the container
+ *   DEMO_SNAPSHOT_PATH    path to seed-snapshot.db inside the container
+ *   EVENT_PATH            where to extract the cartridge (default: /app/data/active-event)
  */
 
 import Database from 'better-sqlite3';
@@ -23,8 +24,6 @@ import AdmZip from 'adm-zip';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { randomUUID } from 'crypto';
-import { normalizeGameDefinition } from '../public/js/core/schema.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -42,69 +41,21 @@ if (!fs.existsSync(CARTRIDGE_PATH)) {
     process.exit(1);
 }
 
+const SNAPSHOT_PATH = process.env.DEMO_SNAPSHOT_PATH || path.join(APP_ROOT, 'data', 'seed-snapshot.db');
+if (!fs.existsSync(SNAPSHOT_PATH)) {
+    console.error(`[seed-demo] ERROR: Snapshot not found at ${SNAPSHOT_PATH}`);
+    console.error('[seed-demo]   Place the real camporee.db at that path (see DEMO_SNAPSHOT_PATH env var)');
+    process.exit(1);
+}
+
 const EVENT_PATH = process.env.EVENT_PATH || path.join(APP_ROOT, 'data', 'active-event');
 const DB_PATH    = path.join(APP_ROOT, 'data', 'collator', 'camporee.db');
-const SEED_FRACTION = 0.5;
 
 console.log(`[seed-demo] ${new Date().toISOString()}`);
 console.log(`[seed-demo] Cartridge : ${CARTRIDGE_PATH}`);
+console.log(`[seed-demo] Snapshot  : ${SNAPSHOT_PATH}`);
 console.log(`[seed-demo] Event path: ${EVENT_PATH}`);
 console.log(`[seed-demo] DB        : ${DB_PATH}`);
-
-// --- CIRCUS 2026 ROSTER (hard-coded — entities aren't stored in the cartridge) ---
-
-const TROOPS = [
-    { id: 't1000', name: 'T13',   troop_number: '13'   },
-    { id: 't1001', name: 'T92',   troop_number: '92'   },
-    { id: 't1002', name: 'T108',  troop_number: '108'  },
-    { id: 't1003', name: 'T109',  troop_number: '109'  },
-    { id: 't1004', name: 'T110',  troop_number: '110'  },
-    { id: 't1005', name: 'T116',  troop_number: '116'  },
-    { id: 't1006', name: 'T163',  troop_number: '163'  },
-    { id: 't1007', name: 'T201',  troop_number: '201'  },
-    { id: 't1008', name: 'T251',  troop_number: '251'  },
-    { id: 't1009', name: 'T264',  troop_number: '264'  },
-    { id: 't1010', name: 'T296',  troop_number: '296'  },
-    { id: 't1011', name: 'T2110', troop_number: '2110' },
-    { id: 't1012', name: 'T2163', troop_number: '2163' },
-    { id: 't1013', name: 'T2170', troop_number: '2170' },
-    { id: 't1014', name: 'T2019', troop_number: '2019' },
-];
-
-const PATROLS = [
-    { id: 'p4300', name: 'Skeleton Fishing',  troop_number: '13',   parent_id: 't1000' },
-    { id: 'p4301', name: 'Spooky Shrimp',     troop_number: '13',   parent_id: 't1000' },
-    { id: 'p4302', name: 'Shadow Panther',    troop_number: '92',   parent_id: 't1001' },
-    { id: 'p4303', name: 'Cold Flames',       troop_number: '92',   parent_id: 't1001' },
-    { id: 'p4304', name: 'Jackalopes',        troop_number: '92',   parent_id: 't1001' },
-    { id: 'p4305', name: 'Flaming Flamingoes',troop_number: '92',   parent_id: 't1001' },
-    { id: 'p4306', name: 'Fearless Firebirds',troop_number: '108',  parent_id: 't1002' },
-    { id: 'p4307', name: 'Falcons',           troop_number: '109',  parent_id: 't1003' },
-    { id: 'p4308', name: 'Eaglez',            troop_number: '110',  parent_id: 't1004' },
-    { id: 'p4309', name: 'Grease Fires',      troop_number: '116',  parent_id: 't1005' },
-    { id: 'p4310', name: 'Inferno Sharks',    troop_number: '116',  parent_id: 't1005' },
-    { id: 'p4311', name: 'Shampoo Drinkers',  troop_number: '163',  parent_id: 't1006' },
-    { id: 'p4312', name: 'Chunky Monkeys',    troop_number: '163',  parent_id: 't1006' },
-    { id: 'p4313', name: 'Atomic Duckies',    troop_number: '163',  parent_id: 't1006' },
-    { id: 'p4314', name: 'Ducks',             troop_number: '201',  parent_id: 't1007' },
-    { id: 'p4315', name: 'Raptors',           troop_number: '201',  parent_id: 't1007' },
-    { id: 'p4316', name: 'Dark Dragons',      troop_number: '251',  parent_id: 't1008' },
-    { id: 'p4317', name: 'Orcas',             troop_number: '251',  parent_id: 't1008' },
-    { id: 'p4318', name: 'Eggos',             troop_number: '251',  parent_id: 't1008' },
-    { id: 'p4319', name: 'Wolves',            troop_number: '264',  parent_id: 't1009' },
-    { id: 'p4320', name: 'Card Board Boxes',  troop_number: '264',  parent_id: 't1009' },
-    { id: 'p4321', name: 'Space Pirates',     troop_number: '264',  parent_id: 't1009' },
-    { id: 'p4322', name: "Lakshay's Bros",    troop_number: '296',  parent_id: 't1010' },
-    { id: 'p4323', name: "6'7ers",            troop_number: '296',  parent_id: 't1010' },
-    { id: 'p4324', name: 'Minions',           troop_number: '2110', parent_id: 't1011' },
-    { id: 'p4325', name: 'Goofy Goobers',     troop_number: '2163', parent_id: 't1012' },
-    { id: 'p4326', name: 'Fancy Frogs',       troop_number: '2163', parent_id: 't1012' },
-    { id: 'p4327', name: 'Banana Ducks',      troop_number: '2170', parent_id: 't1013' },
-    { id: 'p4328', name: 'Krabbie Patties',   troop_number: '2019', parent_id: 't1014' },
-    { id: 'p4329', name: 'Ice Dragons',       troop_number: '2019', parent_id: 't1014' },
-    { id: 'p4330', name: 'Wolf Warriors',     troop_number: '2019', parent_id: 't1014' },
-    { id: 'p4331', name: 'Fearless Foxes',    troop_number: '2019', parent_id: 't1014' },
-];
 
 // --- STEP 1: INSTALL CARTRIDGE ---
 
@@ -114,17 +65,16 @@ fs.mkdirSync(EVENT_PATH, { recursive: true });
 new AdmZip(CARTRIDGE_PATH).extractAllTo(EVENT_PATH, true);
 console.log(`[seed-demo] Cartridge extracted to ${EVENT_PATH}`);
 
-// --- STEP 2: RESET DATABASE ---
+// --- STEP 2: RESTORE FROM SNAPSHOT ---
 
-console.log('\n[seed-demo] Step 2: Resetting database...');
+console.log('\n[seed-demo] Step 2: Restoring from snapshot...');
 fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 
-// Open (or create) the DB in-place — do NOT delete the file.
-// Deleting and recreating would orphan the running collator server's open
-// file descriptor, leaving it reading from the old (empty) inode.
+// Open live DB in-place — do NOT delete the file.
+// Deleting and recreating orphans the running server's open file descriptor.
+// ATTACH copies data from the snapshot into the same inode the server has open.
 const db = new Database(DB_PATH);
 
-// Ensure all tables exist (idempotent — safe on a fresh or existing DB)
 db.exec(`
   CREATE TABLE IF NOT EXISTS entities (
     id TEXT PRIMARY KEY,
@@ -226,7 +176,8 @@ db.exec(`
   );
 `);
 
-// Clear all data while keeping the file open (server sees updates immediately)
+db.prepare('ATTACH DATABASE ? AS snap').run(SNAPSHOT_PATH);
+
 db.exec(`
   DELETE FROM audit_log;
   DELETE FROM official_game_flags;
@@ -239,112 +190,23 @@ db.exec(`
   DELETE FROM scores;
   DELETE FROM judges;
   DELETE FROM entities;
+
+  INSERT INTO entities    SELECT * FROM snap.entities;
+  INSERT INTO scores      SELECT * FROM snap.scores;
+  INSERT INTO game_status SELECT * FROM snap.game_status;
 `);
-console.log('[seed-demo] Database reset complete');
 
-// --- STEP 3: INSERT ROSTER ---
+db.exec('DETACH snap');
 
-console.log('\n[seed-demo] Step 3: Seeding roster...');
-
-const insertEntity = db.prepare(
-    'INSERT INTO entities (id, name, type, troop_number, parent_id) VALUES (?, ?, ?, ?, ?)'
-);
-
-const seedRoster = db.transaction(() => {
-    for (const t of TROOPS) {
-        insertEntity.run(t.id, t.name, 'troop', t.troop_number, null);
-    }
-    for (const p of PATROLS) {
-        insertEntity.run(p.id, p.name, 'patrol', p.troop_number, p.parent_id);
-    }
-});
-seedRoster();
-console.log(`[seed-demo] Inserted ${TROOPS.length} troops, ${PATROLS.length} patrols`);
-
-// --- STEP 4: SEED PATROL GAME SCORES ---
-
-console.log('\n[seed-demo] Step 4: Seeding patrol game scores...');
-
-const gamesDir = path.join(EVENT_PATH, 'games');
-if (!fs.existsSync(gamesDir)) {
-    console.error('[seed-demo] ERROR: No games/ directory in extracted cartridge');
-    process.exit(1);
-}
-
-const allGameFiles = fs.readdirSync(gamesDir)
-    .filter(f => f.endsWith('.json'))
-    .map(f => {
-        try {
-            const raw = JSON.parse(fs.readFileSync(path.join(gamesDir, f), 'utf8'));
-            const normalized = normalizeGameDefinition(raw);
-            return { id: raw.id || path.basename(f, '.json'), league: raw.league || null, fields: normalized.fields };
-        } catch {
-            return null;
-        }
-    })
-    .filter(Boolean);
-
-const patrolGames = allGameFiles
-    .filter(g => g.league === 'patrol-games' && g.fields && g.fields.length > 0)
-    .sort((a, b) => a.id.localeCompare(b.id));
-
-const seedCount = Math.ceil(patrolGames.length * SEED_FRACTION);
-const gamesToSeed = patrolGames.slice(0, seedCount);
-const gamesOpen   = patrolGames.slice(seedCount);
-
-console.log(`[seed-demo] Patrol games: ${patrolGames.length} total, seeding ${seedCount}, leaving ${gamesOpen.length} open`);
-
-function randInt(min, max) {
-    min = Math.floor(min ?? 0);
-    max = Math.floor(max ?? 10);
-    if (max <= min) return min;
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-function generatePayload(fields) {
-    const payload = {};
-    for (const field of fields) {
-        if (field.audience === 'official') continue; // judge-only for seeding
-        const type = field.type || 'number';
-        if (type === 'boolean') {
-            payload[field.id] = Math.random() > 0.25 ? 1 : 0;
-        } else if (type === 'select' && Array.isArray(field.options) && field.options.length > 0) {
-            payload[field.id] = field.options[Math.floor(Math.random() * field.options.length)];
-        } else {
-            // number, range, timed, stopwatch — all use min/max
-            payload[field.id] = randInt(field.min, field.max);
-        }
-    }
-    return payload;
-}
-
-const insertScore = db.prepare(
-    'INSERT INTO scores (uuid, game_id, entity_id, score_payload, timestamp) VALUES (?, ?, ?, ?, ?)'
-);
-
-const seedScores = db.transaction(() => {
-    let count = 0;
-    const baseTime = Date.now() - (6 * 60 * 60 * 1000); // 6 hours ago
-    for (const game of gamesToSeed) {
-        for (const patrol of PATROLS) {
-            const payload = generatePayload(game.fields);
-            const jitter  = Math.floor(Math.random() * 3_600_000); // up to 1hr spread
-            insertScore.run(randomUUID(), game.id, patrol.id, JSON.stringify(payload), baseTime + jitter);
-            count++;
-        }
-    }
-    return count;
-});
-
-const scoreCount = seedScores();
-
-// --- SUMMARY ---
-
-console.log('\n[seed-demo] ✓ Done');
-console.log(`  Troops   : ${TROOPS.length}`);
-console.log(`  Patrols  : ${PATROLS.length}`);
-console.log(`  Seeded   : ${gamesToSeed.map(g => g.id).join(', ')}`);
-console.log(`  Open     : ${gamesOpen.map(g => g.id).join(', ')}`);
-console.log(`  Scores   : ${scoreCount}`);
+const troops  = db.prepare("SELECT COUNT(*) as n FROM entities WHERE type='troop'").get().n;
+const patrols = db.prepare("SELECT COUNT(*) as n FROM entities WHERE type='patrol'").get().n;
+const scores  = db.prepare('SELECT COUNT(*) as n FROM scores').get().n;
+const games   = db.prepare('SELECT COUNT(*) as n FROM game_status').get().n;
 
 db.close();
+
+console.log('\n[seed-demo] ✓ Done');
+console.log(`  Troops  : ${troops}`);
+console.log(`  Patrols : ${patrols}`);
+console.log(`  Scores  : ${scores}`);
+console.log(`  Games   : ${games} with status`);
