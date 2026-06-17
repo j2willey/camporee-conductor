@@ -198,21 +198,44 @@ db.exec(`
   INSERT INTO game_status SELECT * FROM snap.game_status;
 `);
 
-// Reset the bottom 8 games (fewest scores) to open with no scores.
-// This gives the judge phone emulator fresh games to demonstrate scoring
-// while the top 10 remain finalized and appear in the leaderboard.
-db.exec(`
-  DELETE FROM scores WHERE game_id IN (
-    SELECT game_id FROM game_status
-    ORDER BY (SELECT COUNT(*) FROM scores s WHERE s.game_id = game_status.game_id) ASC
-    LIMIT 8
-  );
-  DELETE FROM game_status WHERE game_id IN (
-    SELECT game_id FROM game_status
-    ORDER BY (SELECT COUNT(*) FROM scores s WHERE s.game_id = game_status.game_id) ASC
-    LIMIT 8
-  );
-`);
+// Demo data is structured in three tiers to show the full event lifecycle:
+//   Tier 1 — 2 games: fully scored + finalized (shows completed/awards state)
+//   Tier 2 — 8 games: partially scored, not finalized (shows mid-event; pre-fill works)
+//   Tier 3 — 8 games: empty, not finalized (shows fresh-start scoring)
+
+// Rank all games by score count descending so tiers are stable across reseeds.
+const gameRanks = db.prepare(`
+  SELECT game_id,
+         (SELECT COUNT(*) FROM scores s WHERE s.game_id = gs.game_id) AS cnt
+  FROM game_status gs
+  ORDER BY cnt DESC
+`).all();
+
+const tier1 = gameRanks.slice(0, 2).map(r => r.game_id);   // keep fully finalized
+const tier2 = gameRanks.slice(2, 10).map(r => r.game_id);  // partial scores, not finalized
+const tier3 = gameRanks.slice(10).map(r => r.game_id);     // wipe completely
+
+// Tier 2: remove game_status (not finalized) but keep roughly half the scores
+// so the emulator has data to pre-fill and the Competition Overview shows progress.
+for (const gameId of tier2) {
+    const scoreIds = db.prepare(
+        'SELECT uuid FROM scores WHERE game_id = ? ORDER BY timestamp ASC'
+    ).all(gameId).map(r => r.uuid);
+    const keepCount = Math.ceil(scoreIds.length / 2);
+    const toDelete = scoreIds.slice(keepCount);
+    if (toDelete.length > 0) {
+        const placeholders = toDelete.map(() => '?').join(',');
+        db.prepare(`DELETE FROM scores WHERE uuid IN (${placeholders})`).run(...toDelete);
+    }
+}
+db.prepare(`DELETE FROM game_status WHERE game_id IN (${tier2.map(() => '?').join(',')})`).run(...tier2);
+
+// Tier 3: wipe all scores and status
+if (tier3.length > 0) {
+    const p3 = tier3.map(() => '?').join(',');
+    db.prepare(`DELETE FROM scores WHERE game_id IN (${p3})`).run(...tier3);
+    db.prepare(`DELETE FROM game_status WHERE game_id IN (${p3})`).run(...tier3);
+}
 
 db.exec('DETACH snap');
 
@@ -224,11 +247,11 @@ const finalized = db.prepare("SELECT COUNT(*) as n FROM game_status WHERE status
 
 db.close();
 
-// Open games have no game_status row; their count is implicit (total - finalized).
 console.log('\n[seed-demo] ✓ Done');
 console.log(`  Troops    : ${troops}`);
 console.log(`  Patrols   : ${patrols}`);
 console.log(`  Judges    : ${judges}`);
 console.log(`  Scores    : ${scores}`);
-console.log(`  Finalized : ${finalized} games (leaderboard visible)`);
-console.log(`  Open      : 8 games (no scores — ready for demo scoring)`);
+console.log(`  Tier 1    : ${tier1.length} games fully finalized`);
+console.log(`  Tier 2    : ${tier2.length} games partially scored (pre-fill enabled)`);
+console.log(`  Tier 3    : ${tier3.length} games empty (fresh start)`);
