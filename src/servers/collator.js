@@ -733,6 +733,9 @@ app.post('/api/auth/identify', express.json(), (req, res) => {
 // --- CORE ROUTES ---
 
 app.get('/', (req, res) => {
+    if (DEMO_MODE) {
+        return res.redirect((req.baseUrl || '/collator') + '/demo-dashboard.html');
+    }
     const ua = req.headers['user-agent'] ? req.headers['user-agent'].toLowerCase() : '';
     const isMobile = /mobile|android|iphone|ipad|ipod|blackberry|iemobile|kindle|silk-accelerated|(hpw|web)os|opera m(obi|ini)/i.test(ua);
 

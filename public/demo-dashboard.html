@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camporee Conductor — Live Demo</title>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/conductor.css">
+    <style>
+        body {
+            background: var(--green-dark);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .demo-hero {
+            background: var(--green-dark);
+            color: #fff;
+            text-align: center;
+            padding: 3rem 1rem 2rem;
+        }
+
+        .demo-hero .demo-badge {
+            display: inline-block;
+            background: var(--gold);
+            color: var(--green-dark);
+            font-weight: 700;
+            font-size: 0.75rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            padding: 3px 12px;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+
+        .demo-hero h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .demo-hero p {
+            font-size: 1.05rem;
+            color: rgba(255,255,255,0.75);
+            max-width: 520px;
+            margin: 0 auto;
+        }
+
+        .demo-cards-section {
+            flex: 1;
+            background: #f4f6f4;
+            padding: 2.5rem 1rem 3rem;
+        }
+
+        .demo-card {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+            border-top: 5px solid var(--brand-main);
+            padding: 2rem;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .demo-card .card-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            line-height: 1;
+        }
+
+        .demo-card h2 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--green-dark);
+            margin-bottom: 0.35rem;
+        }
+
+        .demo-card .card-subtitle {
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--gold);
+            margin-bottom: 1rem;
+        }
+
+        .demo-card p {
+            color: #444;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            flex: 1;
+        }
+
+        .demo-card .card-features {
+            list-style: none;
+            padding: 0;
+            margin: 1rem 0 1.5rem;
+            color: #555;
+            font-size: 0.88rem;
+        }
+
+        .demo-card .card-features li {
+            padding: 0.25rem 0;
+        }
+
+        .demo-card .card-features li::before {
+            content: "✓ ";
+            color: var(--brand-main);
+            font-weight: 700;
+        }
+
+        .demo-card .btn-demo {
+            display: block;
+            width: 100%;
+            background: var(--brand-main);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            font-weight: 600;
+            text-align: center;
+            text-decoration: none;
+            transition: background 0.15s;
+        }
+
+        .demo-card .btn-demo:hover {
+            background: var(--green-dark);
+            color: #fff;
+        }
+
+        .demo-footer {
+            background: var(--green-dark);
+            color: rgba(255,255,255,0.5);
+            text-align: center;
+            font-size: 0.8rem;
+            padding: 1rem;
+        }
+
+        .demo-footer a {
+            color: var(--gold-light);
+            text-decoration: none;
+        }
+
+        @media (max-width: 768px) {
+            .demo-hero h1 { font-size: 1.5rem; }
+            .demo-cards-section { padding: 1.5rem 1rem 2rem; }
+            .demo-card { margin-bottom: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="demo-hero">
+        <div class="demo-badge">Interactive Demo</div>
+        <h1>Camporee Conductor</h1>
+        <p>A digital operating system for BSA skill competitions. Choose a role below to explore the live demo.</p>
+    </div>
+
+    <div class="demo-cards-section">
+        <div class="container">
+            <div class="row g-4 justify-content-center">
+
+                <!-- Card 1: Collator -->
+                <div class="col-12 col-md-6 col-lg-5">
+                    <div class="demo-card">
+                        <div class="card-icon">📋</div>
+                        <div class="card-subtitle">For Directors &amp; Officials</div>
+                        <h2>Live Event Operations</h2>
+                        <p>The Collator is the command center for event day. Watch scores arrive from judge phones in real time, track patrol standings, finalize results, and generate ribbon stickers for the awards ceremony.</p>
+                        <ul class="card-features">
+                            <li>Real 2026 Coyote Creek Circus data — 205 Scouts, 18 games</li>
+                            <li>Live leaderboard updates as scores come in</li>
+                            <li>Game finalization and ribbon sticker printing</li>
+                            <li>8 games open and ready for live demo scoring</li>
+                        </ul>
+                        <a href="/collator/identify.html" class="btn-demo">Enter as Director →</a>
+                    </div>
+                </div>
+
+                <!-- Card 2: Judge App -->
+                <div class="col-12 col-md-6 col-lg-5">
+                    <div class="demo-card">
+                        <div class="card-icon">📱</div>
+                        <div class="card-subtitle">For Game Station Judges</div>
+                        <h2>Judge Phone Experience</h2>
+                        <p>Step into a judge's shoes. Open the Progressive Web App on any phone — no install required. Pick your game station, score an incoming patrol, and watch the leaderboard update live. Designed to work offline in a field with no cell signal.</p>
+                        <ul class="card-features">
+                            <li>Runs in any mobile browser — no app store needed</li>
+                            <li>Troops and patrols preloaded from the event cartridge</li>
+                            <li>Offline-capable with automatic sync when connection returns</li>
+                            <li>Side-by-side view: judge phone + live leaderboard</li>
+                        </ul>
+                        <a href="/collator/demo-phone.html" class="btn-demo">Try the Judge App →</a>
+                    </div>
+                </div>
+
+            </div>
+
+            <p class="text-center mt-4" style="color:#888; font-size:0.85rem;">
+                Demo resets nightly at 3 AM PT with fresh Circus 2026 data.
+            </p>
+        </div>
+    </div>
+
+    <div class="demo-footer">
+        <a href="https://camporeeconductor.com">camporeeconductor.com</a>
+        &nbsp;·&nbsp; Camporee Conductor is free, open-source software for BSA event organizers.
+    </div>
+
+</body>
+</html>
