@@ -322,6 +322,7 @@ function openGameDetail(gameId) {
     const title = formatGameTitle(game);
     document.getElementById('detail-title').innerText = title;
     setSubtitle(title);
+    window.showDemoHint?.('game-detail');
     const table = document.getElementById('detail-table');
     table.innerHTML = '';
     table.className = 'spreadsheet-table'; // Enforce spreadsheet look

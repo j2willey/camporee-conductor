@@ -2,14 +2,31 @@
     'use strict';
 
     const HINT_PREFIX = 'demo-hint-v1-';
-    const KNOWN_PAGES = ['admin', 'judge', 'official', 'utils', 'demo-phone', 'identify'];
+    const KNOWN_PAGES = ['admin', 'registration', 'judges', 'judge', 'official', 'game-detail', 'utils', 'utils-awards', 'utils-debug', 'utils-qrcode', 'demo-phone', 'identify'];
 
     const HINTS = {
+        judges: {
+            title: 'Judges Directory',
+            body: `<p>This view gives Officials a look at the volunteer judges who recorded and submitted scores at their game stations.</p>
+                   <p>If a judge provided their email address when signing in, the Camporee Director can follow up after the event — thanking them for their time and inviting them back to volunteer next year.</p>`
+        },
+        registration: {
+            title: 'Registration',
+            body: `<p>Here Troops are entered for the event.</p>
+                   <p>Troop Number does not have to be unique — if it isn't, ensure the <strong>Troop Name</strong> is unique. For example: <em>T2, Troop 2 Monterey</em> and <em>T2, Troop 2 Los Gatos</em> can coexist.</p>
+                   <p>After creating a Troop, <strong>Patrols</strong> can be added under it. Each Patrol receives a unique internal ID to disambiguate patrols with the same name — handy when a Camporee has four different "Sharks" patrols.</p>`
+        },
         admin: {
-            title: 'Game Overview',
-            body: `<p>You're looking at the <strong>Director Dashboard</strong> — the command center officials use during a live Camporee event.</p>
-                   <p>The <strong>top 10 games</strong> show real finalized scores from the 2026 Coyote Creek Circus Camporee. The <strong>bottom 8 games</strong> are open and ready for you to demo live scoring from a judge's phone.</p>
-                   <p>Try opening the <strong>Judge Emulator</strong> from the menu to submit a score and watch it appear here in real time.</p>`
+            title: 'Officials Dashboard',
+            body: `<p>This is the onsite event control center for Camporee Officials.</p>
+                   <ul style="padding-left:1.2rem;margin:0.5rem 0;">
+                     <li><strong>Registration</strong> — where Troops and their respective Patrols are entered for the event.</li>
+                     <li><strong>Scoring</strong> — the main activity for officials during the Camporee.</li>
+                     <li><strong>Awards</strong> — after scoring is completed, print stickers for the Award Ribbons and script notes for the Awards Emcee.</li>
+                     <li><strong>Judges</strong> — review and collect Judge information for later thanking volunteers.</li>
+                     <li><strong>System</strong> — lesser-used utilities.</li>
+                     <li><strong>QR Gen</strong> — print custom QR codes for judges to scan to gain WiFi access and download the Judge App.</li>
+                   </ul>`
         },
         judge: {
             title: 'Judge App',
@@ -17,11 +34,48 @@
                    <p>No app install needed. Works offline. Try <strong>selecting a patrol</strong>, filling in the scores, and hitting Submit — the leaderboard updates live.</p>
                    <p>At a real event, each judge gets a QR code linking them directly to their assigned game.</p>`
         },
+        'game-detail': {
+            title: "Official's Game Scorecard",
+            body: `<p>This window shows scoring and notes as recorded and submitted by the game judge.</p>
+                   <p>Officials will see <strong>additional columns</strong> here that judges do not see on their phones.</p>
+                   <p>All games are ultimately scored and ranked by <strong>point values</strong>. However, some fields recorded by judges are <strong>Metrics</strong> — raw measurements rather than points:</p>
+                   <ul style="padding-left:1.2rem;margin:0.5rem 0;">
+                     <li>For some metrics, <strong>lower is better</strong> — e.g. time to complete a task, or matches used to start a fire.</li>
+                     <li>For others, <strong>higher is better</strong> — e.g. longest handstand, or most milk crates stacked.</li>
+                   </ul>
+                   <p>It is up to the Officials reviewing each game to decide how to convert metrics into points — a continuous formula (e.g. <em>time ÷ 10 = points</em>) or a stepwise function (e.g. <em>under 2 min = 50 pts, 2–4 min = 25 pts</em>). The final call belongs to the Camporee Official.</p>`
+        },
         official: {
-            title: 'Live Leaderboard',
-            body: `<p>This is the <strong>Official Leaderboard</strong> — the standings screen displayed at the awards ceremony.</p>
-                   <p>Rankings update automatically as scores come in. The data shown is real finalized results from the <strong>2026 Coyote Creek Circus Camporee</strong> (205 Scouts, 18 games).</p>
-                   <p>Submit a score from the Judge Emulator and watch the standings shift in real time.</p>`
+            title: 'Competition Overview',
+            body: `<p>This view gives Officials a summary of scoring turned in — organized by game and competition.</p>
+                   <ul style="padding-left:1.2rem;margin:0.5rem 0;">
+                     <li>The <strong>pulldown in the upper right</strong> switches the view between competitions (e.g. Patrol Games, Troop Challenges, Exhibition Events).</li>
+                     <li>All games in the selected competition are listed along with the <strong>number of scores uploaded</strong> to the Collator.</li>
+                     <li>Use the <strong>Open</strong> button to drill down and see the full scoring breakdown for any game.</li>
+                     <li>A <strong>toggle</strong> on each game lets Officials mark when scoring and rankings have been completed.</li>
+                   </ul>`
+        },
+        'utils-qrcode': {
+            title: 'QR Code Generator',
+            body: `<p>Create custom QR codes to hand to judges at the start of the event.</p>
+                   <p>A judge scans the QR code with their phone — it automatically connects them to the local WiFi network <strong>and</strong> opens the Judge web app in one step. No typing URLs, no manual network setup.</p>
+                   <p>Print one QR code per game station and post it where judges can find it.</p>`
+        },
+        'utils-debug': {
+            title: 'System & Debug Tools',
+            body: `<p>This page is a catch-all work-in-progress and will likely be reorganized soon.</p>
+                   <p>Its most important feature is the <strong>Cartridge Upload</strong> — this is the first thing a Camporee Director does when bringing up the Collator. A cartridge (created in Camporee Composer) is uploaded here to load the event's games, rosters, and configuration into the Collator.</p>
+                   <p>It also allows Officials to set the <strong>primary and accent colors</strong> used in the Judge and Official applications, so the look can match the theme of the Camporee.</p>
+                   <p>The remaining tools are for testing and debugging the Collator and event setup.</p>`
+        },
+        'utils-awards': {
+            title: 'Awards Creator',
+            body: `<p>From this window Officials can generate award materials for the ceremony.</p>
+                   <ul style="padding-left:1.2rem;margin:0.5rem 0;">
+                     <li><strong>Award Label PDF</strong> — generates a printable PDF with the Camporee name, theme/title, event name, and winners' names. Print onto full-sheet sticky labels, then cut and apply to award ribbons.</li>
+                     <li><strong>CSV Export</strong> — exports the same information for use in another application or mail-merge workflow.</li>
+                     <li><strong>Announcer Notes</strong> — printable script with event name and 1st, 2nd, and 3rd place finishers for the Awards Emcee to read from the stage.</li>
+                   </ul>`
         },
         utils: {
             title: 'Director Utilities',
@@ -45,6 +99,8 @@
 
     function getPageId() {
         const filename = window.location.pathname.split('/').pop().replace('.html', '');
+        const hash = window.location.hash.replace('#', '');
+        if (filename === 'utils' && hash) return `utils-${hash}`;
         return filename || 'admin';
     }
 
@@ -65,6 +121,14 @@
 
     window.resetDemoHints = function () {
         KNOWN_PAGES.forEach(p => localStorage.removeItem(HINT_PREFIX + p));
+    };
+
+    window.showDemoHint = function (id) {
+        const hint = HINTS[id];
+        if (!hint || isDismissed(id)) return;
+        if (!document.getElementById('dh-backdrop')) {
+            document.body.appendChild(buildModal(id, hint));
+        }
     };
 
     function buildModal(pageId, hint) {

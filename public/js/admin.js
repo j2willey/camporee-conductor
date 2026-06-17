@@ -145,10 +145,12 @@ function switchView(viewName, pushToHistory = true) {
         document.getElementById('view-registration').classList.remove('hidden');
         setSubtitle('Registration');
         renderRoster();
+        window.showDemoHint?.('registration');
     } else if (viewName === 'judges') {
         document.getElementById('view-judges').classList.remove('hidden');
         setSubtitle('Judges Directory');
         renderJudgesView();
+        window.showDemoHint?.('judges');
     } else if (viewName === 'debug') {
         document.getElementById('view-debug').classList.remove('hidden');
         setSubtitle('System Tools');
