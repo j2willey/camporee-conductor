@@ -73,10 +73,9 @@ See `SITE_DEMO_DESIGN.md` for full design. Two-phase rollout: Phase 1 (Clerk aut
 - ✅ **Demo seeded state + nightly reset cron** — `scripts/seed-demo.js` wipes DB + seeds 288 patrol scores; cron at 3am nightly (2026-06-12)
 - ✅ **Judge Phone Emulator page** — `public/demo-phone.html`; CSS phone bezel wrapping judge PWA iframe side-by-side with Officials leaderboard; `?autorefresh=1` enables SSE auto-push (2026-06-12)
 - ✅ **VPS: complete demo collator deploy** — cartridge + real Circus 2026 snapshot (16 troops, 30 patrols, 214 scores, 18 finalized games) deployed; nightly reset cron active (2026-06-16)
-- [ ] **Offline/Online toggle in Judge Emulator** — localStorage flag causes judge app to queue locally (OFFLINE) or flush+sync (ONLINE); reuses `sync-manager.js`; same infrastructure as per-judge DEMO mode
-- [ ] **Composer demo event for preview accounts** — link Phase 1 preview account holders to demo camporee on first login
-- [ ] **Landing page video/slide deck embed** — content Jim creates; embed is trivial when ready
-- [ ] **Phase 2: No-auth playground** — (future, after Phase 1 feedback incorporated)
+- ✅ **Demo hints** — `public/js/demo-hints.js`; first-visit modal + floating "?" FAB on all 6 collator pages; gated by `GET /api/demo-mode`; per-page localStorage dismissal; suppressed in iframes (2026-06-17)
+- ✅ **Demo dashboard** — `public/demo-dashboard.html`; 2-card "choose your role" landing at `demo.camporeeconductor.com/`; Collator and Judge cards; DEMO_MODE redirects root GET / here instead of mobile/desktop split (2026-06-17)
+- [ ] **Demo Composer (read-only)** — email + "Camporee" password identify flow (same as offline Collator); read-only view of the Circus 2026 camporee in the Composer UI; all mutating endpoints return 403; hint dialogs carry the narrative. **Design decision:** use Circus 2026 as the demo event. Longer-term: let visitors choose from multiple templates. Add a 3rd card to demo-dashboard.html pointing here when built.
 - [ ] **Offline/Online toggle in Judge Emulator** — localStorage flag causes judge app to queue locally (OFFLINE) or flush+sync (ONLINE); reuses `sync-manager.js`; same infrastructure as per-judge DEMO mode
 - [ ] **Composer demo event for preview accounts** — link Phase 1 preview account holders to demo camporee on first login
 - [ ] **Landing page video/slide deck embed** — content Jim creates; embed is trivial when ready
