@@ -1,9 +1,25 @@
 {
   "name": "camporee-conductor",
   "version": "1.0.0",
-  "description": "Offline-first PWA for Scout Camporee scoring",
+  "description": "Offline-first event management system for BSA Camporee skill competitions — Composer, Collator, and Judge PWA in a portable cartridge workflow",
   "type": "module",
   "main": "server.js",
+  "author": "Jim Willey",
+  "license": "MIT",
+  "homepage": "https://camporeeconductor.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/j2willey/camporee-conductor.git"
+  },
+  "keywords": [
+    "bsa",
+    "scouts",
+    "camporee",
+    "event-management",
+    "scoring",
+    "pwa",
+    "offline-first"
+  ],
   "scripts": {
     "start": "node server.js",
     "dev:all": "ACTIVE_SERVICES=curator,composer,collator node server.js",
