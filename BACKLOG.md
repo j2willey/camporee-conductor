@@ -75,7 +75,7 @@ See `SITE_DEMO_DESIGN.md` for full design. Two-phase rollout: Phase 1 (Clerk aut
 - ✅ **VPS: complete demo collator deploy** — cartridge + real Circus 2026 snapshot (16 troops, 30 patrols, 214 scores, 18 finalized games) deployed; nightly reset cron active (2026-06-16)
 - ✅ **Demo hints** — `public/js/demo-hints.js`; first-visit modal + floating "?" FAB on all 6 collator pages; gated by `GET /api/demo-mode`; per-page localStorage dismissal; suppressed in iframes (2026-06-17)
 - ✅ **Demo dashboard** — `public/demo-dashboard.html`; 2-card "choose your role" landing at `demo.camporeeconductor.com/`; Collator and Judge cards; DEMO_MODE redirects root GET / here instead of mobile/desktop split (2026-06-17)
-- [ ] **Demo Composer (read-only)** — email + "Camporee" password identify flow (same as offline Collator); read-only view of the Circus 2026 camporee in the Composer UI; all mutating endpoints return 403; hint dialogs carry the narrative. **Design decision:** use Circus 2026 as the demo event. Longer-term: let visitors choose from multiple templates. Add a 3rd card to demo-dashboard.html pointing here when built.
+- ✅ **Demo Composer (read-only)** — `COMPOSER_DEMO_MODE=true`; no Clerk auth; all mutations → 403; auto-loads Circus 2026 via `DEMO_WORKSPACE_UUID`; hint dialog via `demo-hints.js`; 3rd "Event Designer" card added to `demo-dashboard.html`; subdomain `composer-demo.camporeeconductor.com` (2026-06-17)
 - [ ] **Offline/Online toggle in Judge Emulator** — localStorage flag causes judge app to queue locally (OFFLINE) or flush+sync (ONLINE); reuses `sync-manager.js`; same infrastructure as per-judge DEMO mode
 - [ ] **Composer demo event for preview accounts** — link Phase 1 preview account holders to demo camporee on first login
 - [ ] **Landing page video/slide deck embed** — content Jim creates; embed is trivial when ready
@@ -98,7 +98,7 @@ See `SITE_DEMO_DESIGN.md` for full design. Two-phase rollout: Phase 1 (Clerk aut
 
 ### Collator / Runtime
 
-- [ ] **WebSocket leaderboard** — `official.js` currently polls every 15s; replace with WebSocket push
+- [ ] **WebSocket leaderboard** — `official.js` now uses SSE push (polling replaced); WebSocket would add bidirectional real-time features if needed in future
 - [ ] **Practice Mode for judges** — flag to allow judges to test scoring forms without persisting to the score queue
 - [ ] **Exhibition results print/PDF** — results stored but no ribbon label or print output built yet
 - [ ] **Exhibition scoresheet custom columns in UI** — Troop #, Patrol #, etc. currently hardcoded in `buildScoresheetHTML`; expose as configurable upstream in Composer

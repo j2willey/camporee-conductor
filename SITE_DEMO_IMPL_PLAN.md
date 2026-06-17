@@ -101,9 +101,21 @@ If demo, show password field + hint: "Password: Camporee — explore freely!"
 
 ---
 
-### Step 5 — Composer Demo Event ⬜ DEFERRED
-On first login for preview accounts, link to demo camporee read-only. Depends on
-browser smoke test + preview account access flow being working.
+### Step 5 — Composer Demo ✅ DONE (2026-06-17)
+
+**New Docker service:** `demo-composer`, port 3004, `COMPOSER_DEMO_MODE=true`.
+
+**What was built:**
+- `COMPOSER_DEMO_MODE` env var pattern mirrors `DEMO_MODE` (collator) and `TEST_MODE` (CI)
+- No Clerk auth in demo mode — `clerkMiddleware`, `requireAuth`, `requireEventRole` all bypass
+- Global mutation blocker middleware: POST/PUT/DELETE/PATCH → 403 in demo mode
+- `DEMO_WORKSPACE_UUID=d0000000-0000-4000-0000-000000000001`
+- `window.onload` in `composer.js` made async; awaits `init()`, then auto-loads demo workspace via `loadFromServer(uuid, noConfirm=true)`
+- `scripts/seed-demo-composer.js` — extracts cartridge zip into demo workspace dir; run once on deploy
+- Cartridge zip shared as read-only volume mount from `demo-collator` container
+- Composer hint dialog added to `demo-hints.js` covering Metadata / Game Guide / Scoring tabs and AI tools
+- 3rd card ("Event Designer") added to `demo-dashboard.html`; URL constructed from hostname
+- Subdomain `composer-demo.camporeeconductor.com` added to Caddyfile
 
 ---
 

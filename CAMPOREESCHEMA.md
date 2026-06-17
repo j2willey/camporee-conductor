@@ -4,7 +4,7 @@
 
 This document describes the structure of the **Camporee Config Zip** (`CamporeeConfig.zip`). This archive acts as the bridge between the **Camporee Composer** (Design Tool) and the **Camporee Collator** (Runtime Engine).
 
-> **Branch note:** This document describes the v3.0 schema being implemented on the `schema-v3` branch. The prior schema (v2.9) used a hardcoded `type: patrol | troop | exhibition` field on games. v3.0 replaces this with a flexible `league` / `session` / `roster` model described below. The `type` field is **removed** — do not reference it in new code.
+> **Schema v3.0** merged to `main` on 2026-06-04. The prior schema (v2.9) used a hardcoded `type: patrol | troop | exhibition` field on games. v3.0 replaces this with a flexible `league` / `session` / `roster` model described below. The `type` field is **removed** — do not reference it in new code.
 
 ---
 

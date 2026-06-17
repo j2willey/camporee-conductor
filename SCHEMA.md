@@ -2,24 +2,24 @@
 
 This document is auto-generated from the `schemas/*.json` files. It describes the structure of game templates and scoring models across the application.
 
-> **Two formats:** Game definitions exist in two forms. **Composer format** is stored in game files: `scoring_model.inputs[]` with a nested `config` sub-object. **Collator runtime format** is served by `/games.json`: `fields[]` with `config` properties spread to root (`min`, `max`, `placeholder` at top level alongside `id`, `label`, etc.). `normalizeGameDefinition()` in `public/js/core/schema.js` translates between them.
-
 ## 1. Game Definition Schema
 
 Defines a game concept. Can be used as a Library template (with variants) or an Active Camporee instance.
 
 | Field | Type | Required | Description |
 | :--- | :--- | :---: | :--- |
-| `library_uuid` | string (uuid or empty) | ✅ |  |
-| `library_title` | string | ✅ | The original generic title of the game in the library |
+| `library_uuid` | string (uuid or empty) | ❌ |  |
+| `library_title` | string | ❌ | The original generic title of the game in the library |
 | `game_title` | string | ❌ | The themed or display title for this specific game instance |
-| `id` | string | ❌ | Short identifier (e.g., p10) |
+| `id` | string | ❌ | Short identifier (e.g., the-high-wire-fire-act) |
+| `league` | string | ✅ | FK → camporee.leagues[].id. Determines which leaderboard this game contributes to. |
+| `session` | string,null | ❌ | FK → camporee.sessions[].id. Null = always visible. Phase 2 — do not expose in UI. |
 | `category` | string | ❌ |  |
-| `type` | string<br>_Enum:_ `patrol`, `troop`, `exhibition` | ✅ |  |
 | `tags` | string[] | ❌ |  |
 | `content` | object | ✅ | See **content Object** definitions below. |
-| `variables` | object | ❌ | Key-value pairs for template substitution in common field labels (e.g., `ten_essentials: "matches"` → preset label "10 Essentials: {{ten_essentials}}" renders as "10 Essentials: matches") |
 | `scoring_model` | object | ✅ | See **scoring_model Object** definitions below. |
+| `source_snapshot` | object | ❌ |  <br>(Contains nested properties, see below or source for details) |
+| `variables` | object | ❌ | Key/value pairs for template substitution in injected common fields. |
 | `variants` | object[] | ❌ |  |
 
 ## 2. Content Object
@@ -67,7 +67,7 @@ Every item inside the `inputs` array follows this structure:
 | `audience` | string<br>_Enum:_ `judge`, `admin` | ❌ |  _(Default: "judge")_ |
 | `weight` | number | ❌ |  _(Default: 1)_ |
 | `sortOrder` | integer | ❌ |  _(Default: 900)_ |
-| `config` | object | ❌ | Nested in Composer format. In Collator runtime format, these properties are spread to root (`min`, `max`, `placeholder` appear at the top level of the field object). See Config Sub-Object below. |
+| `config` | object | ❌ |  <br>(Contains nested properties, see below or source for details) |
 
 #### Config Sub-Object (Type-Specific Constraints)
 
