@@ -756,21 +756,8 @@
     </div>
 
     <% if (demoMode) { %>
-    <!-- Demo mode init — auto-load the demo workspace, no auth needed -->
-    <script>
-        window.DEMO_WORKSPACE_UUID = '<%= demoWorkspaceUUID %>';
-        const _demoComposerLoad = window.onload;
-        window.onload = async function () {
-            if (_demoComposerLoad) _demoComposerLoad.call(window);
-            // Give composer.init() a tick to finish setting up state
-            await new Promise(r => setTimeout(r, 50));
-            if (window.DEMO_WORKSPACE_UUID && window.composer) {
-                await composer.loadFromServer(window.DEMO_WORKSPACE_UUID, true).catch(e => {
-                    console.warn('[demo] workspace load failed:', e);
-                });
-            }
-        };
-    </script>
+    <!-- Demo mode: inject workspace UUID; composer.js onload awaits init() then auto-loads -->
+    <script>window.DEMO_WORKSPACE_UUID = '<%= demoWorkspaceUUID %>';</script>
     <% } %>
 
     <% if (!testMode && !demoMode) { %>

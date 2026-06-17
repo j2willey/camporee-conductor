@@ -3366,6 +3366,11 @@ ${gameHtml}
 };
 
 window.composer = composer;
-window.onload = function () {
-    composer.init();
+window.onload = async function () {
+    await composer.init();
+    if (window.DEMO_WORKSPACE_UUID) {
+        await composer.loadFromServer(window.DEMO_WORKSPACE_UUID, true).catch(e => {
+            console.warn('[demo] workspace auto-load failed:', e);
+        });
+    }
 };
