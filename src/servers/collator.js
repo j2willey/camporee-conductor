@@ -428,6 +428,7 @@ function getNextEntityId(type) {
 
 function requireOfficial(req, res, next) {
     if (TEST_MODE) return next();
+    if (DEMO_MODE) return next();
     if (COLLATOR_MODE === 'cloud') {
         const { userId } = getAuth(req);
         if (!userId) return res.status(401).json({ error: 'Authentication required' });
