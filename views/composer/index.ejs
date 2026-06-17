@@ -758,6 +758,7 @@
     <% if (demoMode) { %>
     <!-- Demo mode: inject workspace UUID; composer.js onload awaits init() then auto-loads -->
     <script>window.DEMO_WORKSPACE_UUID = '<%= demoWorkspaceUUID %>';</script>
+    <script src="/js/demo-hints.js"></script>
     <% } %>
 
     <% if (!testMode && !demoMode) { %>

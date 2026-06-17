@@ -2,9 +2,26 @@
     'use strict';
 
     const HINT_PREFIX = 'demo-hint-v1-';
-    const KNOWN_PAGES = ['admin', 'registration', 'judges', 'judge', 'official', 'game-detail', 'utils', 'utils-awards', 'utils-debug', 'utils-qrcode', 'demo-phone', 'identify'];
+    const KNOWN_PAGES = ['composer', 'admin', 'registration', 'judges', 'judge', 'official', 'game-detail', 'utils', 'utils-awards', 'utils-debug', 'utils-qrcode', 'demo-phone', 'identify'];
 
     const HINTS = {
+        composer: {
+            title: 'Welcome to the Composer — Demo Mode',
+            maxWidth: '580px',
+            body: `
+                <p><strong>Camporee Composer</strong> is where events are built — define games, write Game Guides, configure scoring, and export the cartridge that drives the Collator.</p>
+
+                <p style="background:#fff8e1;border-left:3px solid #d4a017;padding:0.6rem 0.9rem;border-radius:0 4px 4px 0;margin:0.75rem 0;font-size:0.9rem;">
+                  <strong>Demo Mode:</strong> You can freely explore and edit — changes exist only in this browser session and will not be saved. <strong>Export Zip</strong> is fully live and generates a real deployable cartridge from whatever you see. The Collator demo runs its own fixed dataset independently.
+                </p>
+
+                <p style="margin-bottom:0.4rem;"><strong>Creating a Game</strong> — click <strong>+</strong> next to Patrol Games, Troop Challenges, or Exhibition Events in the left sidebar. Each game has three tabs:</p>
+                <ul style="padding-left:1.2rem;margin:0.3rem 0 0.75rem;">
+                  <li><strong>Metadata</strong> — the game's identity: title, station number, theme description, and searchable tags. This information appears in the printed Game Guide and on paper scoresheets.</li>
+                  <li><strong>Game Guide</strong> — the narrative document handed to station volunteers before the event. Write setup instructions, backstory, materials list, and judging criteria. The <strong>AI Theme</strong> button lets Gemini rewrite the entire guide in your Camporee theme. <strong>AI Update</strong> lets you give targeted direction ("add a tiebreaker rule," "rewrite as a pirate ship challenge").</li>
+                  <li><strong>Scoring</strong> — the fields a judge fills in at the station: game-specific inputs like Time, Distance, or Score. Separate from these are <strong>Common Fields</strong> — event-wide presets (Patrol Yell, Flag, Scout Spirit, 10 Essentials) automatically injected into every game by the Collator at runtime. Configure them once in <em>Scoring Presets</em> and they travel with the entire event.</li>
+                </ul>`
+        },
         judges: {
             title: 'Judges Directory',
             body: `<p>This view gives Officials a look at the volunteer judges who recorded and submitted scores at their game stations.</p>
@@ -98,7 +115,9 @@
     };
 
     function getPageId() {
-        const filename = window.location.pathname.split('/').pop().replace('.html', '');
+        const pathname = window.location.pathname;
+        if (pathname.startsWith('/composer')) return 'composer';
+        const filename = pathname.split('/').pop().replace('.html', '');
         const hash = window.location.hash.replace('#', '');
         if (filename === 'utils' && hash) return `utils-${hash}`;
         return filename || 'admin';
@@ -145,7 +164,7 @@
         const dialog = document.createElement('div');
         Object.assign(dialog.style, {
             background: '#fff', borderRadius: '8px',
-            maxWidth: '480px', width: '100%',
+            maxWidth: hint.maxWidth || '480px', width: '100%',
             boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
             overflow: 'hidden'
         });

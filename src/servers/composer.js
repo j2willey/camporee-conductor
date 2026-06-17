@@ -251,6 +251,10 @@ app.get('/api/status', (req, res) => {
     });
 });
 
+app.get('/api/demo-mode', (req, res) => {
+    res.json({ demo: COMPOSER_DEMO_MODE });
+});
+
 /**
  * 2. LIST CAMPOREES
  * Scans the /camporees/ directory for valid projects.
