@@ -12,7 +12,7 @@
         },
         registration: {
             title: 'Registration',
-            body: `<p>Here Troops are entered for the event.</p>
+            body: `<p>Here Troops and Patrols are entered for the Camporee.</p>
                    <p>Troop Number does not have to be unique — if it isn't, ensure the <strong>Troop Name</strong> is unique. For example: <em>T2, Troop 2 Monterey</em> and <em>T2, Troop 2 Los Gatos</em> can coexist.</p>
                    <p>After creating a Troop, <strong>Patrols</strong> can be added under it. Each Patrol receives a unique internal ID to disambiguate patrols with the same name — handy when a Camporee has four different "Sharks" patrols.</p>`
         },
@@ -85,8 +85,8 @@
         },
         'demo-phone': {
             title: 'Judge Phone Emulator',
-            body: `<p>This is the <strong>side-by-side demo view</strong> — a simulated judge phone next to the live leaderboard.</p>
-                   <p>Pick an open game in the emulator, select a patrol, enter scores, and hit <strong>Submit</strong>. Watch the leaderboard on the right update instantly.</p>
+            body: `<p>This is the <strong>side-by-side demo view</strong> — a simulated judge phone next to the Officials Game Overview.</p>
+                   <p>Pick an open game in the emulator, select a patrol, enter scores, and hit <strong>Submit</strong>. Watch the Officials Game Overview on the right update instantly.</p>
                    <p>This is exactly what the judge experience looks like on a real Android phone at a game station.</p>`
         },
         identify: {

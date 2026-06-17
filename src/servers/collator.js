@@ -669,6 +669,22 @@ app.get('/api/demo-mode', (req, res) => {
     res.json({ demo: DEMO_MODE });
 });
 
+// Demo-only: pre-fill judge form with previously submitted scores for a game
+app.get('/api/scores/by-game/:gameId', (req, res) => {
+    if (!DEMO_MODE) return res.status(403).json({ error: 'Not in demo mode' });
+    try {
+        const rows = db.prepare(
+            'SELECT entity_id, score_payload FROM scores WHERE game_id = ?'
+        ).all(req.params.gameId);
+        res.json(rows.map(r => ({
+            entity_id: r.entity_id,
+            score_payload: JSON.parse(r.score_payload)
+        })));
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.get('/api/auth/whoami', (req, res) => {
     if (TEST_MODE) return res.json({ mode: COLLATOR_MODE, authenticated: true, role: 'director', display_name: 'Test User' });
     if (COLLATOR_MODE === 'cloud') {

@@ -22,7 +22,10 @@ const state = {
     bracketMode: 'main', // 'main' or 'consolation'
     bracketData: JSON.parse(localStorage.getItem('camporee_bracket_data') || '{}'),
     currentRoundIdx: 0,
-    currentHeatId: null
+    currentHeatId: null,
+    // Demo mode — pre-fill scores from server when selecting a game station
+    demoMode: false,
+    demoScoreCache: {} // { 'gameId:entityId': score_payload }
 };
 
 // UI References
@@ -76,6 +79,14 @@ async function init() {
     updateOnlineStatus();
     window.addEventListener('online', updateOnlineStatus);
     window.addEventListener('offline', updateOnlineStatus);
+
+    try {
+        const dmRes = await fetch(window.API_BASE + '/api/demo-mode');
+        if (dmRes.ok) {
+            const { demo } = await dmRes.json();
+            state.demoMode = !!demo;
+        }
+    } catch {}
 
     loadLocalData();
     loadJudgeInfo();
@@ -234,9 +245,21 @@ function setMode(mode) {
     renderStationList();
 }
 
-function selectStation(id) {
+async function selectStation(id) {
     state.currentStation = state.config.stations.find(s => s.id === id);
     if (!state.currentStation) return;
+
+    if (state.demoMode) {
+        try {
+            const res = await fetch(`${window.API_BASE}/api/scores/by-game/${id}`);
+            if (res.ok) {
+                const scores = await res.json();
+                scores.forEach(s => {
+                    state.demoScoreCache[`${id}:${s.entity_id}`] = s.score_payload;
+                });
+            }
+        } catch {}
+    }
 
     if (state.currentStation.bracketMode) {
         const bData = initBracketState(id);
@@ -398,7 +421,9 @@ function selectEntity(id) {
     }
     state.currentEntity = state.entities.find(e => e.id === id);
     const queue = syncManager.getQueue();
-    const existingScore = queue.find(s => s.game_id === state.currentStation.id && s.entity_id === id);
+    const localScore = queue.find(s => s.game_id === state.currentStation.id && s.entity_id === id);
+    const cachedPayload = !localScore && state.demoScoreCache[`${state.currentStation.id}:${id}`];
+    const existingScore = localScore || (cachedPayload ? { game_id: state.currentStation.id, entity_id: id, score_payload: cachedPayload } : null);
     renderForm(existingScore);
     navigate('scoring');
 }
