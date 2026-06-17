@@ -22,7 +22,7 @@
 
 <body>
 
-    <% if (!testMode) { %>
+    <% if (!testMode && !demoMode) { %>
     <!-- Auth screen — shown until Clerk confirms the user is signed in -->
     <div id="auth-screen" style="position:fixed;top:0;left:0;right:0;bottom:0;background:#f8f9fa;z-index:9999;display:flex;justify-content:center;align-items:center;">
         <div style="width:min(420px,90vw)">
@@ -36,10 +36,11 @@
     </div>
     <% } %>
 
-    <nav id="composer-nav" class="navbar navbar-expand-lg navbar-dark bg-dark" style="<%= testMode ? '' : 'display:none' %>">
+    <nav id="composer-nav" class="navbar navbar-expand-lg navbar-dark bg-dark" style="<%= (testMode || demoMode) ? '' : 'display:none' %>">
         <div class="container-fluid">
             <a class="navbar-brand" href="#">
                 <i class="fas fa-campground"></i> Camporee Composer
+                <% if (demoMode) { %><span class="badge bg-warning text-dark ms-2" style="font-size:0.65rem;vertical-align:middle;">DEMO</span><% } %>
             </a>
 
             <span id="workspace-name-display" class="navbar-text small me-2 d-none">
@@ -48,6 +49,15 @@
                 <span id="workspace-dirty-indicator" class="text-warning ms-1 d-none" title="Unsaved changes">●</span>
             </span>
             <div class="d-flex align-items-center gap-2">
+                <% if (demoMode) { %>
+                <span class="text-warning small"><i class="fas fa-lock me-1"></i>Read Only</span>
+                <button class="btn btn-success btn-sm" onclick="composer.exportCamporee()">
+                    <i class="fas fa-download"></i> Export Zip
+                </button>
+                <a href="<%= demoDashboardUrl %>" class="btn btn-outline-light btn-sm">
+                    <i class="fas fa-arrow-left"></i> Back to Demo
+                </a>
+                <% } else { %>
                 <button class="btn btn-outline-light btn-sm" onclick="composer.newCamporee()">
                     <i class="fas fa-file"></i> New
                 </button>
@@ -70,11 +80,12 @@
                 <button class="btn btn-outline-secondary btn-sm" onclick="clerkSignOut()" title="Sign out">
                     <i class="fas fa-sign-out-alt"></i>
                 </button>
+                <% } %>
             </div>
         </div>
     </nav>
 
-    <div id="composer-layout" class="d-flex w-100" style="<%= testMode ? '' : 'display:none !important' %>">
+    <div id="composer-layout" class="d-flex w-100" style="<%= (testMode || demoMode) ? '' : 'display:none !important' %>">
         <!-- Sidebar Navigation -->
         <aside id="composer-sidebar" class="bg-light d-flex flex-column h-100" style="width: 320px; flex-shrink: 0;">
             <div class="p-3 border-bottom bg-white">
@@ -744,7 +755,25 @@
         </div>
     </div>
 
-    <% if (!testMode) { %>
+    <% if (demoMode) { %>
+    <!-- Demo mode init — auto-load the demo workspace, no auth needed -->
+    <script>
+        window.DEMO_WORKSPACE_UUID = '<%= demoWorkspaceUUID %>';
+        const _demoComposerLoad = window.onload;
+        window.onload = async function () {
+            if (_demoComposerLoad) _demoComposerLoad.call(window);
+            // Give composer.init() a tick to finish setting up state
+            await new Promise(r => setTimeout(r, 50));
+            if (window.DEMO_WORKSPACE_UUID && window.composer) {
+                await composer.loadFromServer(window.DEMO_WORKSPACE_UUID, true).catch(e => {
+                    console.warn('[demo] workspace load failed:', e);
+                });
+            }
+        };
+    </script>
+    <% } %>
+
+    <% if (!testMode && !demoMode) { %>
     <!-- Clerk Auth Init — must come after composer.js so window.onload can be intercepted -->
     <script type="module">
         // Capture and replace the window.onload set by composer.js so we can gate it on auth

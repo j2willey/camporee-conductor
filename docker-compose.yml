@@ -17,6 +17,7 @@ services:
       - composer
       - collator
       - demo-collator
+      - demo-composer
     restart: unless-stopped
 
   # 1. LANDING — standalone marketing site + early-access form (camporeeconductor.com)
@@ -104,6 +105,35 @@ services:
     volumes:
       - ${DATA_DIR:-./data}/demo-collator:/app/data
       - ${DATA_DIR:-./data}/curator:/app/data/library
+      - ./scripts:/app/scripts
+      - ./src:/app/src
+      - ./views:/app/views
+      - ./public:/app/public
+      - ./server.js:/app/server.js
+    restart: unless-stopped
+
+  # 5. THE DEMO COMPOSER — read-only composer demo (composer-demo.camporeeconductor.com)
+  demo-composer:
+    container_name: camporee-demo-composer
+    build: .
+    env_file: .env
+    ports:
+      - "3004:3004"   # Direct access for local dev
+    environment:
+      - PORT=3004
+      - ACTIVE_SERVICES=curator,composer
+      - COMPOSER_DEMO_MODE=true
+      - WORKSPACE_PATH=/app/data/workspaces
+      - LIBRARY_PATH=/app/data/library
+      - CONDUCTOR_DB_PATH=/app/data/shared/conductor.db
+      - DEMO_CARTRIDGE_PATH=/app/data/cartridge.zip
+      - DEMO_WORKSPACE_UUID=d0000000-0000-4000-0000-000000000001
+    volumes:
+      - ${DATA_DIR:-./data}/demo-composer/workspaces:/app/data/workspaces
+      - ${DATA_DIR:-./data}/demo-collator/cartridge.zip:/app/data/cartridge.zip:ro
+      - ${DATA_DIR:-./data}/curator:/app/data/library
+      - ${DATA_DIR:-./data}/shared:/app/data/shared
+      - ./migrations:/app/migrations
       - ./scripts:/app/scripts
       - ./src:/app/src
       - ./views:/app/views

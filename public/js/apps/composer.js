@@ -356,9 +356,9 @@ const composer = {
         await this.openServerLoadModal();
     },
 
-    loadFromServer: async function (id) {
+    loadFromServer: async function (id, noConfirm = false) {
         const dirtyWarning = this.isDirty ? ` (you have unsaved changes in "${this.data.meta.title || 'current workspace'}")` : '';
-        if (!confirm(`Load workspace '${id}'?${dirtyWarning} Unsaved changes will be lost.`)) return;
+        if (!noConfirm && !confirm(`Load workspace '${id}'?${dirtyWarning} Unsaved changes will be lost.`)) return;
 
         try {
             const camporee = await this.api.getCamporee(id);

@@ -20,11 +20,20 @@ runMigrations(conductorDb);
 const clerkClient = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 
 const TEST_MODE = process.env.NODE_ENV === 'test';
+const COMPOSER_DEMO_MODE = process.env.COMPOSER_DEMO_MODE === 'true';
+const DEMO_USER_ID = 'demo-composer-user';
+const DEMO_WORKSPACE_UUID = process.env.DEMO_WORKSPACE_UUID || 'd0000000-0000-4000-0000-000000000001';
+
+function getEffectiveUserId(req) {
+    if (COMPOSER_DEMO_MODE) return DEMO_USER_ID;
+    if (TEST_MODE) return 'user_test';
+    return getAuth(req).userId;
+}
 
 const ROLE_HIERARCHY = ['viewer', 'editor', 'owner'];
 
 async function requireAuth(req, res, next) {
-    if (TEST_MODE) return next();
+    if (TEST_MODE || COMPOSER_DEMO_MODE) return next();
     const { userId } = getAuth(req);
     if (!userId) return res.status(401).json({ error: 'Authentication required' });
 
@@ -54,7 +63,7 @@ async function requireAuth(req, res, next) {
 
 function requireEventRole(minRole) {
     return function (req, res, next) {
-        if (TEST_MODE) return next();
+        if (TEST_MODE || COMPOSER_DEMO_MODE) return next();
         const { userId } = getAuth(req);
         if (!userId) return res.status(401).json({ error: 'Authentication required' });
 
@@ -87,6 +96,7 @@ function requireEventRole(minRole) {
 }
 
 function requireSysadmin(req, res, next) {
+    if (COMPOSER_DEMO_MODE) return res.status(403).json({ error: 'Not available in demo mode' });
     if (TEST_MODE) return next();
     const { userId } = getAuth(req);
     if (!userId) return res.status(401).json({ error: 'Authentication required' });
@@ -112,7 +122,17 @@ const PORT = 3001; // Ensure this matches your Docker port map
 
 // Increase payload limit for large Zip uploads
 app.use(bodyParser.json({ limit: '50mb' }));
-if (!TEST_MODE) app.use(clerkMiddleware());
+if (!TEST_MODE && !COMPOSER_DEMO_MODE) app.use(clerkMiddleware());
+
+// Block all mutating requests in demo mode (after body parsing so JSON errors don't mask it)
+if (COMPOSER_DEMO_MODE) {
+    app.use((req, res, next) => {
+        if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
+            return res.status(403).json({ error: 'Demo mode — read only' });
+        }
+        next();
+    });
+}
 
 // SERVE STATIC FILES
 app.use((req, res, next) => {
@@ -162,12 +182,16 @@ function clerkFrontendApi(publishableKey) {
 
 app.get('/', (req, res) => {
     try {
-        const pk = TEST_MODE ? '' : (process.env.CLERK_PUBLISHABLE_KEY || '');
+        const pk = (TEST_MODE || COMPOSER_DEMO_MODE) ? '' : (process.env.CLERK_PUBLISHABLE_KEY || '');
+        const caddyHost = process.env.CADDY_HOST || 'camporeeconductor.com';
         res.render('composer/index', {
-            title: 'Camporee Composer',
+            title: COMPOSER_DEMO_MODE ? 'Camporee Composer — Demo' : 'Camporee Composer',
             clerkPublishableKey: pk,
             clerkCdnUrl: pk ? `https://${clerkFrontendApi(pk)}/npm/@clerk/clerk-js@latest/dist/clerk.browser.js` : '',
-            testMode: TEST_MODE
+            testMode: TEST_MODE,
+            demoMode: COMPOSER_DEMO_MODE,
+            demoWorkspaceUUID: DEMO_WORKSPACE_UUID,
+            demoDashboardUrl: COMPOSER_DEMO_MODE ? `https://demo.${caddyHost}/collator/demo-dashboard.html` : ''
         });
     } catch (err) {
         console.error("COMPOSER RENDER ERROR:", err);
@@ -232,7 +256,7 @@ app.get('/api/status', (req, res) => {
  * Scans the /camporees/ directory for valid projects.
  */
 app.get('/api/camporees', requireAuth, (req, res) => {
-    const { userId } = getAuth(req);
+    const userId = getEffectiveUserId(req);
     const profile = conductorDb.prepare('SELECT is_sysadmin FROM user_profiles WHERE user_id = ?').get(userId);
     const isSysadmin = !!profile?.is_sysadmin;
 
@@ -798,6 +822,9 @@ app.get('/admin/api/audit', requireAuth, requireSysadmin, (req, res) => {
  * GET /api/me — current user's profile row
  */
 app.get('/api/me', requireAuth, (req, res) => {
+    if (COMPOSER_DEMO_MODE) {
+        return res.json({ user_id: DEMO_USER_ID, display_name: 'Demo User', email: '' });
+    }
     const { userId } = getAuth(req);
     const profile = conductorDb.prepare('SELECT * FROM user_profiles WHERE user_id = ?').get(userId);
     res.json(profile || { user_id: userId });

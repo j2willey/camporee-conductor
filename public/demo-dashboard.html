@@ -164,7 +164,7 @@
             <div class="row g-4 justify-content-center">
 
                 <!-- Card 1: Collator -->
-                <div class="col-12 col-md-6 col-lg-5">
+                <div class="col-12 col-md-6 col-lg-4">
                     <div class="demo-card">
                         <div class="card-icon">📋</div>
                         <div class="card-subtitle">For Directors &amp; Officials</div>
@@ -172,8 +172,8 @@
                         <p>The Collator is the command center for event day. Watch scores arrive from judge phones in real time, track patrol standings, finalize results, and generate ribbon stickers for the awards ceremony.</p>
                         <ul class="card-features">
                             <li>Real 2026 Coyote Creek Circus data — 205 Scouts, 18 games</li>
-                            <li>Live leaderboard updates as scores come in</li>
-                            <li>Game finalization and ribbon sticker printing</li>
+                            <li>Competition Overview updates as scores come in</li>
+                            <li>Game finalization and awards creator</li>
                             <li>8 games open and ready for live demo scoring</li>
                         </ul>
                         <a href="/collator/identify.html" class="btn-demo">Enter as Director →</a>
@@ -181,19 +181,36 @@
                 </div>
 
                 <!-- Card 2: Judge App -->
-                <div class="col-12 col-md-6 col-lg-5">
+                <div class="col-12 col-md-6 col-lg-4">
                     <div class="demo-card">
                         <div class="card-icon">📱</div>
                         <div class="card-subtitle">For Game Station Judges</div>
                         <h2>Judge Phone Experience</h2>
-                        <p>Step into a judge's shoes. Open the Progressive Web App on any phone — no install required. Pick your game station, score an incoming patrol, and watch the leaderboard update live. Designed to work offline in a field with no cell signal.</p>
+                        <p>Step into a judge's shoes. Open the Progressive Web App on any phone — no install required. Pick your game station, score an incoming patrol, and watch the Officials Game Overview update. Designed to work offline in a field with no cell signal.</p>
                         <ul class="card-features">
                             <li>Runs in any mobile browser — no app store needed</li>
                             <li>Troops and patrols preloaded from the event cartridge</li>
                             <li>Offline-capable with automatic sync when connection returns</li>
-                            <li>Side-by-side view: judge phone + live leaderboard</li>
+                            <li>Side-by-side view: judge phone + Officials Game Overview</li>
                         </ul>
                         <a href="/collator/demo-phone.html" class="btn-demo">Try the Judge App →</a>
+                    </div>
+                </div>
+
+                <!-- Card 3: Demo Composer -->
+                <div class="col-12 col-md-6 col-lg-4">
+                    <div class="demo-card">
+                        <div class="card-icon">🗂️</div>
+                        <div class="card-subtitle">For Camporee Directors</div>
+                        <h2>Event Designer</h2>
+                        <p>The Composer is where events are built. Browse the Circus 2026 configuration — all 18 games, scoring rules, league setup, and team rosters — exactly as it was designed before the event.</p>
+                        <ul class="card-features">
+                            <li>Real Circus 2026 game designs — 18 station events</li>
+                            <li>Patrol and Troop scoring rules side-by-side</li>
+                            <li>Export a ZIP cartridge to see how deployment works</li>
+                            <li>Read-only demo — your changes won't be saved</li>
+                        </ul>
+                        <a href="#" id="composer-demo-link" class="btn-demo">Explore the Composer →</a>
                     </div>
                 </div>
 
@@ -209,6 +226,20 @@
         <a href="https://camporeeconductor.com">camporeeconductor.com</a>
         &nbsp;·&nbsp; Camporee Conductor is free, open-source software for BSA event organizers.
     </div>
+
+    <script>
+        // Build composer-demo URL based on current hostname so this page works in both
+        // local dev (composer-demo.localhost) and production (composer-demo.camporeeconductor.com).
+        (function () {
+            const h = window.location.hostname;
+            const protocol = window.location.protocol;
+            const parts = h.split('.');
+            const rootDomain = parts.length >= 2 ? parts.slice(-2).join('.') : h;
+            const composerDemoUrl = protocol + '//composer-demo.' + rootDomain + '/composer/';
+            const link = document.getElementById('composer-demo-link');
+            if (link) link.href = composerDemoUrl;
+        })();
+    </script>
 
 </body>
 </html>
