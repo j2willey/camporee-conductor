@@ -354,7 +354,15 @@ function renderEntityList(filter = '') {
     const term = filter.toLowerCase();
     const drafts = JSON.parse(localStorage.getItem('camporee_drafts') || '{}');
     const queue = syncManager.getQueue();
-    const scoredIds = new Set(queue.filter(s => s.game_id === state.currentStation.id).map(s => s.entity_id));
+    const gameId = state.currentStation.id;
+    const prefix = `${gameId}:`;
+    const demoCachedIds = Object.keys(state.demoScoreCache)
+        .filter(k => k.startsWith(prefix))
+        .map(k => k.slice(prefix.length));
+    const scoredIds = new Set([
+        ...queue.filter(s => s.game_id === gameId).map(s => s.entity_id),
+        ...demoCachedIds
+    ]);
 
     const filtered = state.entities.filter(e =>
         e.type === requiredType && (e.name.toLowerCase().includes(term) || e.troop_number.includes(term))
