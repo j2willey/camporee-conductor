@@ -482,7 +482,14 @@ if (COLLATOR_MODE === 'cloud') {
     });
 }
 
-app.use(express.static('public', { index: false }));
+app.use(express.static('public', {
+    index: false,
+    setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.js') || filePath.endsWith('.html')) {
+            res.setHeader('Cache-Control', 'no-cache');
+        }
+    }
+}));
 // Map the legacy /library/games path to the new separated silo
 app.use('/library/games', express.static(LIBRARY_PATH));
 

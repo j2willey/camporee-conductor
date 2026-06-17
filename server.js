@@ -131,7 +131,14 @@ async function startServer() {
     if (!ACTIVE_SERVICES.includes('composer')) {
         app.use('/composer', (req, res) => res.redirect('/'));
     }
-    app.use(express.static('public', { index: false }));
+    app.use(express.static('public', {
+        index: false,
+        setHeaders: (res, filePath) => {
+            if (filePath.endsWith('.js') || filePath.endsWith('.html')) {
+                res.setHeader('Cache-Control', 'no-cache');
+            }
+        }
+    }));
 
     // --- ROOT ROUTING (The Gateway) ---
     app.get('/', (req, res) => {
