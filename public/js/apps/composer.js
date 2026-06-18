@@ -2121,7 +2121,7 @@ const composer = {
                                 <input type="number" class="form-control" 
                                        value="${comp.config?.max || ""}" 
                                        onchange="composer.updateConfig('${contextId}', ${index}, 'max', this.value, '${contextType}')">
-                                <span class="input-group-text fw-bold">Wgt</span>
+                                <span class="input-group-text fw-bold" title="Weight: multiplied against this field's score. Default 1. Use 2 to double its contribution, 0 to record without scoring.">Wgt</span>
                                 <input type="number" class="form-control fw-bold" 
                                        value="${comp.weight !== undefined ? comp.weight : 0}" 
                                        onchange="composer.updateComponent('${contextId}', ${index}, 'weight', parseFloat(this.value), '${contextType}')">
@@ -2134,7 +2134,7 @@ const composer = {
                                id="visSwitch${index}"
                                ${comp.audience === "admin" ? "checked" : ""}
                                onchange="composer.updateComponent('${contextId}', ${index}, 'audience', this.checked ? 'admin' : 'judge', '${contextType}')">
-                        <label class="form-check-label small fw-bold text-muted d-block me-4" style="white-space:nowrap;">Official Only</label>
+                        <label class="form-check-label small fw-bold text-muted d-block me-4" style="white-space:nowrap;" title="Field is visible to Officials reviewing scores, but hidden from judges on their phones.">Official Only</label>
                       </div>
                       ${isSubmissionMode ? `
                       <div class="text-end">
