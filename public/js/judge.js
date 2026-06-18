@@ -378,7 +378,6 @@ function renderEntityList(filter = '') {
     els.entityHeader.textContent = `Select ${requiredType === 'patrol' ? 'Patrol' : 'Troop'}`;
     const addButton = `<button class="list-group-item list-group-item-action py-2 px-3 text-center text-primary fw-bold" onclick="app.promptNewEntity('${requiredType}')" style="border: 2px dashed var(--bs-primary); margin-bottom: 6px;">➕ Register New ${requiredType}</button>`;
 
-    const gameId = state.currentStation?.id;
     const closure = getGameClosure(gameId);
 
     els.entityList.innerHTML = addButton + filtered.map(e => {
