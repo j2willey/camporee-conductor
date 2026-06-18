@@ -193,7 +193,7 @@ db.exec(`
   DELETE FROM entities;
 
   INSERT INTO entities    SELECT * FROM snap.entities;
-  INSERT INTO judges      SELECT * FROM snap.judges;
+  INSERT INTO judges (id, name, email, unit) SELECT id, name, email, unit FROM snap.judges;
   INSERT INTO scores      SELECT * FROM snap.scores;
   INSERT INTO game_status SELECT * FROM snap.game_status;
 `);
