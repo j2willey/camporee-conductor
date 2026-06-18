@@ -61,6 +61,9 @@ function setupNavigation() {
         el?.addEventListener('keydown', e => { if (e.key === 'Enter') submitEntityModal(); });
     });
 
+    // Merge modal wiring
+    document.getElementById('merge-submit')?.addEventListener('click', submitMergeModal);
+
     const copyEmailsBtn = document.getElementById('btn-copy-emails');
     if (copyEmailsBtn) copyEmailsBtn.onclick = copyJudgeEmails;
 
@@ -223,7 +226,11 @@ function renderRoster() {
         summary.innerHTML = `
             <span style="font-size:0.8rem; margin-right:8px; color:#5f6368; transition: transform 0.2s;">▼</span>
             <span style="font-size:0.95rem;">${troopLabel}${troop.name ? ' — ' + troop.name : ''}</span>
-            <button class="btn btn-sm btn-link ms-auto text-decoration-none p-0 text-success fw-bold" style="font-size: 0.8rem;" onclick="addEntity('${troop.id}')">+ Add Patrol</button>
+            <span class="ms-auto d-flex align-items-center gap-2">
+                <button class="btn btn-sm btn-link text-decoration-none p-0 text-muted" style="font-size:0.85rem;" title="Rename troop" onclick="event.stopPropagation(); renameEntity('${troop.id}')">✏️</button>
+                <button class="btn btn-sm btn-link text-decoration-none p-0 text-muted" style="font-size:0.85rem;" title="Merge troop into another" onclick="event.stopPropagation(); showMergeModal('${troop.id}')">⇒</button>
+                <button class="btn btn-sm btn-link text-decoration-none p-0 text-success fw-bold" style="font-size: 0.8rem;" onclick="event.stopPropagation(); addEntity('${troop.id}')">+ Add Patrol</button>
+            </span>
         `;
 
         // Simple arrow toggle logic
@@ -251,7 +258,11 @@ function renderRoster() {
                 div.style.backgroundColor = "transparent";
                 div.innerHTML = `
                     <span style="font-size: 0.9rem;"><span style="color:#bdc1c6; margin-right:8px;">├─</span>${p.name} <small class="text-muted" style="font-size:0.75em">(${p.id})</small></span>
-                    <span class="badge bg-light text-dark border-0 text-muted" style="font-size: 0.7rem;">PATROL</span>
+                    <span class="d-flex align-items-center gap-2">
+                        <button class="btn btn-sm btn-link text-decoration-none p-0 text-muted" style="font-size:0.85rem;" title="Rename patrol" onclick="renameEntity('${p.id}')">✏️</button>
+                        <button class="btn btn-sm btn-link text-decoration-none p-0 text-muted" style="font-size:0.85rem;" title="Merge into another patrol" onclick="showMergeModal('${p.id}')">⇒</button>
+                        <span class="badge bg-light text-dark border-0 text-muted" style="font-size: 0.7rem;">PATROL</span>
+                    </span>
                 `;
                 list.appendChild(div);
             });
@@ -275,7 +286,11 @@ function renderRoster() {
              div.className = "d-flex justify-content-between align-items-center p-2 border-bottom";
              div.innerHTML = `
                 <span>${p.name} <small class="text-muted">(Troop ${p.troop_number} - No Parent Link)</small></span>
-                <span class="badge bg-warning text-dark">Orphan</span>
+                <span class="d-flex align-items-center gap-2">
+                    <button class="btn btn-sm btn-link text-decoration-none p-0 text-muted" style="font-size:0.85rem;" title="Rename patrol" onclick="renameEntity('${p.id}')">✏️</button>
+                    <button class="btn btn-sm btn-link text-decoration-none p-0 text-muted" style="font-size:0.85rem;" title="Merge into another patrol" onclick="showMergeModal('${p.id}')">⇒</button>
+                    <span class="badge bg-warning text-dark">Orphan</span>
+                </span>
             `;
             orphanContainer.appendChild(div);
         });
@@ -293,6 +308,9 @@ const UNIT_TYPE_LABELS = {
 
 let _entityModal = null;
 let _entityModalParentId = null;
+let _renameEntityId = null;
+let _mergeModal = null;
+let _mergeSourceId = null;
 
 function getEntityModal() {
     if (!_entityModal) _entityModal = new bootstrap.Modal(document.getElementById('entity-modal'));
@@ -313,6 +331,7 @@ function showEntityError(msg) {
 }
 
 function addEntity(parentId) {
+    _renameEntityId = null;
     _entityModalParentId = parentId;
 
     const errorEl = document.getElementById('em-error');
@@ -355,10 +374,36 @@ function addEntity(parentId) {
 window.addEntity = addEntity;
 
 async function submitEntityModal() {
-    const parentId = _entityModalParentId;
     const submitBtn = document.getElementById('em-submit');
     document.getElementById('em-error').classList.add('d-none');
 
+    // Rename mode
+    if (_renameEntityId) {
+        const name = document.getElementById('em-name').value.trim();
+        if (!name) { showEntityError('Name is required.'); return; }
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Saving…';
+        try {
+            const res = await fetch(window.API_BASE + '/api/entities/' + _renameEntityId, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            });
+            if (!res.ok) throw new Error('Server error');
+            const entity = appData.entities.find(e => e.id === _renameEntityId);
+            if (entity) entity.name = name;
+            getEntityModal().hide();
+            renderRoster();
+        } catch {
+            showEntityError('Failed to save. Please try again.');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Save';
+        }
+        return;
+    }
+
+    // Add mode
+    const parentId = _entityModalParentId;
     let type, troopNum, name;
 
     if (parentId) {
@@ -398,6 +443,113 @@ async function submitEntityModal() {
 
 
 
+
+function renameEntity(entityId) {
+    const entity = appData.entities.find(e => e.id === entityId);
+    if (!entity) return;
+
+    _renameEntityId = entityId;
+    _entityModalParentId = null;
+
+    document.getElementById('em-error').classList.add('d-none');
+    document.getElementById('entity-modal-title').textContent = `Rename — ${entity.name}`;
+    document.getElementById('em-type-row').style.display = 'none';
+    document.getElementById('em-number-row').style.display = 'none';
+    document.getElementById('em-name-label').textContent = 'New Name';
+    document.getElementById('em-name').value = entity.name;
+    document.getElementById('em-name').placeholder = entity.name;
+    document.getElementById('em-name-hint').textContent = '';
+
+    const submitBtn = document.getElementById('em-submit');
+    submitBtn.textContent = 'Save';
+    submitBtn.disabled = false;
+
+    getEntityModal().show();
+    document.getElementById('entity-modal').addEventListener('shown.bs.modal', () => {
+        document.getElementById('em-name')?.select();
+    }, { once: true });
+    document.getElementById('entity-modal').addEventListener('hide.bs.modal', () => {
+        _renameEntityId = null;
+    }, { once: true });
+}
+window.renameEntity = renameEntity;
+
+function getMergeModal() {
+    if (!_mergeModal) _mergeModal = new bootstrap.Modal(document.getElementById('merge-modal'));
+    return _mergeModal;
+}
+
+function showMergeModal(entityId) {
+    const entity = appData.entities.find(e => e.id === entityId);
+    if (!entity) return;
+
+    _mergeSourceId = entityId;
+    document.getElementById('merge-source-name').textContent = entity.name;
+    document.getElementById('merge-error').classList.add('d-none');
+
+    const select = document.getElementById('merge-target');
+    select.innerHTML = '';
+    appData.entities
+        .filter(e => e.id !== entityId && e.type === entity.type)
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .forEach(e => {
+            const opt = document.createElement('option');
+            opt.value = e.id;
+            opt.textContent = entity.type === 'patrol'
+                ? `${e.name} (T${e.troop_number})`
+                : `T${e.troop_number}${e.name !== e.troop_number ? ' — ' + e.name : ''}`;
+            select.appendChild(opt);
+        });
+
+    if (select.options.length === 0) {
+        select.innerHTML = '<option disabled>No other entities of this type</option>';
+        document.getElementById('merge-submit').disabled = true;
+    } else {
+        document.getElementById('merge-submit').disabled = false;
+    }
+
+    getMergeModal().show();
+}
+window.showMergeModal = showMergeModal;
+
+async function submitMergeModal() {
+    const submitBtn = document.getElementById('merge-submit');
+    const errorEl  = document.getElementById('merge-error');
+    errorEl.classList.add('d-none');
+
+    const toId = document.getElementById('merge-target').value;
+    if (!toId || !_mergeSourceId) return;
+
+    const sourceName = document.getElementById('merge-source-name').textContent;
+    const target = appData.entities.find(e => e.id === toId);
+    const targetLabel = target ? target.name : toId;
+
+    if (!confirm(`Merge "${sourceName}" into "${targetLabel}"?\n\nThis will move all scores and remove the source. This cannot be undone.`)) return;
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Merging…';
+
+    try {
+        const res = await fetch(window.API_BASE + '/api/entities/reassign', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ from_entity_id: _mergeSourceId, to_entity_id: toId })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Server error');
+
+        // Remove source from local cache
+        appData.entities = appData.entities.filter(e => e.id !== _mergeSourceId);
+        getMergeModal().hide();
+        renderRoster();
+        alert(`Done — ${data.reassigned} score${data.reassigned !== 1 ? 's' : ''} moved to "${targetLabel}"${data.skipped ? `, ${data.skipped} skipped (target already had a score for that game)` : ''}.`);
+    } catch (err) {
+        errorEl.textContent = err.message || 'Failed to merge. Please try again.';
+        errorEl.classList.remove('d-none');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Merge & Remove Source';
+    }
+}
 
 async function renderJudgesView() {
     const container = document.getElementById('judges-list');

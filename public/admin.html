@@ -146,6 +146,33 @@
             </div>
         </div>
 
+        <!-- Merge Entity Modal -->
+        <div class="modal fade" id="merge-modal" tabindex="-1" aria-labelledby="merge-modal-title" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-warning">
+                        <h5 class="modal-title" id="merge-modal-title">Merge Entity</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="mb-3">Move all scores from <strong id="merge-source-name"></strong> into another entity, then remove the source.</p>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Merge into</label>
+                            <select id="merge-target" class="form-select"></select>
+                        </div>
+                        <div class="alert alert-info mb-2" style="font-size:0.85rem;">
+                            If the target already has a score for a game, that game's score is kept as-is.
+                        </div>
+                        <div id="merge-error" class="alert alert-danger d-none" role="alert"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" id="merge-submit" class="btn btn-warning fw-bold">Merge &amp; Remove Source</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- View 6: Judges Directory -->
         <section id="view-judges" class="hidden">
             <div class="controls" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">

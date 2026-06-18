@@ -1306,6 +1306,48 @@ app.post('/api/entities', (req, res) => {
     }
 });
 
+app.post('/api/entities/reassign', requireOfficial, express.json(), (req, res) => {
+    const { from_entity_id, to_entity_id } = req.body || {};
+    if (!from_entity_id || !to_entity_id)
+        return res.status(400).json({ error: 'from_entity_id and to_entity_id are required' });
+    if (from_entity_id === to_entity_id)
+        return res.status(400).json({ error: 'Source and target must be different' });
+
+    const from = db.prepare('SELECT * FROM entities WHERE id = ?').get(from_entity_id);
+    const to   = db.prepare('SELECT * FROM entities WHERE id = ?').get(to_entity_id);
+    if (!from) return res.status(404).json({ error: 'Source entity not found' });
+    if (!to)   return res.status(404).json({ error: 'Target entity not found' });
+    if (from.type !== to.type) return res.status(400).json({ error: 'Source and target must be the same type' });
+
+    try {
+        const result = db.transaction(() => {
+            // Games where the target already has a score — skip those to avoid duplicates
+            const toGameIds = new Set(
+                db.prepare('SELECT game_id FROM scores WHERE entity_id = ?').all(to_entity_id).map(r => r.game_id)
+            );
+            const fromScores = db.prepare('SELECT uuid, game_id FROM scores WHERE entity_id = ?').all(from_entity_id);
+            let reassigned = 0, skipped = 0;
+            for (const s of fromScores) {
+                if (toGameIds.has(s.game_id)) { skipped++; continue; }
+                db.prepare('UPDATE scores SET entity_id = ? WHERE uuid = ?').run(to_entity_id, s.uuid);
+                reassigned++;
+            }
+            // Best-effort: reassign bracket records (OR IGNORE skips constraint conflicts)
+            db.prepare('UPDATE OR IGNORE Match_Participants SET entity_id = ? WHERE entity_id = ?').run(to_entity_id, from_entity_id);
+            db.prepare('UPDATE OR IGNORE Event_Standings   SET entity_id = ? WHERE entity_id = ?').run(to_entity_id, from_entity_id);
+            // Remove source entity
+            db.prepare('DELETE FROM entities WHERE id = ?').run(from_entity_id);
+            logAudit('entity_reassign', { entity_type: from.type, entity_id: from_entity_id,
+                notes: `merged into ${to_entity_id} (${to.name}): ${reassigned} reassigned, ${skipped} skipped` });
+            return { reassigned, skipped };
+        })();
+        res.json(result);
+    } catch (err) {
+        console.error('[reassign]', err);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
 app.post('/api/scores/close-game', (req, res) => {
     const { game_id, judge_id, score_count, closed_at } = req.body || {};
     if (!game_id) return res.status(400).json({ error: 'game_id required' });
