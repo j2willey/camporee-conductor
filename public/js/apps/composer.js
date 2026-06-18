@@ -2134,7 +2134,7 @@ const composer = {
                                id="visSwitch${index}"
                                ${comp.audience === "admin" ? "checked" : ""}
                                onchange="composer.updateComponent('${contextId}', ${index}, 'audience', this.checked ? 'admin' : 'judge', '${contextType}')">
-                        <label class="form-check-label small fw-bold text-muted d-block me-4">Official Only</label>
+                        <label class="form-check-label small fw-bold text-muted d-block me-4" style="white-space:nowrap;">Official Only</label>
                       </div>
                       ${isSubmissionMode ? `
                       <div class="text-end">

@@ -109,8 +109,8 @@
         identify: {
             title: 'Demo Sign-In',
             body: `<p>This is the <strong>official sign-in page</strong> for the Collator.</p>
-                   <p>In the demo, <strong>any email address works</strong> — no password, no account needed. Just enter an email and you're in as a demo director.</p>
-                   <p>In a real event deployment, sign-in is restricted to officials listed in the event cartridge.</p>`
+                   <p>In the demo, <strong>any email address works</strong>. Use the password <strong>Camporee</strong> to sign in as a demo director.</p>
+                   <p>In a real event deployment, sign-in is restricted to officials listed in the event cartridge — no universal password.</p>`
         }
     };
 
@@ -243,6 +243,27 @@
         return backdrop;
     }
 
+    function buildHomeBtn() {
+        const btn = document.createElement('a');
+        btn.href = '/';
+        btn.title = 'Back to Demo Hub';
+        Object.assign(btn.style, {
+            position: 'fixed', bottom: '1.25rem', right: '4.25rem',
+            height: '2.5rem', borderRadius: '20px',
+            background: 'rgba(0,0,0,0.35)', color: '#fff',
+            border: 'none', fontSize: '0.75rem', fontWeight: '600',
+            cursor: 'pointer', zIndex: '1040',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+            textDecoration: 'none',
+            display: 'flex', alignItems: 'center',
+            padding: '0 0.75rem',
+            letterSpacing: '0.02em',
+            whiteSpace: 'nowrap'
+        });
+        btn.textContent = '← Demo Hub';
+        return btn;
+    }
+
     function buildFAB(pageId, hint) {
         const btn = document.createElement('button');
         btn.id = 'dh-fab';
@@ -281,6 +302,7 @@
         }
 
         document.body.appendChild(buildFAB(pageId, hint));
+        document.body.appendChild(buildHomeBtn());
 
         if (!isDismissed(pageId)) {
             document.body.appendChild(buildModal(pageId, hint));
