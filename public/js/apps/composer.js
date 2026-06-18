@@ -2391,12 +2391,35 @@ const composer = {
         const dialog = document.getElementById("previewModalDialog");
 
         if (dialog) dialog.style.maxWidth = '400px';
-
-        if (modalBody) modalBody.innerHTML = `<div class="p-2">${html}</div>`;
         if (modalTitle) modalTitle.innerText = "Judge View: " + (game.game_title || "Game");
 
         const printBtn = document.getElementById("previewPrintBtn");
-        if (printBtn) printBtn.classList.add("d-none"); // Hide print for scoring preview
+        if (printBtn) printBtn.classList.add("d-none");
+
+        const stationLabel = game.station_number ? `Station ${game.station_number}` : '';
+
+        if (modalBody) {
+            modalBody.style.padding = '0';
+            modalBody.innerHTML = `
+                <div style="background:var(--brand-header);color:#fff;padding:0.7rem 1rem;display:flex;align-items:center;justify-content:space-between;gap:0.5rem;">
+                    <div style="min-width:0;">
+                        <div style="font-size:1rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${game.game_title || 'Game'}</div>
+                        ${stationLabel ? `<div style="font-size:0.75rem;opacity:0.7;">${stationLabel}</div>` : ''}
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+                        <span style="background:var(--conductor-secondary,#27ae60);color:#fff;border-radius:4px;padding:3px 9px;font-size:0.75rem;font-weight:700;">Online</span>
+                        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" opacity="0.85"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                    </div>
+                </div>
+                <div style="padding:0.75rem 1rem 1rem;overflow-y:auto;max-height:480px;background:#f8f9fa;">
+                    <h2 style="font-size:1.3rem;font-weight:700;margin:0.5rem 0 0.1rem;">Eagle Patrol</h2>
+                    <h3 style="font-size:0.95rem;font-weight:600;color:#666;margin:0 0 1rem;">Troop 42</h3>
+                    <form>${html}</form>
+                </div>
+                <div style="padding:0.75rem 1rem;background:#fff;border-top:1px solid #dee2e6;">
+                    <button disabled style="width:100%;padding:0.65rem;background:var(--brand-main,#2d6a4f);color:#fff;border:none;border-radius:6px;font-size:1rem;font-weight:700;opacity:0.8;cursor:default;">Submit Score</button>
+                </div>`;
+        }
 
         if (window.bootstrap) {
             new bootstrap.Modal(document.getElementById("previewModal")).show();
@@ -2431,7 +2454,7 @@ const composer = {
 
             if (dialog) dialog.style.maxWidth = 'min(95vw, 8.5in)';
 
-            if (modalBody) modalBody.innerHTML = html;
+            if (modalBody) { modalBody.style.padding = ''; modalBody.innerHTML = html; }
             if (modalTitle) modalTitle.innerText = "Guide Preview: " + (game.game_title || "Game");
 
             const printBtn = document.getElementById("previewPrintBtn");
