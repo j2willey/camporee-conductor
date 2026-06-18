@@ -60,7 +60,7 @@
 
         /* ── LEFT: PHONE PANEL ── */
         .phone-panel {
-            flex: 0 0 40%;
+            flex: 0 0 44%;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -76,13 +76,13 @@
             text-transform: uppercase;
         }
 
-        /* ── PHONE BEZEL ── */
+        /* ── PHONE BEZEL — iPhone 14/15 proportions (390×844 CSS px) ── */
         .phone-bezel {
-            height: min(680px, calc(100dvh - 130px));
-            aspect-ratio: 320 / 680;
+            height: min(844px, calc(100dvh - 130px));
+            aspect-ratio: 390 / 844;
             background: #0f0f0f;
-            border-radius: 48px;
-            padding: 14px 12px 18px;
+            border-radius: 55px;
+            padding: 17px 14px 22px;
             box-shadow:
                 0 0 0 1px #333,
                 0 0 0 3px #222,
@@ -97,30 +97,30 @@
             content: '';
             position: absolute;
             left: -4px;
-            top: 100px;
+            top: 124px;
             width: 3px;
-            height: 32px;
+            height: 38px;
             background: #2a2a2a;
             border-radius: 2px 0 0 2px;
-            box-shadow: 0 46px 0 #2a2a2a;
+            box-shadow: 0 56px 0 #2a2a2a;
         }
         /* Power button (right side, decorative) */
         .phone-bezel::after {
             content: '';
             position: absolute;
             right: -4px;
-            top: 130px;
+            top: 160px;
             width: 3px;
-            height: 56px;
+            height: 68px;
             background: #2a2a2a;
             border-radius: 0 2px 2px 0;
         }
         /* Dynamic island */
         .phone-notch {
-            width: 96px;
-            height: 24px;
+            width: 120px;
+            height: 28px;
             background: #0f0f0f;
-            border-radius: 0 0 16px 16px;
+            border-radius: 0 0 20px 20px;
             margin: 0 auto 8px;
             display: flex;
             align-items: center;
@@ -130,15 +130,15 @@
         /* Camera dot */
         .phone-notch::after {
             content: '';
-            width: 9px;
-            height: 9px;
+            width: 11px;
+            height: 11px;
             background: #1c1c1c;
             border-radius: 50%;
             border: 1.5px solid #2d2d2d;
         }
         .phone-screen {
             flex: 1;
-            border-radius: 16px;
+            border-radius: 20px;
             overflow: hidden;
             background: #000;
         }
