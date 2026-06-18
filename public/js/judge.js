@@ -559,7 +559,7 @@ async function submitScore(e) {
         }
         updateSyncCounts();
         renderEntityList();
-        alert('Score Saved!');
+        showLastSubmit(state.currentEntity?.name || 'Score', true);
         navigate('entity');
     } catch (err) {
         console.error("Sync Error:", err);
@@ -567,8 +567,8 @@ async function submitScore(e) {
         updateSyncCounts();
         renderEntityList();
 
-        if (!navigator.onLine || err.message.includes('fetch')) {
-            alert("Score Saved Locally. (Sync Pending)");
+        if (!navigator.onLine || err.message?.includes('fetch')) {
+            showLastSubmit(state.currentEntity?.name || 'Score', false);
         } else {
             alert("⚠️ Score Saved Locally\n\nHowever, it failed to sync to the server:\n" + err.message);
         }
@@ -2193,6 +2193,20 @@ function bracketRenameRound() {
 }
 
 // --- Data & Helpers ---
+
+function showLastSubmit(entityName, synced) {
+    const bar = document.getElementById('last-submit-bar');
+    const icon = document.getElementById('last-submit-icon');
+    const text = document.getElementById('last-submit-text');
+    const timeEl = document.getElementById('last-submit-time');
+    if (!bar) return;
+    const timeStr = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    bar.style.display = 'flex';
+    bar.style.background = synced ? 'rgba(39,174,96,0.93)' : 'rgba(184,134,11,0.93)';
+    icon.textContent = synced ? '✓' : '⏳';
+    text.textContent = entityName;
+    timeEl.textContent = synced ? timeStr : 'queued · ' + timeStr;
+}
 
 function updateOnlineStatus() {
     state.isOnline = navigator.onLine;
