@@ -52,6 +52,9 @@ All 5 prompts done. Flagged for future cleanup:
 - [ ] `collator.js` ~line 50: `entities.type IN ('patrol','troop')` — DB entity tier column still uses pre-v3 strings; needs a future DB migration when roster model is upgraded
 - [ ] `collator.js` ~line 818: `entity_type: 'patrol'` hardcoded in POST /api/score audit log — should resolve from actual entity tier
 - ✅ **Upgrade Curator-stored Circus cartridge to v3.0** — Circus workspace was already v3.0; added `event_permissions` owner row for Jim; removed `TYPE_TO_LEAGUE` fallback from `seed-demo.js`; orphaned pre-v3 Curator zip (`camporees/Coyote_Creek_District_Camporee_2026.zip`) and `camporee-catalog.json` deleted from data dir (2026-06-16)
+- ✅ **Circus game penalty field corrections** — 7 fields across 6 games reclassified (metric/points vs penalty); updated in local workspace, demo-composer workspace, production Collator active-event, demo Collator cartridge + re-seeded, and Curator library (UUID `9074ff71-…`); `seed-demo.js` judges INSERT fixed for `device` column schema mismatch (2026-06-18)
+- ✅ **Contest Mode (formerly Submission Mode)** — renamed throughout JS + display; inline always-visible descriptions added under both Bracket Mode and Contest Mode toggles in Composer; internal value `'submission'` → `'contest'` (no saved game files used the value); SW v23 (2026-06-18)
+- ✅ **Composer Judge View phone chrome** — `renderScoringPreview()` wraps field HTML in a phone-shaped mockup (header with game title + Online badge, scrollable body with patrol/troop names, disabled Submit button) reusing `--brand-header` CSS var (2026-06-17)
 
 ---
 
@@ -76,7 +79,11 @@ See `SITE_DEMO_DESIGN.md` for full design. Two-phase rollout: Phase 1 (Clerk aut
 - ✅ **Demo hints** — `public/js/demo-hints.js`; first-visit modal + floating "?" FAB on all 6 collator pages; gated by `GET /api/demo-mode`; per-page localStorage dismissal; suppressed in iframes (2026-06-17)
 - ✅ **Demo dashboard** — `public/demo-dashboard.html`; 2-card "choose your role" landing at `demo.camporeeconductor.com/`; Collator and Judge cards; DEMO_MODE redirects root GET / here instead of mobile/desktop split (2026-06-17)
 - ✅ **Demo Composer (read-only)** — `COMPOSER_DEMO_MODE=true`; no Clerk auth; all mutations → 403; auto-loads Circus 2026 via `DEMO_WORKSPACE_UUID`; hint dialog via `demo-hints.js`; 3rd "Event Designer" card added to `demo-dashboard.html`; subdomain `composer-demo.camporeeconductor.com` (2026-06-17)
-- [ ] **Offline/Online toggle in Judge Emulator** — localStorage flag causes judge app to queue locally (OFFLINE) or flush+sync (ONLINE); reuses `sync-manager.js`; same infrastructure as per-judge DEMO mode
+- ✅ **Phone emulator — iPhone 14/15 proportions** — `demo-phone.html` bezel resized to 390×844; decorative hardware scaled proportionally; "Live Leaderboard" label → "Live Competition Overview" (2026-06-17)
+- ✅ **Sync status badge in judge app** — color-coded `status-indicator`: green = synced, amber = offline/queued, red = sync error only; `judge_device` (userAgent) captured at identify and on every score submit; `identify.html` sends user_agent (2026-06-17/18)
+- ✅ **Last-submit status bar in judge app** — replaces blocking `alert('Score Saved!')` with a persistent fixed bottom bar; green = synced, amber = queued; server-error alert preserved for exceptional failures; SW v21 (2026-06-18)
+- ✅ **Offline/Online toggle in Judge Emulator** — ✈ Airplane Mode button in `demo-phone.html` dispatches synthetic `offline`/`online` events to judge iframe; all `navigator.onLine` checks in judge.js replaced with `state.isOnline` so synthetic events control sync behavior; SW v22 (2026-06-18)
+- ✅ **Scoring field accordion UX + Common Fields rename** — Composer scoring fields collapse to a single header row (label, type/kind/Official badges, chevron); click to expand for editing; drag-to-reorder works from collapsed state; newly added fields auto-expand; "Scoring Presets" → "Common Fields" throughout (2026-06-18)
 - [ ] **Composer demo event for preview accounts** — link Phase 1 preview account holders to demo camporee on first login
 - [ ] **Landing page video/slide deck embed** — content Jim creates; embed is trivial when ready
 - [ ] **Phase 2: No-auth playground** — (future, after Phase 1 feedback incorporated)
@@ -89,7 +96,7 @@ See `SITE_DEMO_DESIGN.md` for full design. Two-phase rollout: Phase 1 (Clerk aut
 ### Scoring
 
 - [ ] **Challenge Match ("True 2nd Place")** — bracket tournament logic; `Matches`/`Match_Participants` DB tables exist, trigger logic not yet implemented
-- [ ] **Score reassignment operation** — `PATCH /api/scores/reassign` to move all scores from one entrant id to another; needed when a patrol is added on the fly and must be merged into a pre-registered entrant
+- ✅ **Score reassignment + entity rename** — ✏️ rename and ⇒ merge buttons on every roster row in admin.html; `PUT /api/entities/:id` (rename + audit); `POST /api/entities/reassign` moves scores then deletes source; `UPDATE OR IGNORE` for bracket records; merge button deferred to 3-dot menu (future) (2026-06-17/18)
 
 ### Judge UI / Entrant Lookup
 
@@ -106,7 +113,7 @@ See `SITE_DEMO_DESIGN.md` for full design. Two-phase rollout: Phase 1 (Clerk aut
 
 ### Composer
 
-- [ ] **Common Fields panel** — UI for editing `type_defaults` and previewing injected fields per game type
+- [ ] **Common Fields panel** — UI for drag-reordering injection rules (prefix/suffix order) in the `openCommonFieldsModal()`; field accordion UX is done (2026-06-18); ordering within the modal still pending
 - [ ] **"Print All" scoresheet button** — currently only in Collator tools (utils.html); should be in Composer export flow
 
 ### AAA / Infrastructure
