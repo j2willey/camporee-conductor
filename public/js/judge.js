@@ -92,7 +92,7 @@ async function init() {
     loadJudgeInfo();
     injectModeTabs();
 
-    if (state.isOnline) await refreshData();
+    await refreshData();
 
     renderStationList();
     updateSyncCounts();
@@ -2196,7 +2196,6 @@ function updateOnlineStatus() {
     if (els.unsyncedCount) els.unsyncedCount.textContent = c;
     if (c > 0 && state.isOnline) { els.status.textContent = 'Sync'; els.status.className = 'status-sync ms-2'; }
     else { els.status.textContent = state.isOnline ? 'Online' : 'Offline'; els.status.className = (state.isOnline ? 'status-online' : 'status-offline') + ' ms-2'; }
-    els.status.style.visibility = '';
 }
 
 async function refreshData() {
