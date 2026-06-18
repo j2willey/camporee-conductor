@@ -1419,20 +1419,22 @@ const composer = {
                 </div>
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-md-3 d-flex align-items-center">
-                             <div class="form-check form-switch">
+                        <div class="col-md-3">
+                            <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" id="gameBracketMode"
                                        ${game.bracketMode ? "checked" : ""}
                                        onchange="composer.toggleBracketMode('${id}', this.checked)">
                                 <label class="form-check-label fw-bold text-primary">Bracket Mode</label>
+                                <small class="text-muted d-block mt-1" style="font-size:0.72rem;line-height:1.3;">Head-to-head elimination rounds. Patrols compete directly against each other.</small>
                             </div>
                         </div>
-                        <div class="col-md-3 d-flex align-items-center border-start" title="Two-phase scoring: judges score each patrol individually (Phase 1), then rate all submissions comparatively (Phase 2).">
-                             <div class="form-check form-switch">
+                        <div class="col-md-3 border-start ps-3">
+                            <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" id="gameScoringMode"
-                                       ${game.scoring_mode === 'submission' ? "checked" : ""}
+                                       ${game.scoring_mode === 'contest' ? "checked" : ""}
                                        onchange="composer.toggleScoringMode('${id}', this.checked)">
-                                <label class="form-check-label fw-bold text-warning">Submission Mode</label>
+                                <label class="form-check-label fw-bold text-warning">Contest Mode</label>
+                                <small class="text-muted d-block mt-1" style="font-size:0.72rem;line-height:1.3;">Patrols submit entries; the judge scores all of them together after seeing every entry. Use for cooking, art, and judged performances.</small>
                             </div>
                         </div>
                         <div id="matchLabelContainer" class="col-md-5 border-start ${game.bracketMode ? "" : "d-none"}">
@@ -1619,7 +1621,7 @@ const composer = {
 
         const scoringModeEl = document.getElementById("gameScoringMode");
         if (scoringModeEl) {
-            scoringModeEl.checked = game.scoring_mode === 'submission';
+            scoringModeEl.checked = game.scoring_mode === 'contest';
         }
 
         this.renderScoringInputs(game.scoring_model.inputs, game.id, "game");
@@ -2015,10 +2017,10 @@ const composer = {
         this.renderScoringInputs(game.scoring_model.inputs, game.id, "game");
     },
 
-    toggleScoringMode: function (gameId, isSubmission) {
+    toggleScoringMode: function (gameId, isContest) {
         const game = this.data.games.find(g => g.id === gameId);
         if (!game) return;
-        game.scoring_mode = isSubmission ? 'submission' : 'sequential';
+        game.scoring_mode = isContest ? 'contest' : 'sequential';
         this._markDirty();
         // Re-render fields so the Phase selector appears/disappears
         this.renderScoringInputs(game.scoring_model.inputs, game.id, "game");
@@ -2049,7 +2051,7 @@ const composer = {
         if (!container) return;
 
         const game = contextType === "game" ? this.data.games.find(g => g.id === contextId) : null;
-        const isSubmissionMode = game?.scoring_mode === 'submission';
+        const isSubmissionMode = game?.scoring_mode === 'contest';
 
         container.innerHTML = "";
 

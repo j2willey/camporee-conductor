@@ -395,7 +395,7 @@ function renderEntityList(filter = '') {
     }).join('');
 
     // Append footer: submission games get Phase 2 button; others get Close Game
-    const isSubmission = state.currentStation?.scoring_mode === 'submission';
+    const isSubmission = state.currentStation?.scoring_mode === 'contest';
 
     if (closure) {
         els.entityList.innerHTML += `
@@ -465,7 +465,7 @@ function renderForm(existingScore = null) {
     document.getElementById('header-subtitle').style.display = 'block';
 
     els.scoreForm.innerHTML = '';
-    const isSubmission = s.scoring_mode === 'submission';
+    const isSubmission = s.scoring_mode === 'contest';
     const allJudgeFields = [...(s.fields || []), ...(state.config.common_scoring || [])].filter(f => f.audience === 'judge');
     // For submission games, Phase 1 only shows phase:1 fields during per-patrol scoring
     const fields = isSubmission ? allJudgeFields.filter(f => (f.phase || 1) === 1) : allJudgeFields;
@@ -514,7 +514,7 @@ async function submitScore(e) {
     if (!state.currentStation || !state.currentEntity) return;
 
     // Submission games: "Save Phase 1" — store to drafts only, don't queue for sync
-    if (state.currentStation.scoring_mode === 'submission') {
+    if (state.currentStation.scoring_mode === 'contest') {
         saveDraft();
         renderEntityList();
         navigate('entity');
