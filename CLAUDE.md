@@ -2,7 +2,7 @@
 
 ## Project Identity
 
-**Camporee Conductor** is an offline-first digital event operating system for BSA (Boy Scouts of America) skill competitions ("Camporees"). It replaces paper scorecards with a portable "Digital Cartridge" system.
+**Camporee Conductor** is an offline-first digital event operating system for BSA (Scouting America) skill competitions ("Camporees"). It replaces paper scorecards with a portable "Digital Cartridge" system.
 
 - **Lead Architect/Director:** Jim Willey (sole developer)
 - **Real-world use:** Jim is Camporee Director for Coyote Creek Camporee (May 15–17, 2026)

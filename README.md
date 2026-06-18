@@ -2,7 +2,7 @@
 
 **Offline-first event management for BSA Camporee skill competitions.**
 
-A Camporee is a multi-troop Boy Scouts of America weekend event where patrols rotate through skill stations and compete for points. Camporee Conductor replaces paper scorecards, spreadsheets, and handwritten ribbon labels with a coordinated digital system that works entirely on a local WiFi network — no internet required on event day.
+A Camporee is a multi-troop Scouting America weekend event where patrols rotate through skill stations and compete for points. Camporee Conductor replaces paper scorecards, spreadsheets, and handwritten ribbon labels with a coordinated digital system that works entirely on a local WiFi network — no internet required on event day.
 
 **[Live Demo →](https://demo.camporeeconductor.com)**
 
