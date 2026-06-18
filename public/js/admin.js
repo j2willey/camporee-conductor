@@ -54,6 +54,13 @@ function setupNavigation() {
         navDashboard.addEventListener('click', () => switchView('dashboard'));
     }
 
+    // Entity modal wiring
+    document.getElementById('em-type')?.addEventListener('change', updateUnitTypeLabels);
+    document.getElementById('em-submit')?.addEventListener('click', submitEntityModal);
+    [document.getElementById('em-number'), document.getElementById('em-name')].forEach(el => {
+        el?.addEventListener('keydown', e => { if (e.key === 'Enter') submitEntityModal(); });
+    });
+
     const copyEmailsBtn = document.getElementById('btn-copy-emails');
     if (copyEmailsBtn) copyEmailsBtn.onclick = copyJudgeEmails;
 
@@ -276,57 +283,117 @@ function renderRoster() {
     }
 }
 
-async function addEntity(parentId) {
-    let type = 'troop';
-    let troopNum = '';
-    let name = '';
-    let parent = null;
+// --- Add Entity Modal ---
+
+const UNIT_TYPE_LABELS = {
+    troop:   { number: 'Troop Number', placeholder: 'e.g. 42' },
+    crew:    { number: 'Crew Number',  placeholder: 'e.g. 42' },
+    webelos: { number: 'Den Number',   placeholder: 'e.g. 5'  },
+};
+
+let _entityModal = null;
+let _entityModalParentId = null;
+
+function getEntityModal() {
+    if (!_entityModal) _entityModal = new bootstrap.Modal(document.getElementById('entity-modal'));
+    return _entityModal;
+}
+
+function updateUnitTypeLabels() {
+    const type = document.getElementById('em-type').value;
+    const cfg = UNIT_TYPE_LABELS[type] || UNIT_TYPE_LABELS.troop;
+    document.getElementById('em-number-label').textContent = cfg.number;
+    document.getElementById('em-number').placeholder = cfg.placeholder;
+}
+
+function showEntityError(msg) {
+    const el = document.getElementById('em-error');
+    el.textContent = msg;
+    el.classList.remove('d-none');
+}
+
+function addEntity(parentId) {
+    _entityModalParentId = parentId;
+
+    const errorEl = document.getElementById('em-error');
+    errorEl.classList.add('d-none');
+    document.getElementById('em-name').value = '';
+    document.getElementById('em-number').value = '';
+    document.getElementById('em-type').value = 'troop';
+    updateUnitTypeLabels();
+
+    const submitBtn = document.getElementById('em-submit');
+
+    if (parentId) {
+        const parent = appData.entities.find(e => e.id === parentId);
+        const troopNum = parent ? parent.troop_number : '';
+        document.getElementById('entity-modal-title').textContent = `Add Patrol — Troop ${troopNum}`;
+        document.getElementById('em-type-row').style.display = 'none';
+        document.getElementById('em-number-row').style.display = 'none';
+        document.getElementById('em-name-label').textContent = 'Patrol Name';
+        document.getElementById('em-name').placeholder = 'e.g. Eagles';
+        document.getElementById('em-name-hint').textContent = '';
+        submitBtn.textContent = 'Add Patrol';
+    } else {
+        document.getElementById('entity-modal-title').textContent = 'Add Unit';
+        document.getElementById('em-type-row').style.display = '';
+        document.getElementById('em-number-row').style.display = '';
+        document.getElementById('em-name-label').textContent = 'Name (optional description)';
+        document.getElementById('em-name').placeholder = 'e.g. Mountaineers';
+        document.getElementById('em-name-hint').textContent = 'If left blank, the number is used as the name.';
+        submitBtn.textContent = 'Add Unit';
+    }
+
+    submitBtn.disabled = false;
+    getEntityModal().show();
+
+    document.getElementById('entity-modal').addEventListener('shown.bs.modal', () => {
+        const first = parentId ? document.getElementById('em-name') : document.getElementById('em-number');
+        first?.focus();
+    }, { once: true });
+}
+window.addEntity = addEntity;
+
+async function submitEntityModal() {
+    const parentId = _entityModalParentId;
+    const submitBtn = document.getElementById('em-submit');
+    document.getElementById('em-error').classList.add('d-none');
+
+    let type, troopNum, name;
 
     if (parentId) {
         type = 'patrol';
-        parent = appData.entities.find(e => e.id === parentId);
-        if (!parent) return alert("Parent troop not found");
-        troopNum = parent.troop_number;
-        name = prompt(`New Patrol Name for Troop ${troopNum}:`);
+        const parent = appData.entities.find(e => e.id === parentId);
+        troopNum = parent ? parent.troop_number : '';
+        name = document.getElementById('em-name').value.trim();
+        if (!name) { showEntityError('Patrol name is required.'); return; }
     } else {
         type = 'troop';
-        troopNum = prompt("Enter Troop Number:");
-        if (!troopNum) return;
-        name = prompt("Enter Troop Name (or description):");
+        troopNum = document.getElementById('em-number').value.trim();
+        name = document.getElementById('em-name').value.trim() || troopNum;
+        if (!troopNum) { showEntityError('Unit number is required.'); return; }
     }
 
-    if (!name) return;
-
-    const payload = {
-        name: name.trim(),
-        type: type,
-        troop_number: (troopNum+'').trim(),
-        parent_id: parentId
-    };
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Adding…';
 
     try {
         const res = await fetch(window.API_BASE + '/api/entities', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: JSON.stringify({ name, type, troop_number: troopNum, parent_id: parentId || null })
         });
-
-        if (!res.ok) throw new Error('Failed to register');
+        if (!res.ok) throw new Error('Server error');
         const newEntity = await res.json();
-
-        // Update Local State
         appData.entities.push(newEntity);
-
-        renderRoster(); // Refresh Tree
-
-    } catch (err) {
-        console.error(err);
-        alert("Failed to add entity: " + err.message);
+        getEntityModal().hide();
+        renderRoster();
+    } catch {
+        showEntityError('Failed to add. Please try again.');
+        submitBtn.disabled = false;
+        submitBtn.textContent = parentId ? 'Add Patrol' : 'Add Unit';
     }
 }
-window.addEntity = addEntity; // Export
-
-// (Old handleRegistration removed)
 
 
 

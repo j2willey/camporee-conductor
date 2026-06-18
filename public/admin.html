@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="css/conductor.css">
     <link rel="stylesheet" href="css/spreadsheet.css">
     <script src="/js/qrcode.min.js"></script>
+    <script src="/js/bootstrap.bundle.min.js"></script>
     <script type="module" src="js/admin.js" defer></script>
     <script>
     fetch('/collator/api/auth/whoami').then(function(r){return r.json();}).then(function(d){
@@ -101,13 +102,49 @@
         <section id="view-registration" class="hidden">
             <div class="controls">
                 <h2 class="hidden">Entity Registration</h2>
-                <button onclick="addEntity(null)" class="btn" style="background-color:#27ae60;">+ Add Troop</button>
+                <button onclick="addEntity(null)" class="btn" style="background-color:#27ae60;">+ Add Unit</button>
             </div>
 
             <div id="roster-tree" style="display:block; border: 1px solid #ddd; border-radius: 4px; overflow: hidden; background: #fff;">
                 <!-- Tree Injected Here -->
             </div>
         </section>
+
+        <!-- Add Entity Modal -->
+        <div class="modal fade" id="entity-modal" tabindex="-1" aria-labelledby="entity-modal-title" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="entity-modal-title">Add Unit</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="em-type-row" class="mb-3">
+                            <label class="form-label fw-bold">Unit Type</label>
+                            <select id="em-type" class="form-select">
+                                <option value="troop">Troop</option>
+                                <option value="crew">Crew</option>
+                                <option value="webelos">Webelos Den</option>
+                            </select>
+                        </div>
+                        <div id="em-number-row" class="mb-3">
+                            <label id="em-number-label" class="form-label fw-bold">Troop Number</label>
+                            <input type="text" id="em-number" class="form-control" placeholder="e.g. 42" inputmode="numeric">
+                        </div>
+                        <div class="mb-1">
+                            <label id="em-name-label" class="form-label fw-bold">Name</label>
+                            <input type="text" id="em-name" class="form-control" placeholder="">
+                            <div id="em-name-hint" class="form-text text-muted"></div>
+                        </div>
+                        <div id="em-error" class="alert alert-danger mt-3 d-none" role="alert"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" id="em-submit" class="btn btn-success">Add Unit</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- View 6: Judges Directory -->
         <section id="view-judges" class="hidden">
