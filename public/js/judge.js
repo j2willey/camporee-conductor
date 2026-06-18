@@ -80,9 +80,9 @@ async function init() {
     updateOnlineStatus();
     window.addEventListener('online', async () => {
         try { await syncManager.sync(); state.syncError = false; } catch (_) {}
-        updateOnlineStatus();
+        updateOnlineStatus(true);
     });
-    window.addEventListener('offline', updateOnlineStatus);
+    window.addEventListener('offline', () => updateOnlineStatus(false));
 
     try {
         const dmRes = await fetch(window.API_BASE + '/api/demo-mode');
@@ -553,7 +553,7 @@ async function submitScore(e) {
     localStorage.setItem('camporee_drafts', JSON.stringify(drafts));
 
     try {
-        if (navigator.onLine) {
+        if (state.isOnline) {
             await syncManager.sync();
             state.syncError = false;
         }
@@ -567,7 +567,7 @@ async function submitScore(e) {
         updateSyncCounts();
         renderEntityList();
 
-        if (!navigator.onLine || err.message?.includes('fetch')) {
+        if (!state.isOnline || err.message?.includes('fetch')) {
             showLastSubmit(state.currentEntity?.name || 'Score', false);
         } else {
             alert("⚠️ Score Saved Locally\n\nHowever, it failed to sync to the server:\n" + err.message);
@@ -1523,7 +1523,7 @@ async function bracketSaveHeat() {
         saveBracketState();
         updateSyncCounts();
 
-        if (navigator.onLine) {
+        if (state.isOnline) {
             await syncManager.sync();
         }
 
@@ -1538,7 +1538,7 @@ async function bracketSaveHeat() {
         navigate('bracketRound');
 
         // If it's a network error, don't treat it as a "scary" failure
-        if (!navigator.onLine || err.message.includes('fetch')) {
+        if (!state.isOnline || err.message.includes('fetch')) {
             alert(`${label} Saved Locally. (Sync Pending)`);
         } else {
             alert(`⚠️ ${label} Saved Locally\n\nHowever, it failed to sync to the server:\n` + err.message);
@@ -1944,7 +1944,7 @@ async function bracketSubmitPodium() {
     });
 
     try {
-        if (navigator.onLine) {
+        if (state.isOnline) {
             await syncManager.sync();
         }
         togglePodiumModal(false);
@@ -1954,7 +1954,7 @@ async function bracketSubmitPodium() {
         console.error("Podium Sync Failed:", err);
         togglePodiumModal(false);
 
-        if (!navigator.onLine || err.message.includes('fetch')) {
+        if (!state.isOnline || err.message.includes('fetch')) {
             alert("🏆 Results Finalized & Saved Locally! (Sync Pending)");
         } else {
             alert("⚠️ Results Saved Locally\n\nHowever, it failed to sync to the server:\n" + err.message);
@@ -2064,7 +2064,7 @@ async function submitAllPhase2() {
     localStorage.setItem('camporee_drafts', JSON.stringify(drafts));
 
     try {
-        if (navigator.onLine) await syncManager.sync();
+        if (state.isOnline) await syncManager.sync();
         updateSyncCounts();
         alert(`${Object.keys(phase2Values).length} patrol scores submitted!`);
         renderEntityList();
@@ -2208,8 +2208,8 @@ function showLastSubmit(entityName, synced) {
     timeEl.textContent = synced ? timeStr : 'queued · ' + timeStr;
 }
 
-function updateOnlineStatus() {
-    state.isOnline = navigator.onLine;
+function updateOnlineStatus(overrideOnline) {
+    state.isOnline = overrideOnline !== undefined ? overrideOnline : navigator.onLine;
     const c = syncManager.getCounts().unsynced;
     if (els.unsyncedCount) els.unsyncedCount.textContent = c;
 

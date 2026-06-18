@@ -188,6 +188,37 @@
             box-shadow: 0 8px 32px rgba(0,0,0,0.3);
         }
 
+        /* ── Airplane mode toggle ── */
+        .airplane-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 20px;
+            padding: 5px 14px 5px 10px;
+            cursor: pointer;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: rgba(255,255,255,0.6);
+            transition: all 0.2s;
+            user-select: none;
+        }
+        .airplane-toggle:hover { background: rgba(255,255,255,0.12); }
+        .airplane-toggle.active {
+            background: rgba(184,134,11,0.25);
+            border-color: rgba(184,134,11,0.5);
+            color: #f0c040;
+        }
+        .airplane-toggle .dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.25);
+            flex-shrink: 0;
+            transition: background 0.2s;
+        }
+        .airplane-toggle.active .dot { background: #f0c040; }
+
         /* ── NARROW: phone fills the tab, officials hidden ── */
         @media (max-width: 900px) {
             .officials-panel { display: none; }
@@ -212,9 +243,13 @@
             <div class="phone-bezel">
                 <div class="phone-notch"></div>
                 <div class="phone-screen">
-                    <iframe src="./judge.html" title="Judge App"></iframe>
+                    <iframe id="judge-iframe" src="./judge.html" title="Judge App"></iframe>
                 </div>
             </div>
+            <button id="airplane-toggle" class="airplane-toggle" onclick="toggleAirplaneMode()" title="Simulate offline — scores queue locally and sync when toggled back on">
+                <span class="dot"></span>
+                ✈ Airplane Mode
+            </button>
         </div>
 
         <!-- Right: officials leaderboard — auto-refresh enabled via URL param -->
@@ -231,5 +266,16 @@
         </div>
     </div>
     <script src="js/demo-hints.js"></script>
+    <script>
+        let _airplaneActive = false;
+        function toggleAirplaneMode() {
+            const btn = document.getElementById('airplane-toggle');
+            const iframe = document.getElementById('judge-iframe');
+            _airplaneActive = !_airplaneActive;
+            btn.classList.toggle('active', _airplaneActive);
+            const eventName = _airplaneActive ? 'offline' : 'online';
+            iframe.contentWindow.dispatchEvent(new Event(eventName));
+        }
+    </script>
 </body>
 </html>

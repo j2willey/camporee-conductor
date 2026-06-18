@@ -1,4 +1,4 @@
-const CACHE_NAME = 'camporee-conductor-v21';
+const CACHE_NAME = 'camporee-conductor-v22';
 const FILES_TO_CACHE = [
   './admin.html',
   './judge.html',
