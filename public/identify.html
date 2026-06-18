@@ -68,7 +68,7 @@
         var btn = document.getElementById('submit-btn');
         var msg = document.getElementById('status-msg');
 
-        var body = { email: email };
+        var body = { email: email, user_agent: navigator.userAgent };
         if (isDemo) {
             var pwEl = document.getElementById('password-input');
             body.password = pwEl ? pwEl.value : '';

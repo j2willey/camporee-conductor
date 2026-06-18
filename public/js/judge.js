@@ -16,6 +16,7 @@ const state = {
     currentStation: null,
     currentEntity: null,
     isOnline: navigator.onLine,
+    syncError: false,
     viewMode: 'patrol', // 'patrol' or 'troop' — from hardcoded mode tabs in injectModeTabs()
     drafts: {},
     // Bracket State
@@ -77,7 +78,10 @@ async function init() {
     }
 
     updateOnlineStatus();
-    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('online', async () => {
+        try { await syncManager.sync(); state.syncError = false; } catch (_) {}
+        updateOnlineStatus();
+    });
     window.addEventListener('offline', updateOnlineStatus);
 
     try {
@@ -146,12 +150,7 @@ function navigate(viewName) {
 
     if (isHome) {
         document.getElementById('header-title').textContent = state.camporeeTitle || localStorage.getItem('camporee_title') || 'Camporee Collator';
-        const syncLine = document.getElementById('header-sync-line');
-        if (syncLine) syncLine.style.display = 'block';
         document.body.style.paddingBottom = '0';
-    } else {
-        const syncLine = document.getElementById('header-sync-line');
-        if (syncLine) syncLine.style.display = 'none';
     }
     window.scrollTo(0, 0);
 }
@@ -543,7 +542,8 @@ async function submitScore(e) {
         timestamp: Date.now(),
         judge_name: els.judgeName.value,
         judge_email: els.judgeEmail.value,
-        judge_unit: els.judgeUnit.value
+        judge_unit: els.judgeUnit.value,
+        judge_device: navigator.userAgent
     };
     if (packet.judge_email) localStorage.setItem('judge_info', JSON.stringify({ name: packet.judge_name, email: packet.judge_email, unit: packet.judge_unit }));
     syncManager.addToQueue(packet);
@@ -555,6 +555,7 @@ async function submitScore(e) {
     try {
         if (navigator.onLine) {
             await syncManager.sync();
+            state.syncError = false;
         }
         updateSyncCounts();
         renderEntityList();
@@ -562,6 +563,7 @@ async function submitScore(e) {
         navigate('entity');
     } catch (err) {
         console.error("Sync Error:", err);
+        state.syncError = true;
         updateSyncCounts();
         renderEntityList();
 
@@ -2114,8 +2116,11 @@ async function closeGame() {
     if (unsyncedForGame.length > 0) {
         try {
             await syncManager.sync();
+            state.syncError = false;
             updateUnsyncedCount();
         } catch (err) {
+            state.syncError = true;
+            updateOnlineStatus();
             alert('Could not sync scores. Please check your connection and try again.');
             return;
         }
@@ -2193,8 +2198,21 @@ function updateOnlineStatus() {
     state.isOnline = navigator.onLine;
     const c = syncManager.getCounts().unsynced;
     if (els.unsyncedCount) els.unsyncedCount.textContent = c;
-    if (c > 0 && state.isOnline) { els.status.textContent = 'Sync'; els.status.className = 'status-sync ms-2'; }
-    else { els.status.textContent = state.isOnline ? 'Online' : 'Offline'; els.status.className = (state.isOnline ? 'status-online' : 'status-offline') + ' ms-2'; }
+
+    let text, cls;
+    if (state.syncError) {
+        text = '! Sync Error'; cls = 'status-offline';      // red — action required
+    } else if (!state.isOnline && c > 0) {
+        text = `Offline · ${c}`; cls = 'status-sync';       // amber — expected
+    } else if (!state.isOnline) {
+        text = 'Offline'; cls = 'status-sync';               // amber — expected
+    } else if (c > 0) {
+        text = `${c} Queued`; cls = 'status-sync';          // amber — expected
+    } else {
+        text = '✓ Synced'; cls = 'status-online';            // green — all good
+    }
+    els.status.textContent = text;
+    els.status.className = `status-indicator ${cls} ms-2`;
 }
 
 async function refreshData() {
@@ -2312,7 +2330,12 @@ async function promptNewEntity(type) {
 
 function showEntitySelect() { navigate('entity'); }
 function updateSyncCounts() { updateOnlineStatus(); }
-async function handleSync() { if (state.isOnline) await syncManager.sync(); updateSyncCounts(); }
+async function handleSync() {
+    if (state.isOnline) {
+        try { await syncManager.sync(); state.syncError = false; } catch (_) {}
+    }
+    updateSyncCounts();
+}
 
 
 if (!window.startStopwatch) {

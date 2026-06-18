@@ -164,6 +164,9 @@ db.exec(`
   );
 `);
 
+// Add device column to judges if it doesn't exist (non-destructive migration)
+try { db.exec('ALTER TABLE judges ADD COLUMN device TEXT'); } catch (_) {}
+
 // Cloud-mode event permissions table
 if (COLLATOR_MODE === 'cloud') {
     db.exec(`
@@ -715,6 +718,7 @@ app.post('/api/auth/identify', express.json(), (req, res) => {
     }
 
     const email = ((req.body && req.body.email) || '').toLowerCase().trim();
+    const userAgent = (req.body && req.body.user_agent) || 'unknown';
     if (!email) return res.status(400).json({ error: 'Email required' });
 
     if (DEMO_MODE) {
@@ -722,7 +726,7 @@ app.post('/api/auth/identify', express.json(), (req, res) => {
         if (password !== 'camporee') {
             return res.status(403).json({ error: 'Incorrect password' });
         }
-        const logEntry = JSON.stringify({ email, ip: req.ip, timestamp: new Date().toISOString() }) + '\n';
+        const logEntry = JSON.stringify({ email, ip: req.ip, user_agent: userAgent, timestamp: new Date().toISOString() }) + '\n';
         fs.appendFileSync(path.join(DATA_DIR, 'demo-access.log'), logEntry);
         req.session.role = 'official';
         req.session.display_name = null;
@@ -751,6 +755,7 @@ app.post('/api/auth/identify', express.json(), (req, res) => {
     req.session.role = match.role === 'director' ? 'director' : 'official';
     req.session.display_name = match.display_name || null;
     req.session.email = email;
+    console.log(`[identify] ${email} | ${req.ip} | ${userAgent}`);
     res.json({ display_name: match.display_name || null, role: req.session.role });
 });
 
@@ -821,7 +826,7 @@ app.put('/api/entities/:id', requireOfficial, (req, res) => {
 app.post('/api/score', (req, res) => {
     let {
         uuid, game_id, entity_id, score_payload,
-        timestamp, judge_name, judge_email, judge_unit
+        timestamp, judge_name, judge_email, judge_unit, judge_device
     } = req.body;
 
     if (!uuid || !game_id || !entity_id || !score_payload) {
@@ -833,22 +838,23 @@ app.post('/api/score', (req, res) => {
             // 1. Handle Judge Information
             let judgeId = null;
             if (judge_email) {
-                const getJudge = db.prepare('SELECT id, name, unit FROM judges WHERE email = ?');
+                const getJudge = db.prepare('SELECT id, name, unit, device FROM judges WHERE email = ?');
                 const existingJudge = getJudge.get(judge_email);
 
                 if (existingJudge) {
                     judgeId = existingJudge.id;
-                    // Update Judge info if it changed
                     if ((judge_name && existingJudge.name !== judge_name) ||
-                        (judge_unit && existingJudge.unit !== judge_unit)) {
-                        db.prepare('UPDATE judges SET name = ?, unit = ? WHERE id = ?')
+                        (judge_unit && existingJudge.unit !== judge_unit) ||
+                        (judge_device && existingJudge.device !== judge_device)) {
+                        db.prepare('UPDATE judges SET name = ?, unit = ?, device = ? WHERE id = ?')
                             .run(judge_name || existingJudge.name,
                                 judge_unit || existingJudge.unit,
+                                judge_device || existingJudge.device,
                                 judgeId);
                     }
                 } else if (judge_name) {
-                    const insertJudge = db.prepare('INSERT INTO judges (name, email, unit) VALUES (?, ?, ?)');
-                    const info = insertJudge.run(judge_name, judge_email, judge_unit || null);
+                    const insertJudge = db.prepare('INSERT INTO judges (name, email, unit, device) VALUES (?, ?, ?, ?)');
+                    const info = insertJudge.run(judge_name, judge_email, judge_unit || null, judge_device || null);
                     judgeId = info.lastInsertRowid;
                 }
             }
