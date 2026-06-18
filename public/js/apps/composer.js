@@ -2029,9 +2029,9 @@ const composer = {
         if (container) {
             container.innerHTML = `
                 <div class="card">
-                    <div class="card-header bg-light"><h5 class="mb-0">Preset Library</h5></div>
+                    <div class="card-header bg-light"><h5 class="mb-0">Common Fields</h5></div>
                     <div class="card-body bg-light">
-                        <div id="preset-editor-list" class="d-flex flex-column gap-3"></div>
+                        <div id="preset-editor-list" class="d-flex flex-column gap-1"></div>
                         <div class="mt-4 text-center">
                             <button class="btn btn-primary" onclick="composer.addGenericField('global', 'preset_manager')">
                                 <i class="fas fa-plus-circle"></i> Add Field
@@ -2048,138 +2048,188 @@ const composer = {
         const container = document.getElementById(containerId);
         if (!container) return;
 
-        // Determine if submission mode is active for this game
         const game = contextType === "game" ? this.data.games.find(g => g.id === contextId) : null;
         const isSubmissionMode = game?.scoring_mode === 'submission';
 
         container.innerHTML = "";
 
-        if (components && components.length !== 0) {
-            components.forEach((comp, index) => {
-                let borderClass = "border-success";
-                if (comp.audience === "admin") borderClass = "border-info";
-                else if (comp.kind === "penalty") borderClass = "border-danger";
-                else if (comp.kind === "info") borderClass = "border-secondary";
-
-                const card = document.createElement("div");
-                card.className = `card border-start border-4 shadow-sm ${borderClass}`;
-                card.draggable = true;
-                card.dataset.index = index;
-
-                const isSelect = comp.type === "select";
-
-                card.innerHTML = `
-                    <div class="card-body p-3 d-flex align-items-start">
-                    <div class="me-3 mt-4 text-muted" style="cursor: grab;"><i class="fas fa-grip-vertical fa-lg"></i></div>
-                    <div class="flex-grow-1 me-4">
-                      <label class="form-label small text-muted fw-bold mb-1">Label</label>
-                      <input type="text" class="form-control form-control-sm fw-bold mb-2" 
-                             value="${comp.label || ""}" 
-                             oninput="composer.updateComponent('${contextId}', ${index}, 'label', this.value, '${contextType}')">
-                      <label class="form-label small text-muted fw-bold mb-1">Description</label>
-                      <input type="text" class="form-control form-control-sm text-muted" 
-                             value="${comp.config?.placeholder || ""}" 
-                             oninput="composer.updateConfig('${contextId}', ${index}, 'placeholder', this.value, '${contextType}')">
-                    </div>
-                    <div class="d-flex flex-column gap-2 me-4" style="width: 340px;">
-                      <div class="row g-2">
-                        <div class="col-6">
-                            <label class="form-label small text-muted fw-bold mb-1">Type</label>
-                            <select class="form-select form-select-sm" 
-                                    onchange="composer.updateComponent('${contextId}', ${index}, 'type', this.value, '${contextType}')">
-                                ${["number", "stopwatch", "text", "textarea", "checkbox", "select"]
-                        .map(t => `<option value="${t}" ${comp.type === t ? "selected" : ""}>${t}</option>`)
-                        .join("")}
-                            </select>
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label small text-muted fw-bold mb-1">Kind</label>
-                            <select class="form-select form-select-sm" 
-                                    onchange="composer.handleKindChange('${contextId}', ${index}, this.value, '${contextType}')">
-                                ${["points", "penalty", "metric", "info"]
-                        .map(k => `<option value="${k}" ${comp.kind === k ? "selected" : ""}>${k}</option>`)
-                        .join("")}
-                            </select>
-                        </div>
-                      </div>
-                      <div>
-                          <label class="form-label small text-muted fw-bold mb-1">
-                            ${isSelect ? "Options (Comma Separated)" : "Limits & Weight"}
-                          </label>
-                          ${isSelect ?
-                        `<input type="text" class="form-control form-control-sm" 
-                                      placeholder="Option A, Option B..." 
-                                      value="${(comp.config?.options || []).join(", ")}" 
-                                      onchange="composer.updateConfig('${contextId}', ${index}, 'options', this.value.split(',').map(s=>s.trim()), '${contextType}')">`
-                        :
-                        `<div class="input-group input-group-sm">
-                                <span class="input-group-text text-muted">Min</span>
-                                <input type="number" class="form-control" 
-                                       value="${comp.config?.min || ""}" 
-                                       onchange="composer.updateConfig('${contextId}', ${index}, 'min', this.value, '${contextType}')">
-                                <span class="input-group-text text-muted">Max</span>
-                                <input type="number" class="form-control" 
-                                       value="${comp.config?.max || ""}" 
-                                       onchange="composer.updateConfig('${contextId}', ${index}, 'max', this.value, '${contextType}')">
-                                <span class="input-group-text fw-bold" title="Weight: multiplied against this field's score. Default 1. Use 2 to double its contribution, 0 to record without scoring.">Wgt</span>
-                                <input type="number" class="form-control fw-bold" 
-                                       value="${comp.weight !== undefined ? comp.weight : 0}" 
-                                       onchange="composer.updateComponent('${contextId}', ${index}, 'weight', parseFloat(this.value), '${contextType}')">
-                              </div>`}
-                      </div>
-                    </div>
-                    <div class="d-flex flex-column align-items-end gap-3 mt-4" style="min-width: 110px;">
-                      <div class="form-check form-switch text-end">
-                        <input class="form-check-input float-end ms-2" type="checkbox"
-                               id="visSwitch${index}"
-                               ${comp.audience === "admin" ? "checked" : ""}
-                               onchange="composer.updateComponent('${contextId}', ${index}, 'audience', this.checked ? 'admin' : 'judge', '${contextType}')">
-                        <label class="form-check-label small fw-bold text-muted d-block me-4" style="white-space:nowrap;" title="Field is visible to Officials reviewing scores, but hidden from judges on their phones.">Official Only</label>
-                      </div>
-                      ${isSubmissionMode ? `
-                      <div class="text-end">
-                        <label class="small fw-bold text-muted d-block">Phase</label>
-                        <select class="form-select form-select-sm" style="width:90px;"
-                                onchange="composer.updateComponent('${contextId}', ${index}, 'phase', parseInt(this.value), '${contextType}')">
-                          <option value="1" ${(comp.phase || 1) === 1 ? 'selected' : ''}>1 – Per Patrol</option>
-                          <option value="2" ${comp.phase === 2 ? 'selected' : ''}>2 – Comparative</option>
-                        </select>
-                      </div>` : ''}
-                      <div class="btn-group btn-group-sm">
-                        <button class="btn btn-outline-secondary" onclick="composer.duplicateComponent('${contextId}', ${index}, '${contextType}')">
-                            <i class="fas fa-copy"></i>
-                        </button>
-                        <button class="btn btn-outline-danger" onclick="composer.deleteComponent('${contextId}', ${index}, '${contextType}')">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                      </div>
-                    </div>
-                  </div>`;
-
-                // Drag Events for Components
-                card.addEventListener("dragstart", (e) => {
-                    this.dragSrcGameId = index; // Reuse this prop for component index
-                    e.dataTransfer.effectAllowed = "move";
-                    card.classList.add("opacity-50");
-                });
-                card.addEventListener("dragend", (e) => {
-                    card.classList.remove("opacity-50");
-                    this.dragSrcGameId = null;
-                });
-                card.addEventListener("dragover", (e) => {
-                    e.preventDefault();
-                });
-                card.addEventListener("drop", (e) => {
-                    e.preventDefault();
-                    if (this.dragSrcGameId !== null) {
-                        this.moveComponent(contextId, this.dragSrcGameId, index, contextType);
-                    }
-                });
-
-                container.appendChild(card);
-            });
-        } else {
+        if (!components || components.length === 0) {
             container.innerHTML = '<div class="alert alert-white text-center border">No fields defined. Add one below.</div>';
+            return;
+        }
+
+        components.forEach((comp, index) => {
+            let borderClass = "border-success";
+            if (comp.audience === "admin") borderClass = "border-info";
+            else if (comp.kind === "penalty") borderClass = "border-danger";
+            else if (comp.kind === "info" || comp.kind === "metric") borderClass = "border-secondary";
+
+            const kindBadgeClass = comp.kind === 'penalty' ? 'bg-danger' :
+                                   comp.kind === 'info'    ? 'bg-secondary' :
+                                   comp.kind === 'metric'  ? 'bg-primary' : 'bg-success';
+            const isSelect = comp.type === "select";
+            const isAdmin  = comp.audience === "admin";
+
+            // ── Outer wrapper (draggable) ──────────────────────────────────
+            const wrapper = document.createElement("div");
+            wrapper.className = `field-row mb-1 border-start border-3 ${borderClass}`;
+            wrapper.draggable = true;
+            wrapper.dataset.index = index;
+
+            // ── Condensed header ───────────────────────────────────────────
+            const header = document.createElement("div");
+            header.className = "field-row-header d-flex align-items-center gap-2 px-2 py-2 bg-white";
+            header.style.cursor = "pointer";
+            header.innerHTML = `
+                <span class="drag-handle text-muted" style="cursor:grab;" title="Drag to reorder"><i class="fas fa-grip-vertical"></i></span>
+                <span class="field-label-text flex-grow-1 fw-semibold small text-truncate">${comp.label || '(unnamed)'}</span>
+                <span class="badge bg-light text-dark border" style="font-size:0.65rem;">${comp.type}</span>
+                <span class="badge ${kindBadgeClass}" style="font-size:0.65rem;">${comp.kind || 'points'}</span>
+                <span class="badge bg-warning text-dark" style="font-size:0.6rem;${isAdmin ? '' : 'display:none;'}">Official</span>
+                <i class="fas fa-chevron-right field-chevron text-muted ms-1" style="font-size:0.7rem;transition:transform 0.2s;flex-shrink:0;"></i>`;
+
+            // ── Expanded body (hidden by default) ──────────────────────────
+            const body = document.createElement("div");
+            body.className = "field-row-body border-top px-3 py-2 bg-light";
+            body.style.display = "none";
+            body.draggable = false;
+            body.innerHTML = `
+                <div class="row g-2 mt-1">
+                    <div class="col-md-5">
+                        <label class="form-label small text-muted fw-bold mb-1">Label</label>
+                        <input type="text" class="form-control form-control-sm fw-bold"
+                               value="${(comp.label || '').replace(/"/g, '&quot;')}"
+                               oninput="composer.updateComponent('${contextId}', ${index}, 'label', this.value, '${contextType}')">
+                    </div>
+                    <div class="col-md-7">
+                        <label class="form-label small text-muted fw-bold mb-1">Description / Placeholder</label>
+                        <input type="text" class="form-control form-control-sm text-muted"
+                               value="${(comp.config?.placeholder || '').replace(/"/g, '&quot;')}"
+                               oninput="composer.updateConfig('${contextId}', ${index}, 'placeholder', this.value, '${contextType}')">
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label small text-muted fw-bold mb-1">Type</label>
+                        <select class="form-select form-select-sm"
+                                onchange="composer.updateComponent('${contextId}', ${index}, 'type', this.value, '${contextType}')">
+                            ${["number","stopwatch","text","textarea","checkbox","select"]
+                                .map(t => `<option value="${t}"${comp.type===t?" selected":""}>${t}</option>`).join("")}
+                        </select>
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label small text-muted fw-bold mb-1">Kind</label>
+                        <select class="form-select form-select-sm"
+                                onchange="composer.handleKindChange('${contextId}', ${index}, this.value, '${contextType}')">
+                            ${["points","penalty","metric","info"]
+                                .map(k => `<option value="${k}"${comp.kind===k?" selected":""}>${k}</option>`).join("")}
+                        </select>
+                    </div>
+                    <div class="col-4">
+                        ${isSelect
+                            ? `<label class="form-label small text-muted fw-bold mb-1">Options (comma-separated)</label>
+                               <input type="text" class="form-control form-control-sm" placeholder="A, B, C…"
+                                      value="${(comp.config?.options || []).join(', ')}"
+                                      onchange="composer.updateConfig('${contextId}', ${index}, 'options', this.value.split(',').map(s=>s.trim()), '${contextType}')">`
+                            : `<label class="form-label small text-muted fw-bold mb-1">Min / Max / Wgt</label>
+                               <div class="input-group input-group-sm">
+                                   <input type="number" class="form-control" placeholder="Min"
+                                          value="${comp.config?.min ?? ''}"
+                                          onchange="composer.updateConfig('${contextId}', ${index}, 'min', this.value, '${contextType}')">
+                                   <input type="number" class="form-control" placeholder="Max"
+                                          value="${comp.config?.max ?? ''}"
+                                          onchange="composer.updateConfig('${contextId}', ${index}, 'max', this.value, '${contextType}')">
+                                   <input type="number" class="form-control fw-bold" placeholder="Wgt"
+                                          title="Weight: multiplied against this field's score. Default 1. Use 2 to double its contribution, 0 to record without scoring."
+                                          value="${comp.weight !== undefined ? comp.weight : 0}"
+                                          onchange="composer.updateComponent('${contextId}', ${index}, 'weight', parseFloat(this.value), '${contextType}')">
+                               </div>`}
+                    </div>
+                    <div class="col-12 d-flex align-items-center justify-content-between mt-1 pt-1 border-top">
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox"
+                                   id="visSwitch_${contextId}_${index}"
+                                   ${isAdmin ? "checked" : ""}
+                                   onchange="composer.updateComponent('${contextId}', ${index}, 'audience', this.checked?'admin':'judge', '${contextType}')">
+                            <label class="form-check-label small fw-bold text-muted" for="visSwitch_${contextId}_${index}"
+                                   title="Field visible to Officials reviewing scores, hidden from judges on their phones.">Official Only</label>
+                        </div>
+                        ${isSubmissionMode ? `
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="small fw-bold text-muted mb-0">Phase</label>
+                            <select class="form-select form-select-sm" style="width:145px;"
+                                    onchange="composer.updateComponent('${contextId}', ${index}, 'phase', parseInt(this.value), '${contextType}')">
+                                <option value="1" ${(comp.phase||1)===1?'selected':''}>1 – Per Patrol</option>
+                                <option value="2" ${comp.phase===2?'selected':''}>2 – Comparative</option>
+                            </select>
+                        </div>` : ''}
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-secondary" title="Duplicate"
+                                    onclick="composer.duplicateComponent('${contextId}', ${index}, '${contextType}')">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                            <button class="btn btn-outline-danger" title="Delete"
+                                    onclick="composer.deleteComponent('${contextId}', ${index}, '${contextType}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>`;
+
+            // ── Toggle expand on header click ──────────────────────────────
+            header.addEventListener("click", (e) => {
+                if (e.target.closest(".drag-handle")) return;
+                const isExpanded = body.style.display !== "none";
+                container.querySelectorAll(".field-row-body").forEach(b => { b.style.display = "none"; });
+                container.querySelectorAll(".field-chevron").forEach(ch => { ch.style.transform = ""; });
+                if (!isExpanded) {
+                    body.style.display = "";
+                    header.querySelector(".field-chevron").style.transform = "rotate(90deg)";
+                    setTimeout(() => body.querySelector('input[type="text"]')?.focus(), 50);
+                }
+            });
+
+            // ── Drag events ────────────────────────────────────────────────
+            wrapper.addEventListener("dragstart", (e) => {
+                if (e.target.closest(".field-row-body")) { e.preventDefault(); return; }
+                this.dragSrcGameId = index;
+                e.dataTransfer.effectAllowed = "move";
+                wrapper.classList.add("opacity-50");
+            });
+            wrapper.addEventListener("dragend", () => {
+                wrapper.classList.remove("opacity-50");
+                this.dragSrcGameId = null;
+                container.querySelectorAll(".field-drag-over").forEach(el => {
+                    el.style.borderTop = "";
+                    el.classList.remove("field-drag-over");
+                });
+            });
+            wrapper.addEventListener("dragover", (e) => {
+                e.preventDefault();
+                if (this.dragSrcGameId === null) return;
+                container.querySelectorAll(".field-drag-over").forEach(el => {
+                    el.style.borderTop = "";
+                    el.classList.remove("field-drag-over");
+                });
+                if (this.dragSrcGameId !== index) {
+                    wrapper.classList.add("field-drag-over");
+                    wrapper.style.borderTop = "2px solid #0d6efd";
+                }
+            });
+            wrapper.addEventListener("drop", (e) => {
+                e.preventDefault();
+                if (this.dragSrcGameId !== null)
+                    this.moveComponent(contextId, this.dragSrcGameId, index, contextType);
+            });
+
+            wrapper.appendChild(header);
+            wrapper.appendChild(body);
+            container.appendChild(wrapper);
+        });
+
+        // Auto-expand a specific row after render (used by addGenericField)
+        if (this._expandAfterRender !== undefined) {
+            const headers = container.querySelectorAll(".field-row-header");
+            headers[this._expandAfterRender]?.click();
+            delete this._expandAfterRender;
         }
     },
 
@@ -2205,6 +2255,7 @@ const composer = {
         });
 
         this._markDirty();
+        this._expandAfterRender = list.length - 1;
         this.renderScoringInputs(list, contextId, contextType);
     },
 
@@ -2226,8 +2277,12 @@ const composer = {
         }
 
         this._markDirty();
-        if (field === "type") {
+        if (field === "type" || field === "audience") {
             this.renderScoringInputs(list, contextId, contextType);
+        } else if (field === "label") {
+            const cId = contextType === "preset_manager" ? "preset-editor-list" : "scoring-editor";
+            const display = document.getElementById(cId)?.querySelectorAll('.field-row')[index]?.querySelector('.field-label-text');
+            if (display) display.textContent = value || '(unnamed)';
         }
     },
 
