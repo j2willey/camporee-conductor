@@ -145,6 +145,10 @@ npm test                  # all three
 - **`landing.css` depends on `conductor.css` for all color variables** — `landing.html` loads `conductor.css` first, then `landing.css`. The `landing.css` file contains no `:root` color definitions; it references `--green-dark`, `--gold`, etc. from `conductor.css`. If you remove the `conductor.css` link from `landing.html`, all colors will break. This is intentional: `conductor.css` is the single source of truth for the brand palette.
 - **`POST /composer/api/early-access` is public (no auth)** — the early-access endpoint in `composer.js` has no `requireAuth` middleware. `clerkMiddleware()` runs but does not reject unauthenticated requests — only `requireAuth` does that. Submissions go to `data/early-access/submissions.json` (gitignored under `data/`).
 - **`SESSION_SECRET` has an insecure hardcoded default** — `collator.js` falls back to `'collator-offline-secret'` if `SESSION_SECRET` is unset. Always set a real secret via env var in any internet-facing deployment.
+- **`state.isOnline` owns all sync decisions in judge.js** — never check `navigator.onLine` directly in submit/sync paths. `updateOnlineStatus(overrideOnline?)` accepts an optional boolean so synthetic events (Airplane Mode demo toggle, `dispatchEvent(new Event('offline'))`) control the value. Event listeners pass forced booleans: `'online'` → `updateOnlineStatus(true)`, `'offline'` → `updateOnlineStatus(false)`.
+- **`scoring_mode: 'contest'`** — the third scoring mode (formerly `'submission'`, renamed 2026-06-18). Values are `'sequential'` (default), `'bracket'`, `'contest'`. No saved game files currently use this field; it's set at runtime by the Composer toggle and read by judge.js.
+- **VPS production Collator runs `COLLATOR_MODE=offline`** (as of 2026-06-18) — `event_permissions` table does not exist in its `camporee.db`. Do not attempt to seed officials via that table. Officials are recognized by email match against `camporee.json officials[]`. Cartridge deploy: `docker cp` zip into container → `node -e` with AdmZip extract to `/app/data/collator/active-event/`; no restart required.
+- **`seed-demo.js` judges INSERT uses explicit columns** — `INSERT INTO judges (id, name, email, unit) SELECT ...` — required because the live DB has a `device TEXT` column (added via `ALTER TABLE` at startup) that doesn't exist in the snapshot. `SELECT *` would mismatch column counts.
 - **Docker-owned data files require `chown` before local dev writes** — When Docker containers write to `~/camporee-data/` volume mounts, files become `root`-owned. Before running `npm run dev:all` or the migration script, run: `sudo chown -R jwilley:jwilley ~/camporee-data/`. Symptom: `SQLITE_READONLY` error on startup or `EACCES` on file write.
 - **Workspace IDs are always UUIDs** — `POST /api/camporee/:id`, `GET /api/camporee/:id`, and `GET /api/camporee/:id/meta` all validate `:id` against the UUID regex `^[0-9a-f]{8}-...-[0-9a-f]{12}$`. Non-UUID IDs (old `camp0001` style) return 400. The Composer generates the UUID client-side with `generateUUID()`; the user provides a human-friendly `meta.title`, not the workspace ID.
 - **`TEST_MODE` in the Collator bypasses all official auth** — `NODE_ENV=test` sets `TEST_MODE=true` in `collator.js`, which bypasses `requireOfficial`, the page-redirect middleware for `/admin.html`/`/utils.html`, and returns `authenticated: true` from `GET /api/auth/whoami`. Never rely on this bypass in production; it exists solely for E2E tests on ports 4000/4001.
@@ -284,7 +288,7 @@ GL.iNet Opal custom DNS: add `address=/camporeeconductor.com/192.168.8.XXX` so j
 
 ---
 
-## Known Backlog (as of 2026-06-06)
+## Known Backlog (as of 2026-06-18)
 
 See `BACKLOG.md` for the full living backlog. Key open items:
 
@@ -292,6 +296,10 @@ See `BACKLOG.md` for the full living backlog. Key open items:
 - ✅ Clerk Production — configured, Google OAuth working
 - ✅ SESSION_SECRET — real value set on VPS
 - **Full browser smoke test** — Google sign-in → create camporee → invite collaborator → verify DB row (last remaining pre-VPS check)
+
+### Composer — Scoring Tab
+- **Common Fields modal ordering** — drag-reorder for prefix/suffix injection rules inside `openCommonFieldsModal()`; accordion UX on field rows is done (2026-06-18); the modal ordering is still unbuilt
+- **3-dot menu for entity merge** — merge (⇒) button is visible in Registration view; user wants it hidden under a 3-dot menu since merge is rare; rename (✏️) stays visible
 
 ### Curator / Community Library
 - **Director self-submission** — `POST /curator/api/templates` is sysadmin-only; open to directors
