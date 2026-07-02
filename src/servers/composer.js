@@ -7,6 +7,7 @@ import fs from 'fs';
 import { randomUUID } from 'crypto';
 import dotenv from 'dotenv';
 import multer from 'multer';
+import AdmZip from 'adm-zip';
 import { clerkMiddleware, getAuth, createClerkClient } from '@clerk/express';
 import { openConductorDb, runMigrations } from '../db/migrate.js';
 import * as CuratorService from '../lib/curator-service.js';
@@ -167,6 +168,24 @@ app.set('views', path.join(__dirname, 'views'));
 if (!fs.existsSync(WORKSPACE_PATH)) {
     console.log(`Creating workspaces root at: ${WORKSPACE_PATH}`);
     fs.mkdirSync(WORKSPACE_PATH, { recursive: true });
+}
+
+// Auto-seed demo workspace on startup so the container is self-sufficient
+if (COMPOSER_DEMO_MODE) {
+    const demoDir = path.join(WORKSPACE_PATH, DEMO_WORKSPACE_UUID);
+    const demoMeta = path.join(demoDir, 'camporee.json');
+    const cartridgePath = process.env.DEMO_CARTRIDGE_PATH;
+    if (!fs.existsSync(demoMeta) && cartridgePath && fs.existsSync(cartridgePath)) {
+        console.log(`[demo] Seeding demo workspace ${DEMO_WORKSPACE_UUID} from ${cartridgePath}`);
+        fs.mkdirSync(demoDir, { recursive: true });
+        new AdmZip(cartridgePath).extractAllTo(demoDir, true);
+        const gameCount = fs.existsSync(path.join(demoDir, 'games'))
+            ? fs.readdirSync(path.join(demoDir, 'games')).filter(f => f.endsWith('.json')).length
+            : 0;
+        console.log(`[demo] Demo workspace seeded: ${gameCount} games`);
+    } else if (!fs.existsSync(demoMeta)) {
+        console.warn(`[demo] Demo workspace missing and no cartridge to seed from (DEMO_CARTRIDGE_PATH=${cartridgePath})`);
+    }
 }
 
 // --- FRONTEND ROUTES ---
