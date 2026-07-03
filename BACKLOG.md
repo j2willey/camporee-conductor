@@ -84,6 +84,8 @@ See `SITE_DEMO_DESIGN.md` for full design. Two-phase rollout: Phase 1 (Clerk aut
 - ✅ **Last-submit status bar in judge app** — replaces blocking `alert('Score Saved!')` with a persistent fixed bottom bar; green = synced, amber = queued; server-error alert preserved for exceptional failures; SW v21 (2026-06-18)
 - ✅ **Offline/Online toggle in Judge Emulator** — ✈ Airplane Mode button in `demo-phone.html` dispatches synthetic `offline`/`online` events to judge iframe; all `navigator.onLine` checks in judge.js replaced with `state.isOnline` so synthetic events control sync behavior; SW v22 (2026-06-18)
 - ✅ **Scoring field accordion UX + Common Fields rename** — Composer scoring fields collapse to a single header row (label, type/kind/Official badges, chevron); click to expand for editing; drag-to-reorder works from collapsed state; newly added fields auto-expand; "Scoring Presets" → "Common Fields" throughout (2026-06-18)
+- ✅ **Demo dashboard — Composer link fix** — "Explore the Composer →" button href wired to `https://composer-demo.camporeeconductor.com` (was `href="#"`) (2026-07-03)
+- ✅ **Demo Composer startup auto-seed** — `src/servers/composer.js` now extracts `DEMO_CARTRIDGE_PATH` into the demo workspace at boot when `camporee.json` is absent; container is self-sufficient without a manual `seed-demo-composer.js` run (2026-07-03)
 - [ ] **Composer demo event for preview accounts** — link Phase 1 preview account holders to demo camporee on first login
 - [ ] **Landing page video/slide deck embed** — content Jim creates; embed is trivial when ready
 - [ ] **Phase 2: No-auth playground** — (future, after Phase 1 feedback incorporated)

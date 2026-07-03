@@ -245,9 +245,9 @@ In `COLLATOR_MODE=cloud`, also contains `event_permissions (camporee_id, user_id
 
 ---
 
-## Deployment Architecture (as of 2026-06-06 — camporeeconductor.com is LIVE)
+## Deployment Architecture (as of 2026-07-03 — camporeeconductor.com is LIVE)
 
-### Docker services (4 containers)
+### Docker services (6 containers)
 
 | Service | Container | Port | Role |
 |---|---|---|---|
@@ -255,28 +255,24 @@ In `COLLATOR_MODE=cloud`, also contains `event_permissions (camporee_id, user_id
 | `landing` | camporee-landing | 3002 (internal) | Marketing site + early-access form (`Dockerfile.landing`) |
 | `composer` | camporee-composer | 3001 | Composer + Curator Node app |
 | `collator` | camporee-collator | 3000 | Collator Node app |
+| `demo-collator` | camporee-demo-collator | 3003 | Demo Collator (`DEMO_MODE=true`); nightly reset cron |
+| `demo-composer` | camporee-demo-composer | 3004 | Demo Composer (`COMPOSER_DEMO_MODE=true`); read-only, no Clerk |
 
 ### Caddyfile — `{$CADDY_HOST}` pattern
 
 Single Caddyfile works for both dev and VPS via `CADDY_HOST` env var:
 
 ```
-{$CADDY_HOST:localhost} {
-    tls internal
-    reverse_proxy landing:3002
-}
-composer.{$CADDY_HOST:localhost} {
-    tls internal
-    reverse_proxy composer:3001
-}
-collator.{$CADDY_HOST:localhost} {
-    tls internal
-    reverse_proxy collator:3000
-}
+{$CADDY_HOST:localhost}              → landing:3002
+composer.{$CADDY_HOST:localhost}     → composer:3001
+collator.{$CADDY_HOST:localhost}     → collator:3000
+demo.{$CADDY_HOST:localhost}         → demo-collator:3003
+collator-demo.{$CADDY_HOST:localhost}→ demo-collator:3003  (alias)
+composer-demo.{$CADDY_HOST:localhost}→ demo-composer:3004
 ```
 
 - **Dev:** `CADDY_HOST` unset → defaults to `localhost` → `tls internal` (Caddy self-signed CA)
-- **VPS:** `CADDY_HOST=camporeeconductor.com` → three public subdomains. Note: `tls internal` at a public domain uses Caddy's CA — if traffic goes through Cloudflare proxy, the origin cert doesn't need to be browser-trusted. Verify this is the intended TLS model before go-live.
+- **VPS:** `CADDY_HOST=camporeeconductor.com` → six public subdomains. `tls internal` at a public domain uses Caddy's internal CA — Cloudflare proxy handles browser trust at the edge, so origin cert does not need to be browser-trusted.
 
 ### Offline Event Deployment (GL.iNet Opal)
 
@@ -288,7 +284,7 @@ GL.iNet Opal custom DNS: add `address=/camporeeconductor.com/192.168.8.XXX` so j
 
 ---
 
-## Known Backlog (as of 2026-06-18)
+## Known Backlog (as of 2026-07-03)
 
 See `BACKLOG.md` for the full living backlog. Key open items:
 
@@ -296,6 +292,11 @@ See `BACKLOG.md` for the full living backlog. Key open items:
 - ✅ Clerk Production — configured, Google OAuth working
 - ✅ SESSION_SECRET — real value set on VPS
 - **Full browser smoke test** — Google sign-in → create camporee → invite collaborator → verify DB row (last remaining pre-VPS check)
+
+### Site Demo — Live
+- ✅ Demo Collator at `demo.camporeeconductor.com` — Circus 2026 snapshot, nightly reset, 34 games
+- ✅ Demo Composer at `composer-demo.camporeeconductor.com` — read-only, auto-seeds from cartridge on startup, Circus 2026 pre-loaded
+- **Composer demo event for preview accounts** — link Phase 1 preview account holders to demo camporee on first login
 
 ### Composer — Scoring Tab
 - **Common Fields modal ordering** — drag-reorder for prefix/suffix injection rules inside `openCommonFieldsModal()`; accordion UX on field rows is done (2026-06-18); the modal ordering is still unbuilt
@@ -308,7 +309,7 @@ See `BACKLOG.md` for the full living backlog. Key open items:
 
 ### Collator / Runtime
 - **Challenge Match ("True 2nd Place")** — DB tables exist, trigger logic TODO
-- **WebSocket leaderboard** — `official.js` polls every 15s
+- **WebSocket leaderboard** — `official.js` uses SSE push (polling replaced); WebSocket would add bidirectional features if needed
 - **Judge token management UI** — `judge_tokens` table (migration 009) ready; API + UI not built
 
 ### Coding Debt
