@@ -160,7 +160,8 @@ npm test                  # all three
 
 - **Schema version:** 3.0 (merged to `main` 2026-06-04) — `schemas/` directory is the source of truth (AJV validation)
 - **Cartridge format** (`CamporeeConfig.zip`): `camporee.json` + `presets.json` + `games/*.json`
-- Full schema documentation: `CAMPOREESCHEMA.md`
+- Narrative schema documentation (why/how it fits together, worked examples, phased rollout): `CAMPOREESCHEMA.md`
+- Generated field-level reference (all 5 `schemas/*.json` files, always accurate): `SCHEMA.md` — regenerate via `npm run docs:schema` (`scripts/generate-docs.js`) after any schema file change
 - **`game.type` is REMOVED in v3.0** — replaced by `game.league` (FK → `camporee.leagues[].id`). Never reference `game.type` in new code.
 - **Game files contain only game-specific scoring inputs.** Common fields are NOT baked in.
 - `game.variables` — optional `{ key: value }` pairs for template substitution in preset labels
@@ -284,9 +285,21 @@ GL.iNet Opal custom DNS: add `address=/camporeeconductor.com/192.168.8.XXX` so j
 
 ---
 
-## Known Backlog (as of 2026-07-03)
+## Known Backlog (as of 2026-10-07)
 
 See `BACKLOG.md` for the full living backlog. Key open items:
+
+### 2026-10-07 session — architecture review after a ~4-month gap
+
+Resolved 6 open design gaps (common field flattening location, Curator/Composer
+decoupling stance, 3-edge fork lineage, Unit/Subunit contact info spec,
+Scouting-first/generalize-when-free stance, shared `assets/` pool + Program
+Guide composition tiers) — all written into `ARCHITECTURE.md` §§12–18.
+`SCHEMA.md` was extended to cover all 5 `schemas/*.json` files (previously
+only `game.schema.json`) via `scripts/generate-docs.js`; re-run
+`npm run docs:schema` after any schema change. New backlog items added for
+contact info, the asset pool, and Program Guide generation — see
+`BACKLOG.md` → Curator / Community Library.
 
 ### Pre-VPS Blockers — All resolved except smoke test
 - ✅ Clerk Production — configured, Google OAuth working

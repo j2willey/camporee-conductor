@@ -43,6 +43,7 @@
 - ✅ E2E tests pass regardless of Docker state — E2E webServers moved to ports 4000/4001 (Docker never binds there); `reuseExistingServer: false`; `TEST_MODE` bypass added to collator `requireOfficial`, page-redirect middleware, and `whoami`; `beforeAll` uploads minimal cartridge for tests needing a loaded event; 8/8 passing (2026-06-06)
 - ✅ UUID workspace IDs — workspace folder names are now always auto-generated UUIDs; user provides a human-friendly Camporee Name stored as `meta.title`; server enforces UUID format on all workspace routes; first-time welcome pane shown when user has no camporees; per-user title uniqueness checked client-side (2026-06-06)
 - ✅ **camporeeconductor.com LIVE** — VPS deployed; Clerk Production + Google OAuth configured; SESSION_SECRET set; 2GB swap added; Dockerfile npm install path fixed (2026-06-06)
+- ✅ **Architecture review + SCHEMA.md completion** — resolved 6 open design gaps from a post-4-month-gap review (common field flattening location, Curator/Composer decoupling stance, 3-edge fork lineage, Unit/Subunit contact info spec, Scouting-first/generalize-when-free stance, shared `assets/` image pool + Program Guide composition tiers); extended `scripts/generate-docs.js` to cover all 5 `schemas/*.json` files instead of just `game.schema.json`; see `ARCHITECTURE.md` §§12–18 (2026-10-07)
 
 ---
 
@@ -142,9 +143,12 @@ Model A zip vault is live. Remaining work builds on top of it:
 - [ ] **Wizard 1 — Build from scratch** — interview director for theme/dates/venue; scaffold camporee; suggest matching library games. See `ARCHITECTURE.md §9`
 - [ ] **New user onboarding** — detect zero `event_permissions` rows on first login; redirect to Curator with Wizard 1/2 entry points rather than empty Composer workspace. See `ARCHITECTURE.md §10`
 - [ ] **Post-event share prompt** — after event date passes, prompt director to share camporee with community; key mechanism for library growth
-- [ ] **Template versioning** — new submission = new version; "updated version available" notification for workspaces forked from older template versions
-- [ ] **Games as first-class citizens** — refactor nested `workspaces/{id}/games/` into flat `data/games/{gameId}/` pool with `source_game_id` for fork lineage; `is_library_game` flag; "promote to library" workflow. See `ARCHITECTURE.md §3–4`
+- [ ] **Template versioning** — new submission = new version; "updated version available" notification for workspaces forked from older template versions; includes template→template lineage tracking (`CuratorService.submit()` currently mints a fresh UUID with no `derived_from_template_id`). See `ARCHITECTURE.md §16`
+- [ ] **Games as first-class citizens** — refactor nested `workspaces/{id}/games/` into flat `data/games/{gameId}/` pool, single `game.json` per game (not split files); fork lineage field is `library_uuid` (not `source_game_id`), already correct and single-parent-only; `is_library_game` flag; "promote to library" workflow. See `ARCHITECTURE.md §3–4, §16`
 - [ ] **`is_public` flag on camporees** — foundation for community browsing; Curator can surface `WHERE is_public = true` events
+- [ ] **Unit/Subunit contact info** — `contact_name`/`contact_phone` on both roster tiers (subunit overrides unit, falls back when absent), new `terminology.unit_leader` field, editable in both Composer `rosters{}` and Collator `entities` admin UI. Fully spec'd, not built. See `ARCHITECTURE.md §14`, `FEATURE-ROADMAP.md` item 3
+- [ ] **Shared `assets/` image pool** — new top-level zip folder (schema v3.1 addition), images referenced by relative path from any markdown content field, bundled in-zip (never external URLs — offline-first + zip-atomicity requirement). Needs a static-serving route on each server. See `ARCHITECTURE.md §17`
+- [ ] **Program Guide generation** — new camporee-wide deliverable (distinct from the per-game Game Guide). Needs a Venue Profile object (Composer-side, not Curator — reusable across years at the same site) and a Council/District Profile object (Composer-side, independent of venue), plus a camporee-scoped Handlebars pipeline analogous to `gameguide.md`. Fully spec'd from reviewing two real historical program guides, zero code exists. See `ARCHITECTURE.md §18`
 
 ### Documentation
 

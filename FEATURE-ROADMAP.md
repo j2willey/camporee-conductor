@@ -31,6 +31,12 @@ finalize patrol counts until the week of. Pre-entry of patrols only becomes wort
 we also track Scoutmaster/Person-in-Charge contact info (name + phone number), so officials can
 text a unit directly when there's a scoring issue. The two features should be built together.
 
+**Design resolved 2026-10-06 — see `ARCHITECTURE.md` §14 for the full spec:** contact fields on
+both `UnitRoster` and `SubUnitRoster` (subunit overrides unit when present, falls back otherwise),
+a new `terminology.unit_leader` label field, and entry editable in *both* the Collator's `entities`
+admin UI (Jim's primary day-of workflow) and the Composer's `rosters{}` editor (for directors who
+pre-populate before the event).
+
 ### 4. Curator Director Self-Submission with Curation Gate *(Curator)*
 Widen submission access to any authenticated director — but do not make it fully open. Without
 an editorial layer the library will fill with 5–10 "Star Wars"-themed camporees that are barely

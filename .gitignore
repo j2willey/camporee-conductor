@@ -12,6 +12,7 @@ data/*
 *.log
 *.xlsx
 scratch/
+tmp/
 SCHEMA.md
 
 scripts/demo/score-p*
