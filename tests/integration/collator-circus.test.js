@@ -1,6 +1,7 @@
 /**
  * Integration tests for the Collator using the real Circus Camporee workspace
- * (5d5a6a80-c9e1-4551-8e15-8ef1ca93b9ca).
+ * (5d5a6a80-c9e1-4551-8e15-8ef1ca93b9ca), committed as fixtures under
+ * tests/fixtures/circus/ so the test runs on any fresh clone.
  *
  * This file is intentionally separate from collator.test.js because both
  * files must set process.env.EVENT_PATH and import collator.js at module level,
@@ -13,20 +14,12 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import AdmZip from 'adm-zip';
-import dotenv from 'dotenv';
-
-// Load .env so DATA_DIR (and other path vars) are available before any constants are set.
-dotenv.config();
+import { fileURLToPath } from 'url';
 
 // ---------------------------------------------------------------------------
-// Paths to the real Circus workspace
-// DATA_DIR may point outside the repo (e.g. ~/camporee-data in dev).
-// Fall back to ./data so the path works in a fresh clone if data is present there.
+// Circus workspace fixture (camporee.json + presets.json + games/*.json)
 // ---------------------------------------------------------------------------
-const DATA_ROOT = process.env.DATA_DIR
-    ? path.resolve(process.env.DATA_DIR)
-    : path.join(process.cwd(), 'data');
-const WORKSPACE_DIR = path.join(DATA_ROOT, 'composer/workspaces/5d5a6a80-c9e1-4551-8e15-8ef1ca93b9ca');
+const WORKSPACE_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '../fixtures/circus');
 
 // The default type_defaults that Composer would inject into the exported zip
 // (matches DEFAULT_TYPE_DEFAULTS in public/js/apps/composer.js — v3.0 league id keys)
@@ -148,7 +141,7 @@ test('POST /api/setup/upload installs the Circus cartridge and redirects to admi
 });
 
 // ---------------------------------------------------------------------------
-// Test 2: GET /games.json — 19 games loaded, correct metadata
+// Test 2: GET /games.json — 34 games loaded, correct metadata
 // ---------------------------------------------------------------------------
 test('GET /games.json returns all 34 Circus games with correct metadata', async () => {
     const response = await request(app).get('/games.json');
