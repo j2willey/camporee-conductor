@@ -1,5 +1,6 @@
 # --- STAGE 1: BUILDER ---
-FROM node:22-alpine AS builder
+# Pinned >= 22.23.4 for CVE-2026-111497 (Node Brotli RCE)
+FROM node:22.23.4-alpine AS builder
 
 WORKDIR /app
 
@@ -15,7 +16,8 @@ COPY . .
 RUN npm run minify && npm prune --production
 
 # --- STAGE 2: PRODUCTION ---
-FROM node:22-alpine
+# Pinned >= 22.23.4 for CVE-2026-111497 (Node Brotli RCE)
+FROM node:22.23.4-alpine
 
 WORKDIR /app
 
