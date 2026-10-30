@@ -136,6 +136,8 @@ npm run test:e2e          # Playwright — launches fresh servers on ports 4000/
 npm test                  # All three suites
 ```
 
+E2E tests need Playwright's browser installed once per machine: `npx playwright install chromium`. On distros Playwright doesn't officially support (e.g. Arch), it falls back to its Ubuntu 24.04 build, which works.
+
 E2E tests use dedicated ports 4000/4001 (`playwright.config.js`) so they never conflict with running Docker containers on 3000/3001.
 
 ---

@@ -18,6 +18,11 @@ test.describe('Composer (Director) E2E Workflow', () => {
         const exportBtn = page.getByRole('button', { name: /Export Zip/i });
         await expect(exportBtn).toBeVisible();
 
+        // With no saved camporees the Composer opens on the first-time welcome;
+        // creating one (in memory only — nothing is saved) reveals the meta pane.
+        await page.locator('#firstTimeName').fill('E2E Test Camporee');
+        await page.locator('#firstTimeCreateBtn').click();
+
         // Browse Library button in meta pane
         const browseBtn = page.getByRole('button', { name: /Browse Library/i }).first();
         await expect(browseBtn).toBeVisible();

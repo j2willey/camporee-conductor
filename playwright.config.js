@@ -1,4 +1,13 @@
 import { defineConfig, devices } from '@playwright/test';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+
+// Empty workspace dir for the test Composer, so it always starts in the
+// first-time ("no camporees yet") state regardless of local data/composer contents.
+// Stored in process.env so worker processes (which re-evaluate this config) reuse it.
+process.env.E2E_WORKSPACE_PATH ||= fs.mkdtempSync(path.join(os.tmpdir(), 'e2e-composer-workspaces-'));
+const E2E_WORKSPACE_PATH = process.env.E2E_WORKSPACE_PATH;
 
 // E2E tests use dedicated ports (4000/4001) that Docker never binds to.
 // This prevents Playwright from reusing Docker containers (which lack NODE_ENV=test)
@@ -24,6 +33,7 @@ export default defineConfig({
         NODE_ENV: 'test',
         PORT: '4001',
         ACTIVE_SERVICES: 'curator,composer',
+        WORKSPACE_PATH: E2E_WORKSPACE_PATH,
       },
     },
     {
