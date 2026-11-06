@@ -10,7 +10,10 @@ services:
       - "443:443"
     env_file: .env
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Mount the folder, not the file: a single-file mount pins the file's inode, so after a
+      # git pull the container would keep reading the old Caddyfile. After changing it:
+      # docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
+      - ./caddy:/etc/caddy:ro
       - caddy_data:/data
     depends_on:
       - landing

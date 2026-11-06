@@ -35,3 +35,11 @@ composer-demo.{$CADDY_HOST:localhost} {
         flush_interval -1
     }
 }
+
+# Composer v2 (repo camporee-conductor-v2). Runs as its own compose project in ~/composer-v2 on the
+# droplet and joins this project's network; see that repo's docs/runbook/deploy.md. Locally, with no
+# composer-v2 container, this site just answers 502.
+v2.{$CADDY_HOST:localhost} {
+    tls internal
+    reverse_proxy composer-v2:3010
+}

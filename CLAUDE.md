@@ -261,7 +261,7 @@ In `COLLATOR_MODE=cloud`, also contains `event_permissions (camporee_id, user_id
 
 ### Caddyfile — `{$CADDY_HOST}` pattern
 
-Single Caddyfile works for both dev and VPS via `CADDY_HOST` env var:
+Single Caddyfile (`caddy/Caddyfile`; the `caddy/` folder is mounted as `/etc/caddy`) works for both dev and VPS via `CADDY_HOST` env var:
 
 ```
 {$CADDY_HOST:localhost}              → landing:3002
