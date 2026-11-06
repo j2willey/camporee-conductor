@@ -121,9 +121,11 @@ Requires `GEMINI_API_KEY` in `.env` for AI features (do not commit the key).
 ```bash
 npm run test:unit         # vitest — schema/normalizer unit tests
 npm run test:integration  # vitest — API tests (Gemini mocked)
-npm run test:e2e          # playwright — requires servers on localhost:3000/3001
+npm run test:e2e          # playwright — launches fresh servers on ports 4000/4001
 npm test                  # all three
 ```
+
+E2E needs Playwright's browser once per machine: `npx playwright install chromium` (on Arch it warns "OS not officially supported" and uses the Ubuntu 24.04 build — works). The e2e Composer runs against an empty temp `WORKSPACE_PATH` (set in `playwright.config.js`), so it always starts on the first-time welcome pane.
 
 ---
 

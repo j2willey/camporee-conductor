@@ -52,8 +52,11 @@ test.describe('Collator (Judge) E2E Workflow', () => {
         const stationList = page.locator('#station-list');
         await expect(stationList).toBeVisible();
 
-        const syncStatus = page.locator('#unsynced-count');
+        // Header sync status button is always shown; the "Scores to Sync" count
+        // line (#unsynced-count) only appears when there are unsynced scores.
+        const syncStatus = page.locator('#status-indicator');
         await expect(syncStatus).toBeVisible();
+        await expect(page.locator('#unsynced-count')).toBeAttached();
     });
 
     test('should load the admin dashboard', async ({ page }) => {
